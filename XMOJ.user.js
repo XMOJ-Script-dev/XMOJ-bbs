@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         XMOJ
-// @version      1.0.201
+// @version      1.0.202
 // @description  XMOJ增强脚本
 // @author       @PythonSmall-Q
 // @namespace    https://github/langningchen
@@ -334,7 +334,7 @@ GM_registerMenuCommand("重置数据", () => {
 });
 
 let SearchParams = new URLSearchParams(location.search);
-let ServerURL = (UtilityEnabled("DebugMode") ? "https://xmoj-script-dev.github.io/XMOJ-Script" : "https://www.seanoj.edu.eu.org")
+let ServerURL = (UtilityEnabled("DebugMode") ? "https://xmoj-script-dev.github.io/XMOJ-Script" : "https://web.xmoj-bbs.tech")
 let CurrentUsername = document.querySelector("#profile").innerText;
 CurrentUsername = CurrentUsername.replaceAll(/[^a-zA-Z0-9]/g, "");
 let IsAdmin = AdminUserList.indexOf(CurrentUsername) !== -1;
@@ -670,7 +670,7 @@ else {
             .then((Response) => {
                 let CurrentVersion = GM_info.script.version;
                 let LatestVersion;
-                for (let i = Object.keys(Response.UpdateHistory).length - 1; i > 0; i--) {
+                for (let i = Object.keys(Response.UpdateHistory).length - 1; i >= 0; i--) {
                     let VersionInfo = Object.keys(Response.UpdateHistory)[i];
                     if (UtilityEnabled("DebugMode") || Response.UpdateHistory[VersionInfo].Prerelease == false) {
                         LatestVersion = VersionInfo;
@@ -4089,7 +4089,7 @@ int main()
                                         let ReplyContentElement = document.createElement("div"); CardBodyElement.appendChild(ReplyContentElement);
                                         ReplyContentElement.innerHTML = PurifyHTML(marked.parse(Replies[i].Content)).replaceAll(/@([a-zA-Z0-9]+)/g, `<b>@</b><span class="ms-1 Usernames">$1</span>`);
                                         if (Replies[i].EditTime != null) {
-                                            if (Replies[i].EditPerson !== CurrentUsername) {
+                                            if (Replies[i].EditPerson == CurrentUsername) {
                                                 ReplyContentElement.innerHTML += `<span class="text-muted" style="font-size: 12px">最后编辑于${GetRelativeTime(Replies[i].EditTime)}</span>`;
                                             }
                                             else {
