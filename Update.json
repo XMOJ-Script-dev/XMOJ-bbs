@@ -49,6 +49,20 @@
                     "Description": "把@langningchen当作吉祥物"
                 }
             ]
+        },
+        "1.0.205": {
+            "UpdateDate": 1696345969618,
+            "Prerelease": false,
+            "UpdateContents": [
+                {
+                    "PR": 57,
+                    "Description": "add more credits"
+                },
+                {
+                    "PR": 58,
+                    "Description": "把@langningchen当作吉祥物"
+                }
+            ]
         }
     }
 }
