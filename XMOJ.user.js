@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         XMOJ
-// @version      1.0.202
+// @version      1.0.205
 // @description  XMOJ增强脚本
-// @author       @PythonSmall-Q
+// @author       @langningchen, @PythonSmall-Q and @boomzero
 // @namespace    https://github/langningchen
 // @match        http://*.xmoj.tech/*
 // @match        http://116.62.212.172/*
@@ -185,6 +185,9 @@ let GetUsernameHTML = async (Element, Username, Simple = false, Href = "http://w
     if (!Simple) {
         if (AdminUserList.includes(Username)) {
             HTMLData += `<span class="badge text-bg-danger ms-2">管理员</span>`;
+        }
+        if (Username == "chenlangning"){
+            HTMLData += `<span class="badge text-bg-success ms-2">吉祥物</span>`;
         }
         let BadgeInfo = await GetUserBadge(Username);
         if (BadgeInfo.Content != "") {

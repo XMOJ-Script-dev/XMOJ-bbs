@@ -29,6 +29,40 @@
                     "Description": "增加名字"
                 }
             ]
+        },
+        "1.0.203": {
+            "UpdateDate": 1696342022363,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 57,
+                    "Description": "add more credits"
+                }
+            ]
+        },
+        "1.0.204": {
+            "UpdateDate": 1696342420616,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 58,
+                    "Description": "把@langningchen当作吉祥物"
+                }
+            ]
+        },
+        "1.0.205": {
+            "UpdateDate": 1696345969618,
+            "Prerelease": false,
+            "UpdateContents": [
+                {
+                    "PR": 57,
+                    "Description": "add more credits"
+                },
+                {
+                    "PR": 58,
+                    "Description": "把@langningchen当作吉祥物"
+                }
+            ]
         }
     }
 }
