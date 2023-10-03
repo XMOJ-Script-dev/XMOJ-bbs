@@ -1,9 +1,9 @@
-![Release](https://github.com/PythonSmall-Q/XMOJ-Script/actions/workflows/Release.yml/badge.svg)
-![Prerelease](https://github.com/PythonSmall-Q/XMOJ-Script/actions/workflows/Prerelease.yml/badge.svg)
-![GitHub](https://img.shields.io/github/license/PythonSmall-Q/XMOJ-Script)
-![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/PythonSmall-Q/XMOJ-Script)
-![GitHub release](https://img.shields.io/github/v/release/PythonSmall-Q/XMOJ-Script)
-![GitHub issues](https://img.shields.io/github/issues/PythonSmall-Q/XMOJ-Script)
+![Release](https://github.com/XMOJ-Script-dev/XMOJ-Script/actions/workflows/Release.yml/badge.svg)
+![Prerelease](https://github.com/XMOJ-Script-dev/XMOJ-Script/actions/workflows/Prerelease.yml/badge.svg)
+![GitHub](https://img.shields.io/github/license/XMOJ-Script-dev/XMOJ-Script)
+![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/XMOJ-Script-dev/XMOJ-Script)
+![GitHub release](https://img.shields.io/github/v/release/XMOJ-Script-dev/XMOJ-Script)
+![GitHub issues](https://img.shields.io/github/issues/XMOJ-Script-dev/XMOJ-Script)
 
 [点击此处访问官网查看更多内容](https://web.xmoj-bbs.tech)
 
