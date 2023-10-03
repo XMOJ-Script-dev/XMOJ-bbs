@@ -13,6 +13,7 @@ const LabelList = [
     "designing",
     "documentation",
     "duplicate",
+    "discussing",
     "enhancement",
     "frozen",
     "github_actions",
