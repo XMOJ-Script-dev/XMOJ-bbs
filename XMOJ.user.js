@@ -3742,11 +3742,14 @@ int main()
                                 if (Items[i].type.indexOf("image") != -1) {
                                     let Reader = new FileReader();
                                     Reader.readAsDataURL(Items[i].getAsFile());
+                                    // ContentElement.value += `![Uploading Image]`;
+                                    // ContentElement.dispatchEvent(new Event("input"));
                                     Reader.onload = () => {
                                         RequestAPI("UploadImage", {
                                             "Image": Reader.result
                                         }, (ResponseData) => {
                                             if (ResponseData.Success) {
+                                                // ContentElement.value -= `![Uploading Image]`;
                                                 ContentElement.value += `![](https://api.xmoj-bbs.tech/GetImage?ImageID=${ResponseData.Data.ImageID})`;
                                                 ContentElement.dispatchEvent(new Event("input"));
                                             }
@@ -3911,13 +3914,23 @@ int main()
                                         let Reader = new FileReader();
                                         Reader.readAsDataURL(Items[i].getAsFile());
                                         Reader.onload = () => {
+                                            // ContentElement.dispatchEvent(new Event("input"));
+                                            // ContentElement.value += `![Uploading Image...]`;
                                             RequestAPI("UploadImage", {
                                                 "Image": Reader.result
                                             }, (ResponseData) => {
+                                                // ContentElement.dispatchEvent(new Event("input"));
                                                 if (ResponseData.Success) {
+                                                    // ContentElement.value -= `![Uploading Image...]`;
+                                                    // ContentElement.value -= `NaN`;
                                                     ContentElement.value += `![](https://api.xmoj-bbs.tech/GetImage?ImageID=${ResponseData.Data.ImageID})`;
                                                     ContentElement.dispatchEvent(new Event("input"));
-                                                }
+                                                } 
+                                                // else{
+                                                //     ContentElement.value -= `![Uploading Image...]`;
+                                                //     ContentElement.value += `![Upload Failed, Please try again!]`;
+                                                //     ContentElement.dispatchEvent(new Event("input"));
+                                                // }
                                             });
                                         };
                                     }
@@ -4135,11 +4148,13 @@ int main()
                                                     if (Items[i].type.indexOf("image") != -1) {
                                                         let Reader = new FileReader();
                                                         Reader.readAsDataURL(Items[i].getAsFile());
+                                                        // ContentEditor.value += `![Uploading]`;
                                                         Reader.onload = () => {
                                                             RequestAPI("UploadImage", {
                                                                 "Image": Reader.result
                                                             }, (ResponseData) => {
                                                                 if (ResponseData.Success) {
+                                                                    // ContentEditor.value -= `![Uploading]`
                                                                     ContentEditor.value += `![](https://api.xmoj-bbs.tech/GetImage?ImageID=${ResponseData.Data.ImageID})`;
                                                                     ContentEditor.dispatchEvent(new Event("input"));
                                                                 }
