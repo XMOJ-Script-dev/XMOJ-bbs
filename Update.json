@@ -63,6 +63,16 @@
                     "Description": "把@langningchen当作吉祥物"
                 }
             ]
+        },
+        "1.0.206": {
+            "UpdateDate": 1696382789791,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 67,
+                    "Description": "允许用户关闭获取数据，开启学术模式选择"
+                }
+            ]
         }
     }
 }
