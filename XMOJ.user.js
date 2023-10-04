@@ -3735,22 +3735,28 @@ int main()
                     TitleElement.addEventListener("input", () => {
                         TitleElement.classList.remove("is-invalid");
                     });
-                    ContentElement.addEventListener("paste", (Event) => {
-                        let Items = Event.clipboardData.items;
+                    ContentElement.addEventListener("paste", (EventData) => {
+                        let Items = EventData.clipboardData.items;
                         if (Items.length !== 0) {
                             for (let i = 0; i < Items.length; i++) {
                                 if (Items[i].type.indexOf("image") != -1) {
                                     let Reader = new FileReader();
                                     Reader.readAsDataURL(Items[i].getAsFile());
-                                    ContentElement.value += `![Uploading Image]`;
-                                    // ContentElement.dispatchEvent(new Event("input"));
                                     Reader.onload = () => {
+                                        let Before = ContentElement.value.substring(0, ContentElement.selectionStart);
+                                        let After = ContentElement.value.substring(ContentElement.selectionEnd, ContentElement.value.length);
+                                        const UploadMessage = "![正在上传图片...]()";
+                                        ContentElement.value = Before + UploadMessage + After;
+                                        ContentElement.dispatchEvent(new Event("input"));
                                         RequestAPI("UploadImage", {
                                             "Image": Reader.result
                                         }, (ResponseData) => {
                                             if (ResponseData.Success) {
-                                                ContentElement.value -= `![Uploading Image]`;
-                                                ContentElement.value += `![](https://api.xmoj-bbs.tech/GetImage?ImageID=${ResponseData.Data.ImageID})`;
+                                                ContentElement.value = Before + `![](https://api.xmoj-bbs.tech/GetImage?ImageID=${ResponseData.Data.ImageID})` + After;
+                                                ContentElement.dispatchEvent(new Event("input"));
+                                            }
+                                            else {
+                                                ContentElement.value = Before + `![上传失败！]()` + After;
                                                 ContentElement.dispatchEvent(new Event("input"));
                                             }
                                         });
@@ -3906,31 +3912,30 @@ int main()
                             PreviewTab.innerHTML = PurifyHTML(marked.parse(ContentElement.value));
                             RenderMathJax();
                         });
-                        ContentElement.addEventListener("paste", (Event) => {
-                            let Items = Event.clipboardData.items;
+                        ContentElement.addEventListener("paste", (EventData) => {
+                            let Items = EventData.clipboardData.items;
                             if (Items.length !== 0) {
                                 for (let i = 0; i < Items.length; i++) {
                                     if (Items[i].type.indexOf("image") != -1) {
                                         let Reader = new FileReader();
                                         Reader.readAsDataURL(Items[i].getAsFile());
                                         Reader.onload = () => {
-                                            // ContentElement.dispatchEvent(new Event("input"));
-                                            ContentElement.value += `![Uploading Image...]`;
+                                            let Before = ContentElement.value.substring(0, ContentElement.selectionStart);
+                                            let After = ContentElement.value.substring(ContentElement.selectionEnd, ContentElement.value.length);
+                                            const UploadMessage = "![正在上传图片...]()";
+                                            ContentElement.value = Before + UploadMessage + After;
+                                            ContentElement.dispatchEvent(new Event("input"));
                                             RequestAPI("UploadImage", {
                                                 "Image": Reader.result
                                             }, (ResponseData) => {
-                                                // ContentElement.dispatchEvent(new Event("input"));
                                                 if (ResponseData.Success) {
-                                                    ContentElement.value -= `![Uploading Image...]`;
-                                                    // ContentElement.value -= `NaN`;
-                                                    ContentElement.value += `![](https://api.xmoj-bbs.tech/GetImage?ImageID=${ResponseData.Data.ImageID})`;
+                                                    ContentElement.value = Before + `![](https://api.xmoj-bbs.tech/GetImage?ImageID=${ResponseData.Data.ImageID})` + After;
                                                     ContentElement.dispatchEvent(new Event("input"));
-                                                } 
-                                                // else{
-                                                //     ContentElement.value -= `![Uploading Image...]`;
-                                                //     ContentElement.value += `![Upload Failed, Please try again!]`;
-                                                //     ContentElement.dispatchEvent(new Event("input"));
-                                                // }
+                                                }
+                                                else {
+                                                    ContentElement.value = Before + `![上传失败！]()` + After;
+                                                    ContentElement.dispatchEvent(new Event("input"));
+                                                }
                                             });
                                         };
                                     }
@@ -4141,22 +4146,29 @@ int main()
                                             PreviewTab.innerHTML = PurifyHTML(marked.parse(ContentEditor.value));
                                             RenderMathJax();
                                         });
-                                        ContentEditor.addEventListener("paste", (Event) => {
-                                            let Items = Event.clipboardData.items;
+                                        ContentElement.addEventListener("paste", (EventData) => {
+                                            let Items = EventData.clipboardData.items;
                                             if (Items.length !== 0) {
                                                 for (let i = 0; i < Items.length; i++) {
                                                     if (Items[i].type.indexOf("image") != -1) {
                                                         let Reader = new FileReader();
                                                         Reader.readAsDataURL(Items[i].getAsFile());
-                                                        ContentEditor.value += `![Uploading]`;
                                                         Reader.onload = () => {
+                                                            let Before = ContentElement.value.substring(0, ContentElement.selectionStart);
+                                                            let After = ContentElement.value.substring(ContentElement.selectionEnd, ContentElement.value.length);
+                                                            const UploadMessage = "![正在上传图片...]()";
+                                                            ContentElement.value = Before + UploadMessage + After;
+                                                            ContentElement.dispatchEvent(new Event("input"));
                                                             RequestAPI("UploadImage", {
                                                                 "Image": Reader.result
                                                             }, (ResponseData) => {
                                                                 if (ResponseData.Success) {
-                                                                    ContentEditor.value -= `![Uploading]`
-                                                                    ContentEditor.value += `![](https://api.xmoj-bbs.tech/GetImage?ImageID=${ResponseData.Data.ImageID})`;
-                                                                    ContentEditor.dispatchEvent(new Event("input"));
+                                                                    ContentElement.value = Before + `![](https://api.xmoj-bbs.tech/GetImage?ImageID=${ResponseData.Data.ImageID})` + After;
+                                                                    ContentElement.dispatchEvent(new Event("input"));
+                                                                }
+                                                                else {
+                                                                    ContentElement.value = Before + `![上传失败！]()` + After;
+                                                                    ContentElement.dispatchEvent(new Event("input"));
                                                                 }
                                                             });
                                                         };
