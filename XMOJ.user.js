@@ -2,7 +2,7 @@
 // @name         XMOJ
 // @version      1.0.207
 // @description  XMOJ增强脚本
-// @author       @langningchen, @PythonSmall-Q and @boomzero
+// @author       @XMOJ-Script-dev and @langningchen and the community
 // @namespace    https://github/langningchen
 // @match        http://*.xmoj.tech/*
 // @match        http://116.62.212.172/*
