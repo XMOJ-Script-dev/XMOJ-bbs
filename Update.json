@@ -75,8 +75,8 @@
             ]
         },
         "1.0.207": {
-            "UpdateDate": 1696401338712,
-            "Prerelease": false,
+            "UpdateDate": 1696392248973,
+            "Prerelease": true,
             "UpdateContents": [
                 {
                     "PR": 67,
