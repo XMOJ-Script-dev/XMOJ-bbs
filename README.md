@@ -1,9 +1,9 @@
-![Release](https://github.com/PythonSmall-Q/XMOJ-Script/actions/workflows/Release.yml/badge.svg)
-![Prerelease](https://github.com/PythonSmall-Q/XMOJ-Script/actions/workflows/Prerelease.yml/badge.svg)
-![GitHub](https://img.shields.io/github/license/PythonSmall-Q/XMOJ-Script)
-![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/PythonSmall-Q/XMOJ-Script)
-![GitHub release](https://img.shields.io/github/v/release/PythonSmall-Q/XMOJ-Script)
-![GitHub issues](https://img.shields.io/github/issues/PythonSmall-Q/XMOJ-Script)
+![Release](https://github.com/XMOJ-Script-dev/XMOJ-Script/actions/workflows/Release.yml/badge.svg)
+![Prerelease](https://github.com/XMOJ-Script-dev/XMOJ-Script/actions/workflows/Prerelease.yml/badge.svg)
+![GitHub](https://img.shields.io/github/license/XMOJ-Script-dev/XMOJ-Script)
+![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/XMOJ-Script-dev/XMOJ-Script)
+![GitHub release](https://img.shields.io/github/v/release/XMOJ-Script-dev/XMOJ-Script)
+![GitHub issues](https://img.shields.io/github/issues/XMOJ-Script-dev/XMOJ-Script)
 
 [点击此处访问官网查看更多内容](https://web.xmoj-bbs.tech)
 
@@ -66,10 +66,6 @@
 ![](Image/14.png)
 ![](Image/15.png)
 ![](Image/16.png)
-![](Image/17.png)
-![](Image/18.png)
-![](Image/19.png)
-![](Image/20.png)
 
 通过小明的OJ，您将能够更便捷地参与竞赛，提高AC率，管理代码，优化学习体验，同时享受美化界面带来的愉悦感受。
 无论是竞技还是学习，这个脚本都将成为您在XMOJ平台上的得力助手。
