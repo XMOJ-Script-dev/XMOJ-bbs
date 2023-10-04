@@ -75,12 +75,12 @@
             ]
         },
         "1.0.207": {
-            "UpdateDate": 1696390912762,
-            "Prerelease": false,
+            "UpdateDate": 1696392248973,
+            "Prerelease": true,
             "UpdateContents": [
                 {
-                    "PR": 67,
-                    "Description": "允许用户关闭获取数据，开启学术模式选择"
+                    "PR": 82,
+                    "Description": "Dev Release"
                 }
             ]
         }
