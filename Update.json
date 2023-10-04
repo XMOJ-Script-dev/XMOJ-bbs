@@ -51,7 +51,7 @@
             ]
         },
         "1.0.205": {
-            "UpdateDate": 1696345969618,
+            "UpdateDate": 1696384470503,
             "Prerelease": false,
             "UpdateContents": [
                 {
@@ -61,6 +61,26 @@
                 {
                     "PR": 58,
                     "Description": "把@langningchen当作吉祥物"
+                }
+            ]
+        },
+        "1.0.206": {
+            "UpdateDate": 1696382789791,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 67,
+                    "Description": "允许用户关闭获取数据，开启学术模式选择"
+                }
+            ]
+        },
+        "1.0.207": {
+            "UpdateDate": 1696385023446,
+            "Prerelease": false,
+            "UpdateContents": [
+                {
+                    "PR": 67,
+                    "Description": "允许用户关闭获取数据，开启学术模式选择"
                 }
             ]
         }
