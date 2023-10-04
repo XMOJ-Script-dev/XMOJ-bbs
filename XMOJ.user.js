@@ -186,6 +186,9 @@ let GetUsernameHTML = async (Element, Username, Simple = false, Href = "http://w
         if (AdminUserList.includes(Username)) {
             HTMLData += `<span class="badge text-bg-danger ms-2">管理员</span>`;
         }
+        if (Username == "chenlangning"){
+            HTMLData += `<span class="badge text-bg-success ms-2">吉祥物</span>`;
+        }
         let BadgeInfo = await GetUserBadge(Username);
         if (BadgeInfo.Content != "") {
             HTMLData += `<span class="badge ms-2" style="background-color: ${BadgeInfo.BackgroundColor}; color: ${BadgeInfo.Color}">${BadgeInfo.Content}</span>`;
@@ -968,6 +971,9 @@ else {
                     { "ID": "ACMRank", "Type": "A", "Name": "比赛ACM排名，并且能下载ACM排名" },
                     { "ID": "Discussion", "Type": "F", "Name": "恢复讨论与短消息功能" },
                     { "ID": "MoreSTD", "Type": "F", "Name": "查看到更多标程" },
+                    { "ID": "StudyMode", "Type": "F", "Name": "学术模式", "Children": [
+                        { "ID": "ApplyData", "Type": "A", "Name": "获取数据功能" }, 
+                    ]},
                     { "ID": "Rating", "Type": "A", "Name": "添加用户评分和用户名颜色" },
                     { "ID": "AutoRefresh", "Type": "A", "Name": "比赛列表、比赛排名界面自动刷新" },
                     { "ID": "AutoCountdown", "Type": "A", "Name": "比赛列表等界面的时间自动倒计时" },
@@ -2943,19 +2949,22 @@ else {
                 }
                 if (document.getElementById("apply_data")) {
                     let ApplyDiv = document.getElementById("apply_data").parentElement;
-                    let GetDataButton = document.createElement("button");
-                    GetDataButton.className = "ms-2 btn btn-outline-secondary";
-                    GetDataButton.innerText = "获取数据";
-                    ApplyDiv.appendChild(GetDataButton);
-                    GetDataButton.addEventListener("click", async () => {
-                        GetDataButton.disabled = true;
-                        GetDataButton.innerText = "正在获取数据...";
-                        let PID = localStorage.getItem("UserScript-Solution-" + SearchParams.get("sid") + "-Problem");
-                        let Code = "";
-                        if (localStorage.getItem(`UserScript-Problem-${PID}-IOFilename`) !== null) {
-                            Code = `#define IOFile "${localStorage.getItem(`UserScript-Problem-${PID}-IOFilename`)}"\n`;
-                        }
-                        Code += `#include <bits/stdc++.h>
+                    console.log("启动！！！");
+                    if(UtilityEnabled("ApplyData")){
+                        let GetDataButton = document.createElement("button");
+                        GetDataButton.className = "ms-2 btn btn-outline-secondary";
+                        GetDataButton.innerText = "获取数据";
+                        console.log("按钮创建成功");
+                        ApplyDiv.appendChild(GetDataButton);
+                        GetDataButton.addEventListener("click", async () => {
+                            GetDataButton.disabled = true;
+                            GetDataButton.innerText = "正在获取数据...";
+                            let PID = localStorage.getItem("UserScript-Solution-" + SearchParams.get("sid") + "-Problem");
+                            let Code = "";
+                            if (localStorage.getItem(`UserScript-Problem-${PID}-IOFilename`) !== null) {
+                                Code = `#define IOFile "${localStorage.getItem(`UserScript-Problem-${PID}-IOFilename`)}"\n`;
+                            }
+                            Code += `#include <bits/stdc++.h>
 using namespace std;
 string Base64Encode(string Input)
 {
@@ -2988,61 +2997,62 @@ int main()
     return 0;
 }`;
 
-                        await fetch("http://www.xmoj.tech/submit.php", {
-                            "headers": {
-                                "content-type": "application/x-www-form-urlencoded"
-                            },
-                            "referrer": "http://www.xmoj.tech/submitpage.php?id=" + PID,
-                            "method": "POST",
-                            "body": "id=" + PID + "&" +
-                                "language=1&" +
-                                "source=" + encodeURIComponent(Code) + "&" +
-                                "enable_O2=on"
-                        });
+                            await fetch("http://www.xmoj.tech/submit.php", {
+                                "headers": {
+                                    "content-type": "application/x-www-form-urlencoded"
+                                },
+                                "referrer": "http://www.xmoj.tech/submitpage.php?id=" + PID,
+                                "method": "POST",
+                                "body": "id=" + PID + "&" +
+                                    "language=1&" +
+                                    "source=" + encodeURIComponent(Code) + "&" +
+                                    "enable_O2=on"
+                            });
 
-                        let SID = await fetch("http://www.xmoj.tech/status.php").then((Response) => {
-                            return Response.text();
-                        }).then((Response) => {
-                            let ParsedDocument = new DOMParser().parseFromString(Response, "text/html");
-                            return ParsedDocument.querySelector("#result-tab > tbody > tr:nth-child(1) > td:nth-child(2)").innerText;
-                        });
+                            let SID = await fetch("http://www.xmoj.tech/status.php").then((Response) => {
+                                return Response.text();
+                            }).then((Response) => {
+                                let ParsedDocument = new DOMParser().parseFromString(Response, "text/html");
+                                return ParsedDocument.querySelector("#result-tab > tbody > tr:nth-child(1) > td:nth-child(2)").innerText;
+                            });
 
-                        await new Promise((Resolve) => {
-                            let Interval = setInterval(async () => {
-                                await fetch("status-ajax.php?solution_id=" + SID).then((Response) => {
-                                    return Response.text();
-                                }).then((Response) => {
-                                    if (Response.split(",")[0] >= 4) {
-                                        clearInterval(Interval);
-                                        Resolve();
-                                    }
-                                });
-                            }, 500);
-                        });
+                            await new Promise((Resolve) => {
+                                let Interval = setInterval(async () => {
+                                    await fetch("status-ajax.php?solution_id=" + SID).then((Response) => {
+                                        return Response.text();
+                                    }).then((Response) => {
+                                        if (Response.split(",")[0] >= 4) {
+                                            clearInterval(Interval);
+                                            Resolve();
+                                        }
+                                    });
+                                }, 500);
+                            });
 
-                        await fetch(`http://www.xmoj.tech/reinfo.php?sid=${SID}`).then((Response) => {
-                            return Response.text();
-                        }).then((Response) => {
-                            let ParsedDocument = new DOMParser().parseFromString(Response, "text/html");
-                            let ErrorData = ParsedDocument.getElementById("errtxt").innerText;
-                            let MatchResult = ErrorData.match(/\what\(\):  \[([A-Za-z0-9+\/=]+)\]/g);
-                            for (let i = 0; i < MatchResult.length; i++) {
-                                let Data = CryptoJS.enc.Base64.parse(MatchResult[i].substring(10, MatchResult[i].length - 1)).toString(CryptoJS.enc.Utf8);
-                                ApplyDiv.appendChild(document.createElement("hr"));
-                                ApplyDiv.appendChild(document.createTextNode("数据" + (i + 1) + "："));
-                                let CodeElement = document.createElement("div");
-                                ApplyDiv.appendChild(CodeElement);
-                                CodeMirror(CodeElement, {
-                                    value: Data,
-                                    theme: (UtilityEnabled("DarkMode") ? "darcula" : "default"),
-                                    lineNumbers: true,
-                                    readOnly: true
-                                }).setSize("100%", "auto");
-                            }
-                            GetDataButton.innerText = "获取数据成功";
-                            GetDataButton.disabled = false;
+                            await fetch(`http://www.xmoj.tech/reinfo.php?sid=${SID}`).then((Response) => {
+                                return Response.text();
+                            }).then((Response) => {
+                                let ParsedDocument = new DOMParser().parseFromString(Response, "text/html");
+                                let ErrorData = ParsedDocument.getElementById("errtxt").innerText;
+                                let MatchResult = ErrorData.match(/\what\(\):  \[([A-Za-z0-9+\/=]+)\]/g);
+                                for (let i = 0; i < MatchResult.length; i++) {
+                                    let Data = CryptoJS.enc.Base64.parse(MatchResult[i].substring(10, MatchResult[i].length - 1)).toString(CryptoJS.enc.Utf8);
+                                    ApplyDiv.appendChild(document.createElement("hr"));
+                                    ApplyDiv.appendChild(document.createTextNode("数据" + (i + 1) + "："));
+                                    let CodeElement = document.createElement("div");
+                                    ApplyDiv.appendChild(CodeElement);
+                                    CodeMirror(CodeElement, {
+                                        value: Data,
+                                        theme: (UtilityEnabled("DarkMode") ? "darcula" : "default"),
+                                        lineNumbers: true,
+                                        readOnly: true
+                                    }).setSize("100%", "auto");
+                                }
+                                GetDataButton.innerText = "获取数据成功";
+                                GetDataButton.disabled = false;
+                            });
                         });
-                    });
+                    }
                     document.getElementById("apply_data").addEventListener("click", () => {
                         let ApplyElements = document.getElementsByClassName("data");
                         for (let i = 0; i < ApplyElements.length; i++) {
