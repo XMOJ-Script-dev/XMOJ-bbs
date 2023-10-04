@@ -4154,8 +4154,8 @@ int main()
                                                         let Reader = new FileReader();
                                                         Reader.readAsDataURL(Items[i].getAsFile());
                                                         Reader.onload = () => {
-                                                            let Before = ContentEditor.value.substring(0, ContentElement.selectionStart);
-                                                            let After = ContentEditor.value.substring(ContentElement.selectionEnd, ContentElement.value.length);
+                                                            let Before = ContentEditor.value.substring(0, ContentEditor.selectionStart);
+                                                            let After = ContentEditor.value.substring(ContentEditor.selectionEnd, ContentEditor.value.length);
                                                             const UploadMessage = "![正在上传图片...]()";
                                                             ContentEditor.value = Before + UploadMessage + After;
                                                             ContentEditor.dispatchEvent(new Event("input"));
