@@ -73,6 +73,16 @@
                     "Description": "允许用户关闭获取数据，开启学术模式选择"
                 }
             ]
+        },
+        "1.0.207": {
+            "UpdateDate": 1696385023446,
+            "Prerelease": false,
+            "UpdateContents": [
+                {
+                    "PR": 67,
+                    "Description": "允许用户关闭获取数据，开启学术模式选择"
+                }
+            ]
         }
     }
 }
