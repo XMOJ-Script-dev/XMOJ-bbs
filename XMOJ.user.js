@@ -1716,7 +1716,7 @@ else {
                                     console.log("Ignoring problem " + PID+ " as it has no been solved yet.");
                                     continue;
                                 }
-                                AutoCheatButton.innerHTML = "正在提交 " + PID;
+                                AutoCheatButton.innerHTML = "正在提交 " + PID + " ...";
                                 let SID = 0;
                                 await fetch("http://www.xmoj.tech/status.php?problem_id=" + PID + "&jresult=4")
                                     .then((Result) => {
