@@ -2964,7 +2964,8 @@ else {
                             if (localStorage.getItem(`UserScript-Problem-${PID}-IOFilename`) !== null) {
                                 Code = `#define IOFile "${localStorage.getItem(`UserScript-Problem-${PID}-IOFilename`)}"\n`;
                             }
-                            Code += `#include <bits/stdc++.h>
+                            Code += `//XMOJ-Script 获取数据代码
+                            #include <bits/stdc++.h>
 using namespace std;
 string Base64Encode(string Input)
 {
