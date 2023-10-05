@@ -2,7 +2,7 @@
 // @name         XMOJ
 // @version      1.0.209
 // @description  XMOJ增强脚本
-// @author       @XMOJ-Script-dev and @langningchen and the community
+// @author       @XMOJ-Script-dev, @langningchen and the community
 // @namespace    https://github/langningchen
 // @match        http://*.xmoj.tech/*
 // @match        http://116.62.212.172/*
@@ -4186,7 +4186,7 @@ int main()
 
                                     let CodeElements = document.querySelectorAll("#PostReplies > div > div > div:nth-child(3) > pre > code");
                                     for (let i = 0; i < CodeElements.length; i++) {
-                                        let ModeName = "text/plain";
+                                        let ModeName = "text/x-c++src";
                                         if (CodeElements[i].className == "language-c") {
                                             ModeName = "text/x-csrc";
                                         }
