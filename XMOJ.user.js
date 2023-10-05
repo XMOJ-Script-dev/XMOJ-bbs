@@ -973,6 +973,7 @@ else {
                     { "ID": "MoreSTD", "Type": "F", "Name": "查看到更多标程" },
                     { "ID": "StudyMode", "Type": "F", "Name": "学术模式", "Children": [
                         { "ID": "ApplyData", "Type": "A", "Name": "获取数据功能" },
+                        { "ID": "AutoCheat", "Type": "A", "Name": "自动提交当年代码" },
                     ]},
                     { "ID": "Rating", "Type": "A", "Name": "添加用户评分和用户名颜色" },
                     { "ID": "AutoRefresh", "Type": "A", "Name": "比赛列表、比赛排名界面自动刷新" },
@@ -1678,17 +1679,82 @@ else {
                         localStorage.setItem("UserScript-Problem-" + PID.substring(3) + "-Name",
                             Temp[i].childNodes[2].innerText);
                     }
+                    let CheatDiv = document.createElement("div");
+                    if (UtilityEnabled("AutoCheat")) {
+                        CheatDiv.style.marginTop = "20px";
+                        CheatDiv.style.textAlign = "left";
+                        document.querySelector("body > div > div.mt-3 > center").insertBefore(CheatDiv, document.querySelector("#problemset"));
+                        let AutoCheatButton = document.createElement("button");
+                        CheatDiv.appendChild(AutoCheatButton);
+                        AutoCheatButton.className = "btn btn-outline-secondary";
+                        AutoCheatButton.innerText = "自动提交当年代码";
+                        AutoCheatButton.style.marginRight = "5px";
+                        AutoCheatButton.disabled = true;
+                        let ACProblems = [], ContestProblems = [];
+                        const UrlParams = new URLSearchParams(window.location.search);
+                        const CID = UrlParams.get("cid");
+                        console.log(CID);
+                        await fetch("http://www.xmoj.tech/userinfo.php?user=" + CurrentUsername)
+                            .then((Response) => {
+                                return Response.text();
+                            }).then((Response) => {
+                                let ParsedDocument = new DOMParser().parseFromString(Response, "text/html");
+                                let Temp = ParsedDocument.querySelector("#statics > tbody > tr:nth-child(2) > td:nth-child(3) > script").innerText.split("\n")[5].split(";");
+                                for (let i = 0; i < Temp.length; i++) {
+                                    ACProblems.push(Number(Temp[i].substring(2, Temp[i].indexOf(","))));
+                                }
+                                AutoCheatButton.disabled = false;
+                            });
+                            let Rows = document.querySelector("#problemset > tbody").rows;
+                            for (let i = 0; i < Rows.length; i++) {
+                                ContestProblems.push(Rows[i].children[1].innerText.substring(Rows[i].children[1].innerText.indexOf('.') + 1));
+                            }
+                            AutoCheatButton.addEventListener("click", async () => {
+                            AutoCheatButton.disabled = true;
+                            for (let i = 0; i < ContestProblems.length; i++){
+                                let PID = ContestProblems[i];
+                                if (ACProblems.indexOf(Number(PID)) == -1){
+                                    console.log("Ignoring problem " + PID+ " as it has no been solved yet.");
+                                    continue;
+                                }
+                                AutoCheatButton.innerHTML = "正在提交 " + PID;
+                                let SID = 0;
+                                await fetch("http://www.xmoj.tech/status.php?problem_id=" + PID + "&jresult=4")
+                                    .then((Result) => {
+                                        return Result.text();
+                                    }).then((Result) => {
+                                        let ParsedDocument = new DOMParser().parseFromString(Result, "text/html");
+                                        SID = ParsedDocument.querySelector("#result-tab > tbody > tr:nth-child(1) > td:nth-child(2)").innerText;
+                                    });
+                                let Code = "";
+                                await fetch("http://www.xmoj.tech/getsource.php?id=" + SID)
+                                    .then((Response) => {
+                                        return Response.text();
+                                    }).then((Response) => {
+                                        Code = Response.substring(0, Response.indexOf("/**************************************************************")).trim();
+                                    });
+                                await fetch("http://www.xmoj.tech/submit.php", {
+                                    "headers": {
+                                        "content-type": "application/x-www-form-urlencoded"
+                                    },
+                                    "referrer": "http://www.xmoj.tech/submitpage.php?id=" + PID,
+                                    "method": "POST",
+                                    "body": "cid=" + CID + "&id=" + PID + "&" +
+                                        "language=1&" +
+                                        "source=" + encodeURIComponent(Code) + "&" +
+                                        "enable_O2=on"
+                                });
+                            }
+                            location.reload();
+                        });
+                    }
 
                     if (UtilityEnabled("OpenAllProblem")) {
-                        let OpenAllDiv = document.createElement("div");
-                        OpenAllDiv.style.marginTop = "20px";
-                        OpenAllDiv.style.textAlign = "left";
-                        document.querySelector("body > div > div.mt-3 > center").insertBefore(OpenAllDiv, document.querySelector("#problemset"));
                         let OpenAllButton = document.createElement("button");
                         OpenAllButton.className = "btn btn-outline-secondary";
                         OpenAllButton.innerText = "打开全部题目";
                         OpenAllButton.style.marginRight = "5px";
-                        OpenAllDiv.appendChild(OpenAllButton);
+                        CheatDiv.appendChild(OpenAllButton);
                         OpenAllButton.addEventListener("click", () => {
                             let Rows = document.querySelector("#problemset > tbody").rows;
                             for (let i = 0; i < Rows.length; i++) {
@@ -1698,7 +1764,7 @@ else {
                         let OpenUnsolvedButton = document.createElement("button");
                         OpenUnsolvedButton.className = "btn btn-outline-secondary";
                         OpenUnsolvedButton.innerText = "打开未解决题目";
-                        OpenAllDiv.appendChild(OpenUnsolvedButton);
+                        CheatDiv.appendChild(OpenUnsolvedButton);
                         OpenUnsolvedButton.addEventListener("click", () => {
                             let Rows = document.querySelector("#problemset > tbody").rows;
                             for (let i = 0; i < Rows.length; i++) {
