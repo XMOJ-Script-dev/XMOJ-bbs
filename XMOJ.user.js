@@ -1369,7 +1369,7 @@ else {
                                 "headers": {
                                     "content-type": "application/x-www-form-urlencoded"
                                 },
-                                "referrer": "http://www.xmoj.tech/submitpage.php?id=2298",
+                                "referrer": "http://www.xmoj.tech/submitpage.php?id=" + PID,
                                 "method": "POST",
                                 "body": "id=" + PID + "&" +
                                     "language=1&" +
