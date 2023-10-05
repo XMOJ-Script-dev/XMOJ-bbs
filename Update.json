@@ -105,22 +105,22 @@
             ]
         },
         "1.0.210": {
-            "UpdateDate": 1696510135483,
-            "Prerelease": true,
-            "UpdateContents": [
-                {
-                    "PR": 102,
-                    "Description": "修复高亮"
-                }
-            ]
-        },
-        "1.0.210": {
             "UpdateDate": 1696514142283,
             "Prerelease": true,
             "UpdateContents": [
                 {
                     "PR": 104,
                     "Description": "自动提交当年代码"
+                }
+            ]
+        },
+        "1.0.211": {
+            "UpdateDate": 1696515173956,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 105,
+                    "Description": "emergency fix"
                 }
             ]
         }
