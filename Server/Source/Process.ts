@@ -7,7 +7,7 @@ import CryptoJS from "crypto-js";
 import md5 from "crypto-js/md5";
 
 export class Process {
-    private AdminUserList: Array<string> = ["chenlangning", "zhuchenrui2", "shanwenxiao"];
+    private AdminUserList: Array<string> = ["zhuchenrui2", "shanwenxiao"];
     private Username: string;
     private SessionID: string;
     private RemoteIP: string;

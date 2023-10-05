@@ -53,6 +53,11 @@ CREATE TABLE bbs_board (
     board_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     board_name TEXT NOT NULL
 );
+INSERT INTO bbs_board (board_name) VALUES ('站务版');
+INSERT INTO bbs_board (board_name) VALUES ('学术版');
+INSERT INTO bbs_board (board_name) VALUES ('灌水区');
+INSERT INTO bbs_board (board_name) VALUES ('反馈区');
+INSERT INTO bbs_board (board_name) VALUES ('题目总版');
 
 DROP TABLE IF EXISTS phpsessid;
 
