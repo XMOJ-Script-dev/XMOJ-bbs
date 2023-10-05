@@ -103,6 +103,16 @@
                     "Description": "修复部分功能"
                 }
             ]
+        },
+        "1.0.210": {
+            "UpdateDate": 1696510135483,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 102,
+                    "Description": "修复高亮"
+                }
+            ]
         }
     }
 }
