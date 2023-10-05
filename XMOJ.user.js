@@ -973,7 +973,7 @@ else {
                     { "ID": "MoreSTD", "Type": "F", "Name": "查看到更多标程" },
                     { "ID": "StudyMode", "Type": "F", "Name": "学术模式", "Children": [
                         { "ID": "ApplyData", "Type": "A", "Name": "获取数据功能" },
-                        { "ID": "AutoCheat", "Type": "A", "Name": "自动提交当年代码" },
+                        { "ID": "AutoCheat", "Type": "A", "Name": "自动提交当年代码" }
                     ]},
                     { "ID": "Rating", "Type": "A", "Name": "添加用户评分和用户名颜色" },
                     { "ID": "AutoRefresh", "Type": "A", "Name": "比赛列表、比赛排名界面自动刷新" },
@@ -1680,10 +1680,10 @@ else {
                             Temp[i].childNodes[2].innerText);
                     }
                     let CheatDiv = document.createElement("div");
+                    CheatDiv.style.marginTop = "20px";
+                    CheatDiv.style.textAlign = "left";
+                    document.querySelector("body > div > div.mt-3 > center").insertBefore(CheatDiv, document.querySelector("#problemset"));
                     if (UtilityEnabled("AutoCheat")) {
-                        CheatDiv.style.marginTop = "20px";
-                        CheatDiv.style.textAlign = "left";
-                        document.querySelector("body > div > div.mt-3 > center").insertBefore(CheatDiv, document.querySelector("#problemset"));
                         let AutoCheatButton = document.createElement("button");
                         CheatDiv.appendChild(AutoCheatButton);
                         AutoCheatButton.className = "btn btn-outline-secondary";
