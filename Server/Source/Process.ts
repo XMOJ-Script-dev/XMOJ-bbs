@@ -515,7 +515,7 @@ export class Process {
                 return new Result(false, "未找到讨论");
             }
             if (!this.IsAdmin()) {
-                return new Result(false, "没有权限锁定此讨论");
+                return new Result(false, "没有权限解锁此讨论");
             }
             if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_lock", {
                 post_id: Data["PostID"]
