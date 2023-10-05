@@ -1020,7 +1020,7 @@ export class Process {
             });
         },
         UploadImage: async (Data: object): Promise<Result> => {
-            const GithubImageRepo = "langningchen/XMOJ-Script-Pictures";
+            const GithubImageRepo = "PythonSmall-Q/XMOJ-Script-Pictures";
             ThrowErrorIfFailed(this.CheckParams(Data, {
                 "Image": "string"
             }));
@@ -1062,7 +1062,7 @@ export class Process {
             });
         },
         GetImage: async (Data: object): Promise<Blob> => {
-            const GithubImageRepo = "langningchen/XMOJ-Script-Pictures";
+            const GithubImageRepo = "PythonSmall-Q/XMOJ-Script-Pictures";
             ThrowErrorIfFailed(this.CheckParams(Data, {
                 "ImageID": "string"
             }));
