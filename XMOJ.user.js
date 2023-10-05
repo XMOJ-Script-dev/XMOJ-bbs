@@ -1693,7 +1693,6 @@ else {
                         let ACProblems = [], ContestProblems = [];
                         const UrlParams = new URLSearchParams(window.location.search);
                         const CID = UrlParams.get("cid");
-                        console.log(CID);
                         await fetch("http://www.xmoj.tech/userinfo.php?user=" + CurrentUsername)
                             .then((Response) => {
                                 return Response.text();
@@ -1739,12 +1738,13 @@ else {
                                     },
                                     "referrer": "http://www.xmoj.tech/submitpage.php?id=" + PID,
                                     "method": "POST",
-                                    "body": "cid=" + CID + "&id=" + PID + "&" +
+                                    "body": "cid=" + CID + "&pid=" + i + "&" +
                                         "language=1&" +
                                         "source=" + encodeURIComponent(Code) + "&" +
                                         "enable_O2=on"
                                 });
                             }
+                            AutoCheatButton.disabled = false;
                             location.reload();
                         });
                     }
