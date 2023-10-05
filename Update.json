@@ -103,6 +103,16 @@
                     "Description": "minor improvements"
                 }
             ]
+        },
+        "1.0.210": {
+            "UpdateDate": 1696514142283,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 104,
+                    "Description": "自动提交当年代码"
+                }
+            ]
         }
     }
 }
