@@ -125,7 +125,7 @@ let NewData = Data.replaceAll(/(\/-?good first issue)|\/[A-Za-z_-]+/g, (match) =
                 AddLabel(Label);
                 Milestone = null;
             }
-            else if (Lable === "fixed"){
+            else if (Label === "fixed"){
                 Octokit.issues.update({
                     owner: Owner,
                     repo: Repo,
