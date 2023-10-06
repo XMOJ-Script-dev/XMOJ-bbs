@@ -75,12 +75,110 @@
             ]
         },
         "1.0.207": {
-            "UpdateDate": 1696385023446,
+            "UpdateDate": 1696392248973,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 82,
+                    "Description": "Dev Release"
+                }
+            ]
+        },
+        "1.0.208": {
+            "UpdateDate": 1696429996532,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 95,
+                    "Description": "修复编辑用户显示"
+                }
+            ]
+        },
+        "1.0.209": {
+            "UpdateDate": 1696490377673,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 98,
+                    "Description": "修复部分功能"
+                }
+            ]
+        },
+        "1.0.210": {
+            "UpdateDate": 1696510135483,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 102,
+                    "Description": "修复高亮"
+                }
+            ]
+        },
+        "1.0.211": {
+            "UpdateDate": 1696514142283,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 104,
+                    "Description": "自动提交当年代码"
+                }
+            ]
+        },
+        "1.0.212": {
+            "UpdateDate": 1696515556253,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 105,
+                    "Description": "emergency fix"
+                }
+            ]
+        },
+        "1.0.213": {
+            "UpdateDate": 1696550511282,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 108,
+                    "Description": "修复自动提交当年代码不计分"
+                }
+            ]
+        },
+        "1.0.214": {
+            "UpdateDate": 1696551077104,
             "Prerelease": false,
             "UpdateContents": [
                 {
                     "PR": 67,
                     "Description": "允许用户关闭获取数据，开启学术模式选择"
+                },
+                {
+                    "PR": 82,
+                    "Description": "Dev Release"
+                },
+                {
+                    "PR": 95,
+                    "Description": "修复编辑用户显示"
+                },
+                {
+                    "PR": 98,
+                    "Description": "修复部分功能"
+                },
+                {
+                    "PR": 102,
+                    "Description": "修复高亮"
+                },
+                {
+                    "PR": 104,
+                    "Description": "自动提交当年代码"
+                },
+                {
+                    "PR": 105,
+                    "Description": "emergency fix"
+                },
+                {
+                    "PR": 108,
+                    "Description": "修复自动提交当年代码不计分"
                 }
             ]
         }

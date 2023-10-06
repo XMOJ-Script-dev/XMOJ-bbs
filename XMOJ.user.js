@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         XMOJ
-// @version      1.0.207
+// @version      1.0.214
 // @description  XMOJ增强脚本
-// @author       @langningchen, @PythonSmall-Q and @boomzero
+// @author       @XMOJ-Script-dev, @langningchen and the community
 // @namespace    https://github/langningchen
 // @match        http://*.xmoj.tech/*
 // @match        http://116.62.212.172/*
@@ -972,7 +972,8 @@ else {
                     { "ID": "Discussion", "Type": "F", "Name": "恢复讨论与短消息功能" },
                     { "ID": "MoreSTD", "Type": "F", "Name": "查看到更多标程" },
                     { "ID": "StudyMode", "Type": "F", "Name": "学术模式", "Children": [
-                        { "ID": "ApplyData", "Type": "A", "Name": "获取数据功能" }, 
+                        { "ID": "ApplyData", "Type": "A", "Name": "获取数据功能" },
+                        { "ID": "AutoCheat", "Type": "A", "Name": "自动提交当年代码" }
                     ]},
                     { "ID": "Rating", "Type": "A", "Name": "添加用户评分和用户名颜色" },
                     { "ID": "AutoRefresh", "Type": "A", "Name": "比赛列表、比赛排名界面自动刷新" },
@@ -1369,7 +1370,7 @@ else {
                                 "headers": {
                                     "content-type": "application/x-www-form-urlencoded"
                                 },
-                                "referrer": "http://www.xmoj.tech/submitpage.php?id=2298",
+                                "referrer": "http://www.xmoj.tech/submitpage.php?id=" + PID,
                                 "method": "POST",
                                 "body": "id=" + PID + "&" +
                                     "language=1&" +
@@ -1678,17 +1679,82 @@ else {
                         localStorage.setItem("UserScript-Problem-" + PID.substring(3) + "-Name",
                             Temp[i].childNodes[2].innerText);
                     }
+                    let CheatDiv = document.createElement("div");
+                    CheatDiv.style.marginTop = "20px";
+                    CheatDiv.style.textAlign = "left";
+                    document.querySelector("body > div > div.mt-3 > center").insertBefore(CheatDiv, document.querySelector("#problemset"));
+                    if (UtilityEnabled("AutoCheat")) {
+                        let AutoCheatButton = document.createElement("button");
+                        CheatDiv.appendChild(AutoCheatButton);
+                        AutoCheatButton.className = "btn btn-outline-secondary";
+                        AutoCheatButton.innerText = "自动提交当年代码";
+                        AutoCheatButton.style.marginRight = "5px";
+                        AutoCheatButton.disabled = true;
+                        let ACProblems = [], ContestProblems = [];
+                        const UrlParams = new URLSearchParams(window.location.search);
+                        const CID = UrlParams.get("cid");
+                        await fetch("http://www.xmoj.tech/userinfo.php?user=" + CurrentUsername)
+                            .then((Response) => {
+                                return Response.text();
+                            }).then((Response) => {
+                                let ParsedDocument = new DOMParser().parseFromString(Response, "text/html");
+                                let Temp = ParsedDocument.querySelector("#statics > tbody > tr:nth-child(2) > td:nth-child(3) > script").innerText.split("\n")[5].split(";");
+                                for (let i = 0; i < Temp.length; i++) {
+                                    ACProblems.push(Number(Temp[i].substring(2, Temp[i].indexOf(","))));
+                                }
+                                AutoCheatButton.disabled = false;
+                            });
+                            let Rows = document.querySelector("#problemset > tbody").rows;
+                            for (let i = 0; i < Rows.length; i++) {
+                                ContestProblems.push(Rows[i].children[1].innerText.substring(Rows[i].children[1].innerText.indexOf('.') + 1));
+                            }
+                            AutoCheatButton.addEventListener("click", async () => {
+                            AutoCheatButton.disabled = true;
+                            for (let i = 0; i < ContestProblems.length; i++){
+                                let PID = ContestProblems[i];
+                                if (ACProblems.indexOf(Number(PID)) == -1){
+                                    console.log("Ignoring problem " + PID+ " as it has no been solved yet.");
+                                    continue;
+                                }
+                                AutoCheatButton.innerHTML = "正在提交 " + PID + " ...";
+                                let SID = 0;
+                                await fetch("http://www.xmoj.tech/status.php?problem_id=" + PID + "&jresult=4")
+                                    .then((Result) => {
+                                        return Result.text();
+                                    }).then((Result) => {
+                                        let ParsedDocument = new DOMParser().parseFromString(Result, "text/html");
+                                        SID = ParsedDocument.querySelector("#result-tab > tbody > tr:nth-child(1) > td:nth-child(2)").innerText;
+                                    });
+                                let Code = "";
+                                await fetch("http://www.xmoj.tech/getsource.php?id=" + SID)
+                                    .then((Response) => {
+                                        return Response.text();
+                                    }).then((Response) => {
+                                        Code = Response.substring(0, Response.indexOf("/**************************************************************")).trim();
+                                    });
+                                await fetch("http://www.xmoj.tech/submit.php", {
+                                    "headers": {
+                                        "content-type": "application/x-www-form-urlencoded"
+                                    },
+                                    "referrer": "http://www.xmoj.tech/submitpage.php?id=" + PID,
+                                    "method": "POST",
+                                    "body": "cid=" + CID + "&pid=" + i + "&" +
+                                        "language=1&" +
+                                        "source=" + encodeURIComponent(Code) + "&" +
+                                        "enable_O2=on"
+                                });
+                            }
+                            AutoCheatButton.disabled = false;
+                            location.reload();
+                        });
+                    }
 
                     if (UtilityEnabled("OpenAllProblem")) {
-                        let OpenAllDiv = document.createElement("div");
-                        OpenAllDiv.style.marginTop = "20px";
-                        OpenAllDiv.style.textAlign = "left";
-                        document.querySelector("body > div > div.mt-3 > center").insertBefore(OpenAllDiv, document.querySelector("#problemset"));
                         let OpenAllButton = document.createElement("button");
                         OpenAllButton.className = "btn btn-outline-secondary";
                         OpenAllButton.innerText = "打开全部题目";
                         OpenAllButton.style.marginRight = "5px";
-                        OpenAllDiv.appendChild(OpenAllButton);
+                        CheatDiv.appendChild(OpenAllButton);
                         OpenAllButton.addEventListener("click", () => {
                             let Rows = document.querySelector("#problemset > tbody").rows;
                             for (let i = 0; i < Rows.length; i++) {
@@ -1698,7 +1764,7 @@ else {
                         let OpenUnsolvedButton = document.createElement("button");
                         OpenUnsolvedButton.className = "btn btn-outline-secondary";
                         OpenUnsolvedButton.innerText = "打开未解决题目";
-                        OpenAllDiv.appendChild(OpenUnsolvedButton);
+                        CheatDiv.appendChild(OpenUnsolvedButton);
                         OpenUnsolvedButton.addEventListener("click", () => {
                             let Rows = document.querySelector("#problemset > tbody").rows;
                             for (let i = 0; i < Rows.length; i++) {
@@ -2964,7 +3030,8 @@ else {
                             if (localStorage.getItem(`UserScript-Problem-${PID}-IOFilename`) !== null) {
                                 Code = `#define IOFile "${localStorage.getItem(`UserScript-Problem-${PID}-IOFilename`)}"\n`;
                             }
-                            Code += `#include <bits/stdc++.h>
+                            Code += `//XMOJ-Script 获取数据代码
+                            #include <bits/stdc++.h>
 using namespace std;
 string Base64Encode(string Input)
 {
@@ -3735,22 +3802,28 @@ int main()
                     TitleElement.addEventListener("input", () => {
                         TitleElement.classList.remove("is-invalid");
                     });
-                    ContentElement.addEventListener("paste", (Event) => {
-                        let Items = Event.clipboardData.items;
+                    ContentElement.addEventListener("paste", (EventData) => {
+                        let Items = EventData.clipboardData.items;
                         if (Items.length !== 0) {
                             for (let i = 0; i < Items.length; i++) {
                                 if (Items[i].type.indexOf("image") != -1) {
                                     let Reader = new FileReader();
                                     Reader.readAsDataURL(Items[i].getAsFile());
-                                    // ContentElement.value += `![Uploading Image]`;
-                                    // ContentElement.dispatchEvent(new Event("input"));
                                     Reader.onload = () => {
+                                        let Before = ContentElement.value.substring(0, ContentElement.selectionStart);
+                                        let After = ContentElement.value.substring(ContentElement.selectionEnd, ContentElement.value.length);
+                                        const UploadMessage = "![正在上传图片...]()";
+                                        ContentElement.value = Before + UploadMessage + After;
+                                        ContentElement.dispatchEvent(new Event("input"));
                                         RequestAPI("UploadImage", {
                                             "Image": Reader.result
                                         }, (ResponseData) => {
                                             if (ResponseData.Success) {
-                                                // ContentElement.value -= `![Uploading Image]`;
-                                                ContentElement.value += `![](https://api.xmoj-bbs.tech/GetImage?ImageID=${ResponseData.Data.ImageID})`;
+                                                ContentElement.value = Before + `![](https://api.xmoj-bbs.tech/GetImage?ImageID=${ResponseData.Data.ImageID})` + After;
+                                                ContentElement.dispatchEvent(new Event("input"));
+                                            }
+                                            else {
+                                                ContentElement.value = Before + `![上传失败！]()` + After;
                                                 ContentElement.dispatchEvent(new Event("input"));
                                             }
                                         });
@@ -3906,31 +3979,30 @@ int main()
                             PreviewTab.innerHTML = PurifyHTML(marked.parse(ContentElement.value));
                             RenderMathJax();
                         });
-                        ContentElement.addEventListener("paste", (Event) => {
-                            let Items = Event.clipboardData.items;
+                        ContentElement.addEventListener("paste", (EventData) => {
+                            let Items = EventData.clipboardData.items;
                             if (Items.length !== 0) {
                                 for (let i = 0; i < Items.length; i++) {
                                     if (Items[i].type.indexOf("image") != -1) {
                                         let Reader = new FileReader();
                                         Reader.readAsDataURL(Items[i].getAsFile());
                                         Reader.onload = () => {
-                                            // ContentElement.dispatchEvent(new Event("input"));
-                                            // ContentElement.value += `![Uploading Image...]`;
+                                            let Before = ContentElement.value.substring(0, ContentElement.selectionStart);
+                                            let After = ContentElement.value.substring(ContentElement.selectionEnd, ContentElement.value.length);
+                                            const UploadMessage = "![正在上传图片...]()";
+                                            ContentElement.value = Before + UploadMessage + After;
+                                            ContentElement.dispatchEvent(new Event("input"));
                                             RequestAPI("UploadImage", {
                                                 "Image": Reader.result
                                             }, (ResponseData) => {
-                                                // ContentElement.dispatchEvent(new Event("input"));
                                                 if (ResponseData.Success) {
-                                                    // ContentElement.value -= `![Uploading Image...]`;
-                                                    // ContentElement.value -= `NaN`;
-                                                    ContentElement.value += `![](https://api.xmoj-bbs.tech/GetImage?ImageID=${ResponseData.Data.ImageID})`;
+                                                    ContentElement.value = Before + `![](https://api.xmoj-bbs.tech/GetImage?ImageID=${ResponseData.Data.ImageID})` + After;
                                                     ContentElement.dispatchEvent(new Event("input"));
-                                                } 
-                                                // else{
-                                                //     ContentElement.value -= `![Uploading Image...]`;
-                                                //     ContentElement.value += `![Upload Failed, Please try again!]`;
-                                                //     ContentElement.dispatchEvent(new Event("input"));
-                                                // }
+                                                }
+                                                else {
+                                                    ContentElement.value = Before + `![上传失败！]()` + After;
+                                                    ContentElement.dispatchEvent(new Event("input"));
+                                                }
                                             });
                                         };
                                     }
@@ -4112,7 +4184,7 @@ int main()
                                         let ReplyContentElement = document.createElement("div"); CardBodyElement.appendChild(ReplyContentElement);
                                         ReplyContentElement.innerHTML = PurifyHTML(marked.parse(Replies[i].Content)).replaceAll(/@([a-zA-Z0-9]+)/g, `<b>@</b><span class="ms-1 Usernames">$1</span>`);
                                         if (Replies[i].EditTime != null) {
-                                            if (Replies[i].EditPerson == CurrentUsername) {
+                                            if (Replies[i].EditPerson == Replies[i].UserID) {
                                                 ReplyContentElement.innerHTML += `<span class="text-muted" style="font-size: 12px">最后编辑于${GetRelativeTime(Replies[i].EditTime)}</span>`;
                                             }
                                             else {
@@ -4141,21 +4213,28 @@ int main()
                                             PreviewTab.innerHTML = PurifyHTML(marked.parse(ContentEditor.value));
                                             RenderMathJax();
                                         });
-                                        ContentEditor.addEventListener("paste", (Event) => {
-                                            let Items = Event.clipboardData.items;
+                                        ContentEditor.addEventListener("paste", (EventData) => {
+                                            let Items = EventData.clipboardData.items;
                                             if (Items.length !== 0) {
                                                 for (let i = 0; i < Items.length; i++) {
                                                     if (Items[i].type.indexOf("image") != -1) {
                                                         let Reader = new FileReader();
                                                         Reader.readAsDataURL(Items[i].getAsFile());
-                                                        // ContentEditor.value += `![Uploading]`;
                                                         Reader.onload = () => {
+                                                            let Before = ContentEditor.value.substring(0, ContentEditor.selectionStart);
+                                                            let After = ContentEditor.value.substring(ContentEditor.selectionEnd, ContentEditor.value.length);
+                                                            const UploadMessage = "![正在上传图片...]()";
+                                                            ContentEditor.value = Before + UploadMessage + After;
+                                                            ContentEditor.dispatchEvent(new Event("input"));
                                                             RequestAPI("UploadImage", {
                                                                 "Image": Reader.result
                                                             }, (ResponseData) => {
                                                                 if (ResponseData.Success) {
-                                                                    // ContentEditor.value -= `![Uploading]`
-                                                                    ContentEditor.value += `![](https://api.xmoj-bbs.tech/GetImage?ImageID=${ResponseData.Data.ImageID})`;
+                                                                    ContentEditor.value = Before + `![](https://api.xmoj-bbs.tech/GetImage?ImageID=${ResponseData.Data.ImageID})` + After;
+                                                                    ContentEditor.dispatchEvent(new Event("input"));
+                                                                }
+                                                                else {
+                                                                    ContentEditor.value = Before + `![上传失败！]()` + After;
                                                                     ContentEditor.dispatchEvent(new Event("input"));
                                                                 }
                                                             });
@@ -4173,7 +4252,7 @@ int main()
 
                                     let CodeElements = document.querySelectorAll("#PostReplies > div > div > div:nth-child(3) > pre > code");
                                     for (let i = 0; i < CodeElements.length; i++) {
-                                        let ModeName = "text/plain";
+                                        let ModeName = "text/x-c++src";
                                         if (CodeElements[i].className == "language-c") {
                                             ModeName = "text/x-csrc";
                                         }

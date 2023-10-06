@@ -7,7 +7,7 @@ import CryptoJS from "crypto-js";
 import md5 from "crypto-js/md5";
 
 export class Process {
-    private AdminUserList: Array<string> = ["chenlangning", "zhuchenrui2", "shanwenxiao"];
+    private AdminUserList: Array<string> = ["zhuchenrui2", "shanwenxiao"];
     private Username: string;
     private SessionID: string;
     private RemoteIP: string;
@@ -515,7 +515,7 @@ export class Process {
                 return new Result(false, "未找到讨论");
             }
             if (!this.IsAdmin()) {
-                return new Result(false, "没有权限锁定此讨论");
+                return new Result(false, "没有权限解锁此讨论");
             }
             if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_lock", {
                 post_id: Data["PostID"]
@@ -1020,7 +1020,7 @@ export class Process {
             });
         },
         UploadImage: async (Data: object): Promise<Result> => {
-            const GithubImageRepo = "langningchen/XMOJ-Script-Pictures";
+            const GithubImageRepo = "PythonSmall-Q/XMOJ-Script-Pictures";
             ThrowErrorIfFailed(this.CheckParams(Data, {
                 "Image": "string"
             }));
@@ -1062,7 +1062,7 @@ export class Process {
             });
         },
         GetImage: async (Data: object): Promise<Blob> => {
-            const GithubImageRepo = "langningchen/XMOJ-Script-Pictures";
+            const GithubImageRepo = "PythonSmall-Q/XMOJ-Script-Pictures";
             ThrowErrorIfFailed(this.CheckParams(Data, {
                 "ImageID": "string"
             }));
