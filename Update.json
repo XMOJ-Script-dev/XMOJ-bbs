@@ -211,6 +211,16 @@
                     "Description": "不自动提交已AC题目"
                 }
             ]
+        },
+        "1.0.218": {
+            "UpdateDate": 1696568744173,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 119,
+                    "Description": "fix #118"
+                }
+            ]
         }
     }
 }
