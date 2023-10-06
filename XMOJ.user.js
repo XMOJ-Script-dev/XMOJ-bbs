@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         XMOJ
-// @version      1.0.217
+// @version      1.0.218
 // @description  XMOJ增强脚本
 // @author       @XMOJ-Script-dev, @langningchen and the community
 // @namespace    https://github/langningchen
@@ -2325,7 +2325,7 @@ else {
                             referrer: "https://cppinsights.io/",
                             data: JSON.stringify({
                                 "insightsOptions": [
-                                    "cpp17"
+                                    "cpp14"
                                 ],
                                 "code": Source
                             }),
