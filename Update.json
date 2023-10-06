@@ -181,6 +181,16 @@
                     "Description": "修复自动提交当年代码不计分"
                 }
             ]
+        },
+        "1.0.215": {
+            "UpdateDate": 1696556056381,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 113,
+                    "Description": "更改学术模式"
+                }
+            ]
         }
     }
 }
