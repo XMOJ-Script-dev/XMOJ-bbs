@@ -140,7 +140,7 @@
             "UpdateContents": [
                 {
                     "PR": 108,
-                    "Description": "fix #107 "
+                    "Description": "修复自动提交当年代码不计分"
                 }
             ]
         }
