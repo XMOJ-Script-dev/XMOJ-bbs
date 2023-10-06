@@ -218,7 +218,7 @@
             "UpdateContents": [
                 {
                     "PR": 119,
-                    "Description": "fix #118"
+                    "Description": "预编译使用C++14"
                 }
             ]
         }
