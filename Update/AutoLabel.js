@@ -133,7 +133,7 @@ let NewData = Data.replaceAll(/(\/-?good first issue)|\/[A-Za-z_-]+/g, (match) =
                     state: "closed",
                     state_reason: "completed"
                 });
-                ClearLable();
+                ClearLabel();
             }
             return "";
         }
