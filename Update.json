@@ -191,6 +191,16 @@
                     "Description": "更改学术模式"
                 }
             ]
+        },
+        "1.0.216": {
+            "UpdateDate": 1696562219491,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 114,
+                    "Description": "改变自动提交当年代码样式"
+                }
+            ]
         }
     }
 }
