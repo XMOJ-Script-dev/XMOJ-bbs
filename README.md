@@ -84,6 +84,15 @@
 ### 贡献
 请注意, 请将所有 pull request 提交到`dev`分支, 否则他们会被自动关闭。
 
+### How to set up a development server
+make sure you have `secret.ts` ready, and run:
+```bash
+cd Server
+npm install 
+wrangler d1 execute DB --file ./Source/Initial.sql --local
+wrangler dev
+```
+
 ### 开发组更换的通知
 
 “人有悲欢离合，月有阴晴圆缺，万事古难全”。在阴雨连绵的2023年十月，随着日本第二次排放福岛核废水，我们开启了开发的交接工作。
