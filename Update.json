@@ -201,6 +201,16 @@
                     "Description": "改变自动提交当年代码样式"
                 }
             ]
+        },
+        "1.0.217": {
+            "UpdateDate": 1696566684951,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 117,
+                    "Description": "fix #115"
+                }
+            ]
         }
     }
 }
