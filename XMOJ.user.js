@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         XMOJ
-// @version      1.0.212
+// @version      1.0.213
 // @description  XMOJ增强脚本
 // @author       @XMOJ-Script-dev, @langningchen and the community
 // @namespace    https://github/langningchen
@@ -1693,7 +1693,6 @@ else {
                         let ACProblems = [], ContestProblems = [];
                         const UrlParams = new URLSearchParams(window.location.search);
                         const CID = UrlParams.get("cid");
-                        console.log(CID);
                         await fetch("http://www.xmoj.tech/userinfo.php?user=" + CurrentUsername)
                             .then((Response) => {
                                 return Response.text();
@@ -1717,7 +1716,7 @@ else {
                                     console.log("Ignoring problem " + PID+ " as it has no been solved yet.");
                                     continue;
                                 }
-                                AutoCheatButton.innerHTML = "正在提交 " + PID;
+                                AutoCheatButton.innerHTML = "正在提交 " + PID + " ...";
                                 let SID = 0;
                                 await fetch("http://www.xmoj.tech/status.php?problem_id=" + PID + "&jresult=4")
                                     .then((Result) => {
@@ -1739,12 +1738,13 @@ else {
                                     },
                                     "referrer": "http://www.xmoj.tech/submitpage.php?id=" + PID,
                                     "method": "POST",
-                                    "body": "cid=" + CID + "&id=" + PID + "&" +
+                                    "body": "cid=" + CID + "&pid=" + i + "&" +
                                         "language=1&" +
                                         "source=" + encodeURIComponent(Code) + "&" +
                                         "enable_O2=on"
                                 });
                             }
+                            AutoCheatButton.disabled = false;
                             location.reload();
                         });
                     }
