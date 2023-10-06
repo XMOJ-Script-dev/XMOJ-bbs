@@ -203,12 +203,12 @@
             ]
         },
         "1.0.217": {
-            "UpdateDate": 1696566684951,
+            "UpdateDate": 1696566723926,
             "Prerelease": true,
             "UpdateContents": [
                 {
                     "PR": 117,
-                    "Description": "fix #115"
+                    "Description": "不自动提交已AC题目"
                 }
             ]
         }
