@@ -1706,7 +1706,7 @@ else {
                             });
                             let Rows = document.querySelector("#problemset > tbody").rows;
                             for (let i = 0; i < Rows.length; i++) {
-                                ContestProblems.push(Rows[i].children[1].innerText.substring(Rows[i].children[1].innerText.indexOf('.') + 1));
+                                ContestProblems.push(Rows[i].children[1].innerText.substring(Rows[i].children[1].innerText.indexOf('.') + 2)).toFixed;
                             }
                             AutoCheatButton.addEventListener("click", async () => {
                             AutoCheatButton.disabled = true;
@@ -1714,7 +1714,7 @@ else {
                             for (let i = 0; i < ContestProblems.length; i++){
                                 let PID = ContestProblems[i];
                                 if (ACProblems.indexOf(Number(PID)) == -1){
-                                    console.log("Ignoring problem " + PID+ " as it has no been solved yet.");
+                                    console.log("Ignoring problem " + PID+ " as it has not been solved yet.");
                                     continue;
                                 }
                                 if (Rows[i].children[0].children[0].classList.contains("status_y")) {
