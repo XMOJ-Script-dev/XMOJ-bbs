@@ -1710,12 +1710,19 @@ else {
                             }
                             AutoCheatButton.addEventListener("click", async () => {
                             AutoCheatButton.disabled = true;
+                            let Submitted = false;
                             for (let i = 0; i < ContestProblems.length; i++){
                                 let PID = ContestProblems[i];
                                 if (ACProblems.indexOf(Number(PID)) == -1){
                                     console.log("Ignoring problem " + PID+ " as it has no been solved yet.");
                                     continue;
                                 }
+                                if (Rows[i].children[0].children[0].classList.contains("status_y")) {
+                                    console.log("Ignoring problem " + PID+ " as it has already been solved in this contest.");
+                                    continue;
+                                }
+                                console.log("Submitting problem " + PID);
+                                Submitted = true;
                                 AutoCheatButton.innerHTML = "正在提交 " + PID;
                                 let SID = 0;
                                 await fetch("http://www.xmoj.tech/status.php?problem_id=" + PID + "&jresult=4")
@@ -1744,8 +1751,13 @@ else {
                                         "enable_O2=on"
                                 });
                             }
+                            if(!Submitted){
+                                AutoCheatButton.innerHTML = "没有可以提交的题目!";
+                                await new Promise(r => setTimeout(r, 1000));
+                            }
                             AutoCheatButton.disabled = false;
-                            location.reload();
+                            if(Submitted) location.reload();
+                            else AutoCheatButton.innerHTML = "自动提交当年代码";
                         });
                     }
 
