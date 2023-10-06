@@ -2325,7 +2325,7 @@ else {
                             referrer: "https://cppinsights.io/",
                             data: JSON.stringify({
                                 "insightsOptions": [
-                                    "cpp17"
+                                    "cpp14"
                                 ],
                                 "code": Source
                             }),
