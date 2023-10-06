@@ -971,7 +971,7 @@ else {
                     { "ID": "ACMRank", "Type": "A", "Name": "比赛ACM排名，并且能下载ACM排名" },
                     { "ID": "Discussion", "Type": "F", "Name": "恢复讨论与短消息功能" },
                     { "ID": "MoreSTD", "Type": "F", "Name": "查看到更多标程" },
-                    { "ID": "StudyMode", "Type": "F", "Name": "学术模式", "Children": [
+                    { "ID": "StudyMode", "Type": "A", "Name": "学术模式", "Children": [
                         { "ID": "ApplyData", "Type": "A", "Name": "获取数据功能" },
                         { "ID": "AutoCheat", "Type": "A", "Name": "自动提交当年代码" }
                     ]},
