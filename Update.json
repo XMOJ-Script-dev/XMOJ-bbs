@@ -133,6 +133,16 @@
                     "Description": "emergency fix"
                 }
             ]
+        },
+        "1.0.213": {
+            "UpdateDate": 1696550511282,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 108,
+                    "Description": "fix #107 "
+                }
+            ]
         }
     }
 }
