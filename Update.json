@@ -143,6 +143,44 @@
                     "Description": "修复自动提交当年代码不计分"
                 }
             ]
+        },
+        "1.0.214": {
+            "UpdateDate": 1696550986405,
+            "Prerelease": false,
+            "UpdateContents": [
+                {
+                    "PR": 67,
+                    "Description": "允许用户关闭获取数据，开启学术模式选择"
+                },
+                {
+                    "PR": 82,
+                    "Description": "Dev Release"
+                },
+                {
+                    "PR": 95,
+                    "Description": "修复编辑用户显示"
+                },
+                {
+                    "PR": 98,
+                    "Description": "修复部分功能"
+                },
+                {
+                    "PR": 102,
+                    "Description": "修复高亮"
+                },
+                {
+                    "PR": 104,
+                    "Description": "自动提交当年代码"
+                },
+                {
+                    "PR": 105,
+                    "Description": "emergency fix"
+                },
+                {
+                    "PR": 108,
+                    "Description": "修复自动提交当年代码不计分"
+                }
+            ]
         }
     }
 }
