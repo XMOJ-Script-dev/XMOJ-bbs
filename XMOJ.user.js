@@ -1723,6 +1723,7 @@ else {
                                 }
                                 console.log("Submitting problem " + PID);
                                 Submitted = true;
+                                AutoCheatButton.innerHTML = "正在提交 " + PID;
                                 let SID = 0;
                                 await fetch("http://www.xmoj.tech/status.php?problem_id=" + PID + "&jresult=4")
                                     .then((Result) => {
