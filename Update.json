@@ -181,6 +181,56 @@
                     "Description": "修复自动提交当年代码不计分"
                 }
             ]
+        },
+        "1.0.215": {
+            "UpdateDate": 1696556056381,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 113,
+                    "Description": "更改学术模式"
+                }
+            ]
+        },
+        "1.0.216": {
+            "UpdateDate": 1696562219491,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 114,
+                    "Description": "改变自动提交当年代码样式"
+                }
+            ]
+        },
+        "1.0.217": {
+            "UpdateDate": 1696566723926,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 117,
+                    "Description": "不自动提交已AC题目"
+                }
+            ]
+        },
+        "1.0.218": {
+            "UpdateDate": 1696568744173,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 119,
+                    "Description": "预编译使用C++14"
+                }
+            ]
+        },
+        "1.0.219": {
+            "UpdateDate": 1696857809857,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 128,
+                    "Description": "Why?"
+                }
+            ]
         }
     }
 }

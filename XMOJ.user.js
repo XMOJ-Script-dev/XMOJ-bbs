@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         XMOJ
-// @version      1.0.214
+// @version      1.0.219
 // @description  XMOJ增强脚本
 // @author       @XMOJ-Script-dev, @langningchen and the community
 // @namespace    https://github/langningchen
@@ -971,7 +971,7 @@ else {
                     { "ID": "ACMRank", "Type": "A", "Name": "比赛ACM排名，并且能下载ACM排名" },
                     { "ID": "Discussion", "Type": "F", "Name": "恢复讨论与短消息功能" },
                     { "ID": "MoreSTD", "Type": "F", "Name": "查看到更多标程" },
-                    { "ID": "StudyMode", "Type": "F", "Name": "学术模式", "Children": [
+                    { "ID": "StudyMode", "Type": "A", "Name": "学术模式", "Children": [
                         { "ID": "ApplyData", "Type": "A", "Name": "获取数据功能" },
                         { "ID": "AutoCheat", "Type": "A", "Name": "自动提交当年代码" }
                     ]},
@@ -1706,17 +1706,24 @@ else {
                             });
                             let Rows = document.querySelector("#problemset > tbody").rows;
                             for (let i = 0; i < Rows.length; i++) {
-                                ContestProblems.push(Rows[i].children[1].innerText.substring(Rows[i].children[1].innerText.indexOf('.') + 1));
+                                ContestProblems.push(Rows[i].children[1].innerText.substring(Rows[i].children[1].innerText.indexOf('.') + 2)).toFixed;
                             }
                             AutoCheatButton.addEventListener("click", async () => {
                             AutoCheatButton.disabled = true;
+                            let Submitted = false;
                             for (let i = 0; i < ContestProblems.length; i++){
                                 let PID = ContestProblems[i];
                                 if (ACProblems.indexOf(Number(PID)) == -1){
-                                    console.log("Ignoring problem " + PID+ " as it has no been solved yet.");
+                                    console.log("Ignoring problem " + PID+ " as it has not been solved yet.");
                                     continue;
                                 }
-                                AutoCheatButton.innerHTML = "正在提交 " + PID + " ...";
+                                if (Rows[i].children[0].children[0].classList.contains("status_y")) {
+                                    console.log("Ignoring problem " + PID+ " as it has already been solved in this contest.");
+                                    continue;
+                                }
+                                console.log("Submitting problem " + PID);
+                                Submitted = true;
+                                AutoCheatButton.innerHTML = "正在提交 " + PID;
                                 let SID = 0;
                                 await fetch("http://www.xmoj.tech/status.php?problem_id=" + PID + "&jresult=4")
                                     .then((Result) => {
@@ -1744,8 +1751,13 @@ else {
                                         "enable_O2=on"
                                 });
                             }
+                            if(!Submitted){
+                                AutoCheatButton.innerHTML = "没有可以提交的题目!";
+                                await new Promise(r => setTimeout(r, 1000));
+                            }
                             AutoCheatButton.disabled = false;
-                            location.reload();
+                            if(Submitted) location.reload();
+                            else AutoCheatButton.innerHTML = "自动提交当年代码";
                         });
                     }
 
@@ -2313,7 +2325,7 @@ else {
                             referrer: "https://cppinsights.io/",
                             data: JSON.stringify({
                                 "insightsOptions": [
-                                    "cpp17"
+                                    "cpp14"
                                 ],
                                 "code": Source
                             }),
