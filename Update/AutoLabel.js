@@ -35,7 +35,8 @@ const LabelList = [
     "user-script",
     "website",
     "wontfix",
-    "working-on-it"
+    "working-on-it",
+    "fixed"
 ];
 let Data = github.context.payload.comment.body;
 let Owner = github.context.repo.owner;
@@ -123,6 +124,16 @@ let NewData = Data.replaceAll(/(\/-?good first issue)|\/[A-Za-z_-]+/g, (match) =
                 ClearLabel();
                 AddLabel(Label);
                 Milestone = null;
+            }
+            else if (Label === "fixed"){
+                Octokit.issues.update({
+                    owner: Owner,
+                    repo: Repo,
+                    issue_number: IssueNumber,
+                    state: "closed",
+                    state_reason: "completed"
+                });
+                ClearLabel();
             }
             return "";
         }
