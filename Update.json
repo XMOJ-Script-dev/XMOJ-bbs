@@ -281,6 +281,16 @@
                     "Description": "Update XMOJ.user.js"
                 }
             ]
+        },
+        "1.0.223": {
+            "UpdateDate": 1696860366697,
+            "Prerelease": false,
+            "UpdateContents": [
+                {
+                    "PR": 135,
+                    "Description": "Update XMOJ.user.js"
+                }
+            ]
         }
     }
 }
