@@ -2021,7 +2021,7 @@ else {
                                     }
                                     if (RowData.QuickSubmitCount >= 2) {
                                         let QuickSubmitBadge = document.createElement("span"); UsernameCell.appendChild(QuickSubmitBadge);
-                                        QuickSubmitBadge.innerText = "疑似提交当年代码";
+                                        QuickSubmitBadge.innerText = "作弊者";
                                         QuickSubmitBadge.className = "badge text-bg-warning ms-2";
                                     }
 
