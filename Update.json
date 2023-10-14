@@ -291,6 +291,16 @@
                     "Description": "Update XMOJ.user.js"
                 }
             ]
+        },
+        "1.0.224": {
+            "UpdateDate": 1697249568431,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 140,
+                    "Description": "121 feature request 抄std的给badge作弊者"
+                }
+            ]
         }
     }
 }
