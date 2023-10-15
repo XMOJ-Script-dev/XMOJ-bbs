@@ -331,6 +331,16 @@
                     "Description": "Update XMOJ.user.js"
                 }
             ]
+        },
+        "1.0.228": {
+            "UpdateDate": 1697368165342,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 151,
+                    "Description": "增加开发组成员"
+                }
+            ]
         }
     }
 }
