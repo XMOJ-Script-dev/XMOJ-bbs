@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         XMOJ
-// @version      1.0.226
+// @version      1.0.227
 // @description  XMOJ增强脚本
 // @author       @XMOJ-Script-dev, @langningchen and the community
 // @namespace    https://github/langningchen
@@ -2488,17 +2488,17 @@ else {
                 document.getElementById("AtcoderAccount").value = AtcoderAccount;
                 document.getElementById("USACOAccount").value = USACOAccount;
                 document.getElementById("LuoguAccount").value = LuoguAccount;
-               // RequestAPI("GetBadge", {
-             //       "UserID": String(CurrentUsername)
-           //     }, (Response) => {
-                    //if (Response.Success) {
-                        //BadgeRow.style.display = "";
-                       // BadgeContent.value = Response.Data.Content;
-                     //   BadgeBackgroundColor.value = Response.Data.BackgroundColor;
-                   //     BadgeColor.value = Response.Data.Color;
-                 //       SuccessElement.innerText += "，用户标签会在一天内生效";
-               //     }
-             //   });
+               RequestAPI("GetBadge", {
+                   "UserID": String(CurrentUsername)
+               }, (Response) => {
+                    if (Response.Success) {
+                        BadgeRow.style.display = "";
+                       BadgeContent.value = Response.Data.Content;
+                       BadgeBackgroundColor.value = Response.Data.BackgroundColor;
+                       BadgeColor.value = Response.Data.Color;
+                       SuccessElement.innerText += "，用户标签会在一天内生效";
+                   }
+               });
                 ModifyInfo.addEventListener("click", async () => {
                     ModifyInfo.disabled = true;
                     ModifyInfo.querySelector("span").style.display = "";
