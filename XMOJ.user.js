@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         XMOJ
-// @version      1.0.225
+// @version      1.0.224
 // @description  XMOJ增强脚本
 // @author       @XMOJ-Script-dev, @langningchen and the community
 // @namespace    https://github/langningchen
@@ -4331,37 +4331,37 @@ int main()
                         };
                         Delete.addEventListener("click", () => {
                             Delete.disabled = true;
-                            Delete.children[0]。style。display = "inline-block";
+                            Delete.children[0].style.display = "inline-block";
                             RequestAPI("DeletePost", {
                                 "PostID": Number(SearchParams.get("tid"))
                             }, (ResponseData) => {
                                 Delete.disabled = false;
-                                Delete.children[0]。style。display = "none";
-                                if (ResponseData.success == true) {
+                                Delete.children[0].style.display = "none";
+                                if (ResponseData.Success == true) {
                                     location.href = "http://www.xmoj.tech/discuss3/discuss.php";
                                 }
                                 else {
                                     ErrorElement.innerText = ResponseData.Message;
-                                    ErrorElement.style。display = "block";
+                                    ErrorElement.style.display = "block";
                                 }
                             });
                         });
                         SubmitElement.addEventListener("click", async () => {
-                            ErrorElement.style。display = "none";
+                            ErrorElement.style.display = "none";
                             SubmitElement.disabled = true;
-                            SubmitElement.children[0]。style。display = "inline-block";
+                            SubmitElement.children[0].style.display = "inline-block";
                             RequestAPI("NewReply", {
                                 "PostID": Number(SearchParams.get("tid")),
                                 "Content": String(ContentElement.value),
                                 "CaptchaSecretKey": String(CaptchaSecretKey)
                             }, async (ResponseData) => {
                                 SubmitElement.disabled = false;
-                                SubmitElement.children[0]。style。display = "none";
-                                if (ResponseData.success == true) {
+                                SubmitElement.children[0].style.display = "none";
+                                if (ResponseData.Success == true) {
                                     RefreshReply();
                                     ContentElement.value = "";
                                     PreviewTab.innerHTML = "";
-                                    while (PostReplies.innerHTML。indexOf("placeholder") != -1) {
+                                    while (PostReplies.innerHTML.indexOf("placeholder") != -1) {
                                         await new Promise((resolve) => {
                                             setTimeout(resolve, 100);
                                         });
@@ -4372,7 +4372,7 @@ int main()
                                 }
                                 else {
                                     ErrorElement.innerText = ResponseData.Message;
-                                    ErrorElement.style。display = "block";
+                                    ErrorElement.style.display = "block";
                                 }
                             });
                         });
