@@ -4337,7 +4337,7 @@ int main()
                             }, (ResponseData) => {
                                 Delete.disabled = false;
                                 Delete.children[0]。style。display = "none";
-                                if (ResponseData.成功 == true) {
+                                if (ResponseData.success == true) {
                                     location.href = "http://www.xmoj.tech/discuss3/discuss.php";
                                 }
                                 else {
@@ -4357,12 +4357,12 @@ int main()
                             }, async (ResponseData) => {
                                 SubmitElement.disabled = false;
                                 SubmitElement.children[0]。style。display = "none";
-                                if (ResponseData.成功 == true) {
+                                if (ResponseData.success == true) {
                                     RefreshReply();
                                     ContentElement.value = "";
                                     PreviewTab.innerHTML = "";
                                     while (PostReplies.innerHTML。indexOf("placeholder") != -1) {
-                                        await 新建 Promise((resolve) => {
+                                        await new Promise((resolve) => {
                                             setTimeout(resolve, 100);
                                         });
                                     }
