@@ -321,6 +321,16 @@
                     "Description": "Emergency Fix"
                 }
             ]
+        },
+        "1.0.227": {
+            "UpdateDate": 1697367771069,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 149,
+                    "Description": "Update XMOJ.user.js"
+                }
+            ]
         }
     }
 }
