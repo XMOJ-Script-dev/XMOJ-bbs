@@ -31,7 +31,7 @@
  */
 
 const CaptchaSiteKey = "0x4AAAAAAALBT58IhyDViNmv";
-const AdminUserList = ["zhuchenrui2", "shanwenxiao", "admin", "wangmaohua"];
+const AdminUserList = ["zhuchenrui2", "shanwenxiao", "admin", "shihongxi"];
 
 let PurifyHTML = (Input) => {
     return DOMPurify.sanitize(Input, {
