@@ -2488,17 +2488,17 @@ else {
                 document.getElementById("AtcoderAccount").value = AtcoderAccount;
                 document.getElementById("USACOAccount").value = USACOAccount;
                 document.getElementById("LuoguAccount").value = LuoguAccount;
-                RequestAPI("GetBadge", {
-                    "UserID": String(CurrentUsername)
-                }, (Response) => {
-                    if (Response.Success) {
-                        BadgeRow.style.display = "";
-                        BadgeContent.value = Response.Data.Content;
-                        BadgeBackgroundColor.value = Response.Data.BackgroundColor;
-                        BadgeColor.value = Response.Data.Color;
-                        SuccessElement.innerText += "，用户标签会在一天内生效";
-                    }
-                });
+               // RequestAPI("GetBadge", {
+             //       "UserID": String(CurrentUsername)
+           //     }, (Response) => {
+                    //if (Response.Success) {
+                        //BadgeRow.style.display = "";
+                       // BadgeContent.value = Response.Data.Content;
+                     //   BadgeBackgroundColor.value = Response.Data.BackgroundColor;
+                   //     BadgeColor.value = Response.Data.Color;
+                 //       SuccessElement.innerText += "，用户标签会在一天内生效";
+               //     }
+             //   });
                 ModifyInfo.addEventListener("click", async () => {
                     ModifyInfo.disabled = true;
                     ModifyInfo.querySelector("span").style.display = "";
@@ -4331,38 +4331,38 @@ int main()
                         };
                         Delete.addEventListener("click", () => {
                             Delete.disabled = true;
-                            Delete.children[0].style.display = "inline-block";
+                            Delete.children[0]。style。display = "inline-block";
                             RequestAPI("DeletePost", {
                                 "PostID": Number(SearchParams.get("tid"))
                             }, (ResponseData) => {
                                 Delete.disabled = false;
-                                Delete.children[0].style.display = "none";
-                                if (ResponseData.Success == true) {
+                                Delete.children[0]。style。display = "none";
+                                if (ResponseData.成功 == true) {
                                     location.href = "http://www.xmoj.tech/discuss3/discuss.php";
                                 }
                                 else {
                                     ErrorElement.innerText = ResponseData.Message;
-                                    ErrorElement.style.display = "block";
+                                    ErrorElement.style。display = "block";
                                 }
                             });
                         });
                         SubmitElement.addEventListener("click", async () => {
-                            ErrorElement.style.display = "none";
+                            ErrorElement.style。display = "none";
                             SubmitElement.disabled = true;
-                            SubmitElement.children[0].style.display = "inline-block";
+                            SubmitElement.children[0]。style。display = "inline-block";
                             RequestAPI("NewReply", {
                                 "PostID": Number(SearchParams.get("tid")),
                                 "Content": String(ContentElement.value),
                                 "CaptchaSecretKey": String(CaptchaSecretKey)
                             }, async (ResponseData) => {
                                 SubmitElement.disabled = false;
-                                SubmitElement.children[0].style.display = "none";
-                                if (ResponseData.Success == true) {
+                                SubmitElement.children[0]。style。display = "none";
+                                if (ResponseData.成功 == true) {
                                     RefreshReply();
                                     ContentElement.value = "";
                                     PreviewTab.innerHTML = "";
-                                    while (PostReplies.innerHTML.indexOf("placeholder") != -1) {
-                                        await new Promise((resolve) => {
+                                    while (PostReplies.innerHTML。indexOf("placeholder") != -1) {
+                                        await 新建 Promise((resolve) => {
                                             setTimeout(resolve, 100);
                                         });
                                     }
@@ -4372,7 +4372,7 @@ int main()
                                 }
                                 else {
                                     ErrorElement.innerText = ResponseData.Message;
-                                    ErrorElement.style.display = "block";
+                                    ErrorElement.style。display = "block";
                                 }
                             });
                         });
