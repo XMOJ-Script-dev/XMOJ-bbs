@@ -164,10 +164,10 @@ let GetUsernameHTML = async (Element, Username, Simple = false, Href = "http://w
     HTMLData += `<a href="${Href}${Username}" class="link-offset-2 link-underline-opacity-50 `
     if (UtilityEnabled("Rating")) {
         let Rating = UserInfo.Rating;
-        if(AdminUserList.includes(Username)){
-            HTMLData += "link-fuchsia"
-        }
-        else
+        // if(AdminUserList.includes(Username)){
+        //     HTMLData += "link-fuchsia"
+        // }
+        // else
             if (Rating > 500) {
             HTMLData += "link-danger";
         } else if (Rating >= 400) {
