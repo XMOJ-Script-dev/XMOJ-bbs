@@ -31,7 +31,7 @@
  */
 
 const CaptchaSiteKey = "0x4AAAAAAALBT58IhyDViNmv";
-const AdminUserList = ["zhuchenrui2", "shanwenxiao", "admin", "wangmaohua", "shihongxi"];
+const AdminUserList = ["zhuchenrui2", "shanwenxiao", "admin", "shihongxi"];
 
 let PurifyHTML = (Input) => {
     return DOMPurify.sanitize(Input, {
@@ -188,9 +188,6 @@ let GetUsernameHTML = async (Element, Username, Simple = false, Href = "http://w
         }
         if (Username == "chenlangning"){
             HTMLData += `<span class="badge text-bg-success ms-2">吉祥物</span>`;
-        }
-        if (Username == "shanwenxiao"){
-            HTMLData += `<span class="badge text-bg-success ms-2">开发者</span>`;
         }
         let BadgeInfo = await GetUserBadge(Username);
         if (BadgeInfo.Content != "") {
