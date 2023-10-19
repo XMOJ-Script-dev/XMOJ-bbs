@@ -351,16 +351,6 @@
                     "Description": "修复部分题目状态页没有运行编号 (#155)"
                 }
             ]
-        },
-        "1.0.230": {
-            "UpdateDate": 1697725286544,
-            "Prerelease": true,
-            "UpdateContents": [
-                {
-                    "PR": 160,
-                    "Description": "1.修改了大量中文 2.写明提醒内容 3.update 关键字词替换"
-                }
-            ]
         }
     }
 }
