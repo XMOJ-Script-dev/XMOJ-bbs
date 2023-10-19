@@ -291,6 +291,16 @@
                     "Description": "Update XMOJ.user.js"
                 }
             ]
+        },
+        "1.0.224": {
+            "UpdateDate": 1697725065607,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 160,
+                    "Description": "1.修改了大量中文 2.写明提醒内容 3.update 关键字词替换"
+                }
+            ]
         }
     }
 }
