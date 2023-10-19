@@ -233,11 +233,7 @@ let TimeToStringTime = (Time) => {
             return Time + "ms";
         } else if (Time < 1000 * 60) {
             return (Time / 1000).toFixed(2) + "s";
-        } else if (Time < 1000 * 60 * 60) {
-            return (Time / 1000 / 60).toFixed(2) + "min";
-        } else {
-            return (Time / 1000 / 60 / 60).toFixed(2) + "h";
-        }
+        } 
     }
     else {
         return Time;
@@ -390,7 +386,8 @@ else {
             document.body.innerHTML = String(document.body.innerHTML).replaceAll("小明", "高老师");
             document.body.innerHTML = String(document.body.innerHTML).replaceAll("下海", "上海");
             document.body.innerHTML = String(document.body.innerHTML).replaceAll("海上", "上海");
-            document.body.innerHTML = String(document.body.innerHTML).replaceAll("小红", "低老师");
+            document.body.innerHTML = String(document.body.innerHTML).replaceAll("小红", "徐师娘");
+            document.body.innerHTML = String(document.body.innerHTML).replaceAll("小粉", "彩虹");
             document.body.innerHTML = String(document.body.innerHTML).replaceAll("高老师们", "我们");
             document.body.innerHTML = String(document.body.innerHTML).replaceAll("自高老师", "自我");
             document.title = String(document.title).replaceAll("小明", "高老师");
@@ -777,7 +774,7 @@ else {
                             ToastHeader.classList.add("toast-header");
                             let ToastTitle = document.createElement("strong");
                             ToastTitle.classList.add("me-auto");
-                            ToastTitle.innerHTML = "提醒";
+                            ToastTitle.innerHTML = "提醒：有人@你";
                             ToastHeader.appendChild(ToastTitle);
                             let ToastTime = document.createElement("small");
                             ToastTime.classList.add("text-body-secondary");
@@ -839,7 +836,7 @@ else {
                             ToastHeader.classList.add("toast-header");
                             let ToastTitle = document.createElement("strong");
                             ToastTitle.classList.add("me-auto");
-                            ToastTitle.innerHTML = "提醒";
+                            ToastTitle.innerHTML = "提醒：有新消息";
                             ToastHeader.appendChild(ToastTitle);
                             let ToastTime = document.createElement("small");
                             ToastTime.classList.add("text-body-secondary");
@@ -901,7 +898,7 @@ else {
                 Alert.classList.add("alert");
                 Alert.classList.add("alert-primary");
                 Alert.role = "alert";
-                Alert.innerHTML = `欢迎使用XMOJ增强脚本！点击
+                Alert.innerHTML = `欢迎您使用XMOJ增强脚本！点击
                 <a class="alert-link" href="http://www.xmoj.tech/modifypage.php?ByUserScript=1" target="_blank">此处</a>
                 查看更新日志。`;
                 Container.appendChild(Alert);
@@ -910,7 +907,7 @@ else {
                 UtilitiesCard.classList.add("mb-3");
                 let UtilitiesCardHeader = document.createElement("div");
                 UtilitiesCardHeader.classList.add("card-header");
-                UtilitiesCardHeader.innerText = "功能列表";
+                UtilitiesCardHeader.innerText = "XMOJ增强脚本功能列表";
                 UtilitiesCard.appendChild(UtilitiesCardHeader);
                 let UtilitiesCardBody = document.createElement("div");
                 UtilitiesCardBody.classList.add("card-body");
@@ -996,7 +993,7 @@ else {
                             { "ID": "Translate", "Type": "F", "Name": "统一使用中文，翻译了部分英文*" },
                             { "ID": "ReplaceLinks", "Type": "F", "Name": "将网站中所有以方括号包装的链接替换为按钮" },
                             { "ID": "RemoveUseless", "Type": "D", "Name": "删去无法使用的功能*" },
-                            { "ID": "ReplaceXM", "Type": "F", "Name": "将网站中所有“小明”和“我”关键字替换为“高老师”，所有“小红”替换为“低老师”，所有“下海”、“海上”替换为“上海”" }
+                            { "ID": "ReplaceXM", "Type": "F", "Name": "将网站中所有“小明”和“我”关键字替换为“高老师”，所有“小红”替换为“徐师娘”，所有“小粉”替换为“彩虹”，所有“下海”、“海上”替换为“上海”" }
                         ]
                     },
                     { "ID": "AutoLogin", "Type": "A", "Name": "在需要登录的界面自动跳转到登陆界面" },
@@ -1326,7 +1323,7 @@ else {
                     let ImproveACRateButton = document.createElement("button");
                     document.querySelector("body > div.container > div > div.input-append").appendChild(ImproveACRateButton);
                     ImproveACRateButton.className = "btn btn-outline-secondary";
-                    ImproveACRateButton.innerText = "提高AC率";
+                    ImproveACRateButton.innerText = "提高正确率";
                     ImproveACRateButton.disabled = true;
                     let ACProblems = [];
                     await fetch("http://www.xmoj.tech/userinfo.php?user=" + CurrentUsername)
@@ -2086,7 +2083,7 @@ else {
                 let DownloadButton = document.createElement("button");
                 document.querySelector("body > div.container > div > center").insertBefore(DownloadButton, document.querySelector("body > div.container > div > center > a"));
                 DownloadButton.className = "btn btn-outline-secondary";
-                DownloadButton.innerText = "下载排名";
+                DownloadButton.innerText = "下载ACM排名";
                 DownloadButton.style.marginBottom = "20px";
                 DownloadButton.addEventListener("click", () => {
                     location.href = "http://www.xmoj.tech/contestrank.xls.php?cid=" + SearchParams.get("cid");
@@ -2449,7 +2446,7 @@ else {
                     <div class="col-9"><input type="password" id="NewPassword" class="form-control"></div>
                 </div>
                 <div class="row g-2 align-items-center col-6 mb-1">
-                    <div class="col-3"><label for="NewPasswordAgain" class="col-form-label">重复密码</label></div>
+                    <div class="col-3"><label for="NewPasswordAgain" class="col-form-label">请重复密码</label></div>
                     <div class="col-9"><input type="password" id="NewPasswordAgain" class="form-control"></div>
                 </div>
                 <div class="row g-2 align-items-center col-6 mb-1">
@@ -2703,7 +2700,7 @@ else {
                 </div>
                 <p class="mt-2 text-muted">
                     您必须要上传标程以后才能使用“查看标程”功能。点击“上传标程”按钮以后，系统会自动上传标程，请您耐心等待。<br>
-                    首次上传标程可能会比较慢，请耐心等待。后续上传标程将会快很多。<br>
+                    首次上传标程可能会比较慢，请耐心等待。后续上传标程将会快很多。请不要直接抄袭或递交标程，否则会给予"作弊者"badge的惩罚！<br>
                     上传的内容不是您AC的程序，而是您AC的题目对应的用户std的程序。所以您可以放心上传，不会泄露您的代码。<br>
                     系统每过30天会自动提醒您上传标程，您必须要上传标程，否则将会被禁止使用“查看标程”功能。<br>
                 </p>`;
@@ -3509,7 +3506,7 @@ int main()
                     AddUser.disabled = true;
                     RequestAPI("SendMail", {
                         "ToUser": String(UsernameData),
-                        "Content": String("你好，我是" + localStorage.getItem("UserScript-Username"))
+                        "Content": String("您好，我是" + localStorage.getItem("UserScript-Username"))
                     }, (ResponseData) => {
                         AddUser.children[0].style.display = "none";
                         AddUser.disabled = false;
