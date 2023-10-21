@@ -22,6 +22,7 @@
 // @connect      cppinsights.io
 // @connect      127.0.0.1
 // @license      GPL
+// @icon         https://web.xmoj-bbs.tech/favicon.ico
 // ==/UserScript==
 
 /**
