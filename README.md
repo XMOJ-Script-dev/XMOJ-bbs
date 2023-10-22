@@ -6,6 +6,7 @@
 ![GitHub issues](https://img.shields.io/github/issues/XMOJ-Script-dev/XMOJ-Script)
 
 [点击此处访问官网查看更多内容](https://web.xmoj-bbs.tech)
+
 原项目: https://github.com/langningchen/XMOJ-Script
 
 ### 介绍
