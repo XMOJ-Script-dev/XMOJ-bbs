@@ -419,6 +419,16 @@
                     "Description": "为用户脚本增加icon"
                 }
             ]
+        },
+        "1.0.234": {
+            "UpdateDate": 1698479899493,
+            "Prerelease": false,
+            "UpdateContents": [
+                {
+                    "PR": 169,
+                    "Description": "为用户脚本增加icon"
+                }
+            ]
         }
     }
 }
