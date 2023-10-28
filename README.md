@@ -7,6 +7,7 @@
 
 [点击此处访问官网查看更多内容](https://web.xmoj-bbs.tech)
 
+原项目: https://github.com/langningchen/XMOJ-Script
 
 ### 介绍
 
@@ -52,20 +53,7 @@
 
 ![](Image/01.png)
 ![](Image/02.png)
-![](Image/03.png)
-![](Image/04.png)
-![](Image/05.png)
-![](Image/06.png)
-![](Image/07.png)
-![](Image/08.png)
-![](Image/09.png)
-![](Image/10.png)
-![](Image/11.png)
-![](Image/12.png)
-![](Image/13.png)
-![](Image/14.png)
-![](Image/15.png)
-![](Image/16.png)
+更多图片可在[官网](https://www.xmoj-bbs.tech)上查看
 
 通过小明的OJ，您将能够更便捷地参与竞赛，提高AC率，管理代码，优化学习体验，同时享受美化界面带来的愉悦感受。
 无论是竞技还是学习，这个脚本都将成为您在XMOJ平台上的得力助手。
@@ -82,7 +70,7 @@
 小明的OJ增强脚本开发期待以您的邂逅！
 
 ### 贡献
-请注意, 请将所有 pull request 提交到`dev`分支, 否则他们会被自动关闭。
+请注意, 外部开发者应向`extern-contrib`提交 pull requests。
 
 ### How to set up a development server
 make sure you have `secret.ts` ready, and run:

@@ -1,0 +1,21 @@
+# Configuration for welcome - https://github.com/XMOJ-Script-dev
+
+# Configuration for new-issue-welcome - https://github.com/XMOJ-Script-dev
+
+# Comment to be posted to on first time issues
+newIssueWelcomeComment: >
+  Thanks for opening your first issue here! 欢迎你第一次来到这里开Issue！
+
+# Configuration for new-pr-welcome - https://github.com/behaviorbot/new-pr-welcome
+
+# Comment to be posted to on PRs from first time contributors in your repository
+newPRWelcomeComment: >
+  Thanks for opening this pull request! Please check out our contributing guidelines. 欢迎你像我们做出贡献！
+
+# Configuration for first-pr-merge - https://github.com/behaviorbot/first-pr-merge
+
+# Comment to be posted to on pull requests merged by a first time user
+firstPRMergeComment: >
+  Congrats on merging your first pull request! We here at behaviorbot are proud of you! 哇！你的PR审核通过了！祝贺你！
+
+# It is recommended to include as many gifs and emojis as possible!
