@@ -83,7 +83,7 @@
 小明的OJ增强脚本开发期待以您的邂逅！
 
 ### 贡献
-请注意, 请将所有 pull request 提交到`dev`分支, 否则他们会被自动关闭。
+请注意, 外部开发者应向`extern-contrib`提交 pull requests。
 
 ### How to set up a development server
 make sure you have `secret.ts` ready, and run:
