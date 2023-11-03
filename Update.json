@@ -429,6 +429,16 @@
                     "Description": "为用户脚本增加icon"
                 }
             ]
+        },
+        "1.0.235": {
+            "UpdateDate": 1699008412737,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 190,
+                    "Description": "使用新的图床api"
+                }
+            ]
         }
     }
 }
