@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         XMOJ
-// @version      1.0.234
+// @version      1.0.235
 // @description  XMOJ增强脚本
 // @author       @XMOJ-Script-dev, @langningchen and the community
 // @namespace    https://github/langningchen
@@ -3830,7 +3830,7 @@ int main()
                                             "Image": Reader.result
                                         }, (ResponseData) => {
                                             if (ResponseData.Success) {
-                                                ContentElement.value = Before + `![](https://api.xmoj-bbs.tech/GetImage?ImageID=${ResponseData.Data.ImageID})` + After;
+                                                ContentElement.value = Before + `![](https://assets.xmoj-bbs.tech/GetImage?ImageID=${ResponseData.Data.ImageID})` + After;
                                                 ContentElement.dispatchEvent(new Event("input"));
                                             }
                                             else {
@@ -4007,7 +4007,7 @@ int main()
                                                 "Image": Reader.result
                                             }, (ResponseData) => {
                                                 if (ResponseData.Success) {
-                                                    ContentElement.value = Before + `![](https://api.xmoj-bbs.tech/GetImage?ImageID=${ResponseData.Data.ImageID})` + After;
+                                                    ContentElement.value = Before + `![](https://assets.xmoj-bbs.tech/GetImage?ImageID=${ResponseData.Data.ImageID})` + After;
                                                     ContentElement.dispatchEvent(new Event("input"));
                                                 }
                                                 else {
@@ -4241,7 +4241,7 @@ int main()
                                                                 "Image": Reader.result
                                                             }, (ResponseData) => {
                                                                 if (ResponseData.Success) {
-                                                                    ContentEditor.value = Before + `![](https://api.xmoj-bbs.tech/GetImage?ImageID=${ResponseData.Data.ImageID})` + After;
+                                                                    ContentEditor.value = Before + `![](https://assets.xmoj-bbs.tech/GetImage?ImageID=${ResponseData.Data.ImageID})` + After;
                                                                     ContentEditor.dispatchEvent(new Event("input"));
                                                                 }
                                                                 else {
