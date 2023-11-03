@@ -362,8 +362,8 @@ export class Process {
             let Posts = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_post", [], SearchCondition, {
                 Order: "post_id",
                 OrderIncreasing: false,
-                Limit: 10,
-                Offset: (Data["Page"] - 1) * 10
+                Limit: 20,
+                Offset: (Data["Page"] - 1) * 20
             }));
             for (let i in Posts) {
                 let Post = Posts[i];
