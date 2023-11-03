@@ -344,7 +344,7 @@ export class Process {
             }));
             let ResponseData = {
                 Posts: new Array<Object>,
-                PageCount: Math.ceil(ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_post"))["TableSize"] / 20)
+                PageCount: Math.ceil(ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_post"))["TableSize"] / 10)
             };
             if (ResponseData.PageCount === 0) {
                 return new Result(true, "获得讨论列表成功", ResponseData);
@@ -362,8 +362,8 @@ export class Process {
             let Posts = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_post", [], SearchCondition, {
                 Order: "post_id",
                 OrderIncreasing: false,
-                Limit: 10,
-                Offset: (Data["Page"] - 1) * 10
+                Limit: 20,
+                Offset: (Data["Page"] - 1) * 20
             }));
             for (let i in Posts) {
                 let Post = Posts[i];
