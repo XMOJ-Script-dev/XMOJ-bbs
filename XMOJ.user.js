@@ -2479,7 +2479,7 @@ else {
                     <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display: none"></span>
                 </button>
                 <div class="alert alert-danger mb-3" role="alert" id="ErrorElement" style="display: none;"></div>
-                <div class="alert alert-success mb-3" role="alert" id="SuccessElement" style="display: none;">修改成功（修改Badge请向管理组提出申请）</div>
+                <div class="alert alert-success mb-3" role="alert" id="SuccessElement" style="display: none;">修改成功</div>
                 <br>`;
                 document.getElementById("Nickname").value = Nickname;
                 document.getElementById("School").value = School;
