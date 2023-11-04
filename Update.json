@@ -451,12 +451,12 @@
             ]
         },
         "1.0.237": {
-            "UpdateDate": 1699078221756,
+            "UpdateDate": 1699078360562,
             "Prerelease": true,
             "UpdateContents": [
                 {
                     "PR": 197,
-                    "Description": "fix #192"
+                    "Description": "修复更新链接"
                 }
             ]
         }
