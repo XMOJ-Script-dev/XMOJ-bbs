@@ -439,6 +439,16 @@
                     "Description": "使用新的图床api"
                 }
             ]
+        },
+        "1.0.236": {
+            "UpdateDate": 1699069499723,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 195,
+                    "Description": "不需要申请啦~"
+                }
+            ]
         }
     }
 }
