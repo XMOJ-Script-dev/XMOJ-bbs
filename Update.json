@@ -449,6 +449,16 @@
                     "Description": "不需要申请啦~"
                 }
             ]
+        },
+        "1.0.237": {
+            "UpdateDate": 1699078221756,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 197,
+                    "Description": "fix #192"
+                }
+            ]
         }
     }
 }
