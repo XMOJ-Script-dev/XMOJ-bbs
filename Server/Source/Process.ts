@@ -7,7 +7,7 @@ import CryptoJS from "crypto-js";
 import md5 from "crypto-js/md5";
 
 export class Process {
-    private AdminUserList: Array<string> = ["zhuchenrui2", "shanwenxiao"];
+    private AdminUserList: Array<string> = ["zhuchenrui2", "shanwenxiao", "shihongxi"];
     private Username: string;
     private SessionID: string;
     private RemoteIP: string;
@@ -362,8 +362,8 @@ export class Process {
             let Posts = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_post", [], SearchCondition, {
                 Order: "post_id",
                 OrderIncreasing: false,
-                Limit: 20,
-                Offset: (Data["Page"] - 1) * 20
+                Limit: 15,
+                Offset: (Data["Page"] - 1) * 15
             }));
             for (let i in Posts) {
                 let Post = Posts[i];
