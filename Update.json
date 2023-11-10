@@ -459,6 +459,24 @@
                     "Description": "修复更新链接"
                 }
             ]
+        },
+        "1.0.238": {
+            "UpdateDate": 1699617455100,
+            "Prerelease": false,
+            "UpdateContents": [
+                {
+                    "PR": 190,
+                    "Description": "使用新的图床api"
+                },
+                {
+                    "PR": 195,
+                    "Description": "不需要申请啦~"
+                },
+                {
+                    "PR": 197,
+                    "Description": "修复更新链接"
+                }
+            ]
         }
     }
 }
