@@ -1140,6 +1140,7 @@ else {
                     Temp[i].parentElement.className = "card";
                 }
                 if (UtilityEnabled("RemoveUseless")) {
+                    document.querySelector("h2.lang_en").remove();
                     document.getElementsByTagName("center")[1].remove();
                 }
                 if (UtilityEnabled("CopySamples")) {
