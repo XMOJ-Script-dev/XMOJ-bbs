@@ -477,6 +477,16 @@
                     "Description": "修复更新链接"
                 }
             ]
+        },
+        "1.0.239": {
+            "UpdateDate": 1699691535438,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 204,
+                    "Description": "remove this as it causes console errors"
+                }
+            ]
         }
     }
 }
