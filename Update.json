@@ -477,6 +477,16 @@
                     "Description": "修复更新链接"
                 }
             ]
+        },
+        "1.0.239": {
+            "UpdateDate": 1699692388224,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 205,
+                    "Description": "修复题目标题显示 #138"
+                }
+            ]
         }
     }
 }
