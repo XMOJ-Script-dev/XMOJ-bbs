@@ -1140,6 +1140,7 @@ else {
                     Temp[i].parentElement.className = "card";
                 }
                 if (UtilityEnabled("RemoveUseless")) {
+                    document.querySelector("h2.lang_en").remove();
                     document.getElementsByTagName("center")[1].remove();
                 }
                 if (UtilityEnabled("CopySamples")) {
@@ -1158,7 +1159,7 @@ else {
                         setTimeout(() => {
                             $(".copy-btn").text("复制").removeClass("done");
                         }, 1000);
-                        document.body.removeChild(textarea[0]);
+                        //document.body.removeChild(textarea[0]);
                     });
                 }
                 let IOFileElement = document.querySelector("body > div > div.mt-3 > center > h3");
