@@ -27,6 +27,18 @@ jobs:
           prerelease: true
           files: XMOJ.user.js
           target_commitish: ${{ github.sha }}
+      - name: Bump npm version
+        run: |
+          cd Server
+          npm version from-git
+          git config --global user.email "thomas_rainbowfish@icloud.com"
+          git config --global user.name "boomzero"
+          git checkout -b actions/temp
+          git add *
+          git commit -m "update npm version"
+          git push -f
+          gh pr create -B "Dev" -t "update npm version"
+          
       - uses: actions/configure-pages@v3
       - uses: actions/upload-pages-artifact@v2
         with:
