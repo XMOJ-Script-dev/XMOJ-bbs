@@ -16,6 +16,9 @@ jobs:
       - name: Get version
         id: get_version
         run: node ./Update/GetVersion.js
+      - name: Bump npm version
+        run: |
+          npm version patch
       - id: create_release
         uses: softprops/action-gh-release@v1
         env:
