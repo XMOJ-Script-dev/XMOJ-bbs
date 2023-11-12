@@ -521,6 +521,16 @@
                     "Description": "烦死了。。。"
                 }
             ]
+        },
+        "1.0.243": {
+            "UpdateDate": 1699767075836,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 222,
+                    "Description": "Update Prerelease.yml"
+                }
+            ]
         }
     }
 }

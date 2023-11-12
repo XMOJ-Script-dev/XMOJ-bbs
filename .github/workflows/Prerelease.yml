@@ -32,6 +32,7 @@ jobs:
           git config --global user.email "thomas_rainbowfish@icloud.com"
           git config --global user.name "boomzero"
           git checkout -b actions/temp
+          git push --set-upstream origin actions/temp
           npm version from-git
           git push -f
           gh pr create -B "Dev" -t "update npm version"
