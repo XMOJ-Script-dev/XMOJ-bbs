@@ -511,6 +511,16 @@
                     "Description": "Update Prerelease.yml"
                 }
             ]
+        },
+        "1.0.242": {
+            "UpdateDate": 1699766973308,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 221,
+                    "Description": "烦死了。。。"
+                }
+            ]
         }
     }
 }
