@@ -49,10 +49,6 @@ if (LastPR == CurrentPR) {
     JSONObject.UpdateHistory[CurrentVersion].UpdateDate = Date.now();
     JSONObject.UpdateHistory[CurrentVersion].UpdateContents[0].Description = CurrentDescription;
     CommitMessage = "Update time and description of " + CurrentVersion;
-}
-else if (ChangedFileList.indexOf("XMOJ.user.js") == -1) {
-    console.warn("XMOJ.user.js is not changed, so the version should not be updated.");
-    process.exit(0);
 } else {
     JSONObject.UpdateHistory[CurrentVersion] = {
         "UpdateDate": Date.now(),
