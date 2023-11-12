@@ -27,6 +27,8 @@ jobs:
           files: XMOJ.user.js
           target_commitish: ${{ github.sha }}
       - name: Bump npm version
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           cd Server
           git config --global user.email "thomas_rainbowfish@icloud.com"

@@ -531,6 +531,16 @@
                     "Description": "Update Prerelease.yml"
                 }
             ]
+        },
+        "1.0.244": {
+            "UpdateDate": 1699767251761,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 223,
+                    "Description": "wtf"
+                }
+            ]
         }
     }
 }
