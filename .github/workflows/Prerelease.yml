@@ -33,8 +33,6 @@ jobs:
           git config --global user.name "boomzero"
           git checkout -b actions/temp
           npm version from-git
-          git add *
-          git commit -m "update npm version"
           git push -f
           gh pr create -B "Dev" -t "update npm version"
           
