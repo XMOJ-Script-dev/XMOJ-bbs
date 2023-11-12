@@ -20,4 +20,5 @@ jobs:
         run: node ./Update/UpdateVersion.js ${{ secrets.GITHUB_TOKEN }} ${{ github.event.number }} "${{ github.event.pull_request.title }}"
       - name: Bump npm version
         run: |
+          cd Server
           npm version patch
