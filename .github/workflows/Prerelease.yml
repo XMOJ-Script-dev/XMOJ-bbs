@@ -29,10 +29,10 @@ jobs:
       - name: Bump npm version
         run: |
           cd Server
-          npm version from-git
           git config --global user.email "thomas_rainbowfish@icloud.com"
           git config --global user.name "boomzero"
           git checkout -b actions/temp
+          npm version from-git
           git add *
           git commit -m "update npm version"
           git push -f

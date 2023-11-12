@@ -501,6 +501,16 @@
                     "Description": "remove safety features...."
                 }
             ]
+        },
+        "1.0.241": {
+            "UpdateDate": 1699766855912,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 220,
+                    "Description": "Update Prerelease.yml"
+                }
+            ]
         }
     }
 }
