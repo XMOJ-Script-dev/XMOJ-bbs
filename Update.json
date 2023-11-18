@@ -545,6 +545,16 @@
                     "Description": "wtf"
                 }
             ]
+        },
+        "1.0.245": {
+            "UpdateDate": 1700289812416,
+            "Prerelease": true,
+            "UpdateContents": [
+                {
+                    "PR": 232,
+                    "Description": "使用Base64编码icon"
+                }
+            ]
         }
     }
 }
