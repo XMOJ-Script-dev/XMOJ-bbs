@@ -49,7 +49,7 @@
 - **修复登录后跳转失败**：解决登录后跳转问题，确保用户能够顺利进入下一步操作。
 - **下载页面增加内容**：在下载页面增加更多内容，提供更多资源下载。
 - **比较代码**：允许用户比较不同版本的代码，方便进行代码对比与分析。
-- ~**学术模式**：开启学术模式，体验极致的学习环境！（此功能开发中，很快将会发布）~
+- **学术模式**：开启学术模式，体验极致的学习环境！（此功能部分开发中）
 
 ![](Images/1.png)
 ![](Images/2.png)
@@ -62,7 +62,7 @@
 
 
 ### 安装
-请参考 [官网介绍](https://web.xmoj-bbs.tech) 。
+请参考 [官网介绍](https://www.xmoj-bbs.tech#Install) 。
 
 ### 加入我们
 您想为我们的脚本添砖加瓦吗？快加入我们，为小明的OJ用户创造更美好的环境！（具体要求参见Code Of Conduct）
@@ -77,6 +77,6 @@ make sure you have `secret.ts` ready, and run:
 ```bash
 cd Server
 npm install 
-wrangler d1 execute DB --file ./Source/Initial.sql --local
-wrangler dev
+npx wrangler d1 execute DB --file ./Source/Initial.sql --local
+npx wrangler dev
 ```
