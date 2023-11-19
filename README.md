@@ -73,7 +73,7 @@
 请注意, 外部开发者应向`extern-contrib`提交 pull requests。
 
 ### How to set up a development server
-make sure you have `secret.ts` ready, and run:
+In the 'Server/Sources' folder input your GitHub PAT and Cloudflare Turnstile Site key in 'Secrets.ts', and run:
 ```bash
 cd Server
 npm install 
