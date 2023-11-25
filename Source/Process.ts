@@ -1,13 +1,14 @@
 import { Result, ThrowErrorIfFailed } from "./Result";
 import { Database } from "./Database";
 import { Output } from "./Output";
-import { CaptchaSecretKey, GithubImagePAT } from "./Secret";
 import { CheerioAPI, load } from "cheerio";
 import CryptoJS from "crypto-js";
 import md5 from "crypto-js/md5";
 
 export class Process {
     private AdminUserList: Array<string> = ["zhuchenrui2", "shanwenxiao", "shihongxi"];
+    private CaptchaSecretKey: string;
+    private GithubImagePAT: string;
     private Username: string;
     private SessionID: string;
     private RemoteIP: string;
@@ -1084,6 +1085,8 @@ export class Process {
     };
     constructor(RequestData: Request, Environment) {
         this.XMOJDatabase = new Database(Environment.DB);
+        this.CaptchaSecretKey = Environment.CaptchaSecretKey;
+        this.GithubImagePAT = Environment.GithubImagePAT;
         this.RequestData = RequestData;
         this.RemoteIP = RequestData.headers.get("CF-Connecting-IP") || "";
     }
