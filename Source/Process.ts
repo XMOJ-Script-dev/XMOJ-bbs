@@ -1091,6 +1091,10 @@ export class Process {
                 return new Blob();
             });
         },
+        SendData: async (Data: object): Promise<Result> => {
+            //instantly return
+            return new Result(true, "数据发送成功");
+        },
         GetAnalytics: async (Data: object): Promise<Result> => {
             ThrowErrorIfFailed(this.CheckParams(Data, {
                 "Username": "string"
@@ -1108,7 +1112,7 @@ export class Process {
                 body: query,
             });
             const responseJSON = await response.json();
-            return new Result(true, "获得分析数据成功", responseJSON);
+            return new Result(true, "获得统计数据成功", responseJSON);
         },
     };
     constructor(RequestData: Request, Environment) {
