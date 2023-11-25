@@ -8,6 +8,8 @@ export class Process {
     private AdminUserList: Array<string> = ["zhuchenrui2", "shanwenxiao", "shihongxi"];
     private CaptchaSecretKey: string;
     private GithubImagePAT: string;
+    private ACCOUNT_ID: string;
+    private API_TOKEN: string;
     private Username: string;
     private SessionID: string;
     private RemoteIP: string;
@@ -1088,13 +1090,34 @@ export class Process {
                     "ImageID : \"" + Data["ImageID"] + "\"\n");
                 return new Blob();
             });
-        }
+        },
+        GetAnalytics: async (Data: object): Promise<Result> => {
+            ThrowErrorIfFailed(this.CheckParams(Data, {
+                "Username": "string"
+            }));
+            if (Data["Username"] !== this.Username && !this.IsAdmin()) {
+                return new Result(false, "没有权限获取此用户日志");
+            }
+            const query = "SELECT index1 AS username, blob1 AS ip, blob2 AS path, timestamp FROM logdb WHERE index1=\'" + Data["Username"] + "\' ORDER BY timestamp ASC"
+            const API = `https://api.cloudflare.com/client/v4/accounts/${this.ACCOUNT_ID}/analytics_engine/sql`;
+            const response = await fetch(API, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.API_TOKEN}`,
+                },
+                body: query,
+            });
+            const responseJSON = await response.json();
+            return new Result(true, "获得分析数据成功", responseJSON);
+        },
     };
     constructor(RequestData: Request, Environment) {
         this.XMOJDatabase = new Database(Environment.DB);
         this.logs = Environment.logdb;
         this.CaptchaSecretKey = Environment.CaptchaSecretKey;
         this.GithubImagePAT = Environment.GithubImagePAT;
+        this.ACCOUNT_ID = Environment.ACCOUNT_ID;
+        this.API_TOKEN = Environment.API_TOKEN;
         this.RequestData = RequestData;
         this.RemoteIP = RequestData.headers.get("CF-Connecting-IP") || "";
     }
