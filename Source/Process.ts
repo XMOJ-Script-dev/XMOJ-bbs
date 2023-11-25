@@ -97,11 +97,18 @@ export class Process {
                 "Username       : \"" + this.Username + "\"\n");
             return new Result(false, "令牌不匹配");
         }
-        ThrowErrorIfFailed(await this.XMOJDatabase.Insert("phpsessid", {
-            token: HashedToken,
-            user_id: this.Username,
-            create_time: new Date().getTime()
-        }));
+        //check if th item already exists in db
+        if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("phpsessid", {
+            token: HashedToken
+        }))["TableSize"] == 0) {
+            ThrowErrorIfFailed(await this.XMOJDatabase.Insert("phpsessid", {
+                token: HashedToken,
+                user_id: this.Username,
+                create_time: new Date().getTime()
+            }));
+        } else {
+            Output.Log("token already exists, skipping insert");
+        }
         Output.Log("Record session: " + this.SessionID + " for " + this.Username);
         return new Result(true, "令牌匹配");
     }
