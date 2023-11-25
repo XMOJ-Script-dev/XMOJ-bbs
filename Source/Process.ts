@@ -3,7 +3,6 @@ import { Database } from "./Database";
 import { Output } from "./Output";
 import { CheerioAPI, load } from "cheerio";
 import CryptoJS from "crypto-js";
-import md5 from "crypto-js/md5";
 
 export class Process {
     private AdminUserList: Array<string> = ["zhuchenrui2", "shanwenxiao", "shihongxi"];
@@ -140,12 +139,12 @@ export class Process {
             return new Result(false, "验证码没有完成");
         }
         let VerifyFormData = new FormData();
-        VerifyFormData.append("secret", CaptchaSecretKey);
+        VerifyFormData.append("secret", this.CaptchaSecretKey);
         VerifyFormData.append("response", CaptchaToken);
         VerifyFormData.append("remoteip", this.RemoteIP);
         const VerifyResult = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
             body: JSON.stringify({
-                secret: CaptchaSecretKey,
+                secret: this.CaptchaSecretKey,
                 response: CaptchaToken,
                 remoteip: this.RemoteIP
             }),
@@ -1034,7 +1033,7 @@ export class Process {
             await fetch(new URL("https://api.github.com/repos/" + GithubImageRepo + "/contents/" + ImageID), {
                 method: "PUT",
                 headers: {
-                    "Authorization": "Bearer " + GithubImagePAT,
+                    "Authorization": "Bearer " + this.GithubImagePAT,
                     "Content-Type": "application/json",
                     "User-Agent": "XMOJ-Script-Server"
                 },
@@ -1070,7 +1069,7 @@ export class Process {
             return await fetch(new URL("https://api.github.com/repos/" + GithubImageRepo + "/contents/" + Data["ImageID"] + "?1=1"), {
                 method: "GET",
                 headers: {
-                    "Authorization": "Bearer " + GithubImagePAT,
+                    "Authorization": "Bearer " + this.GithubImagePAT,
                     "Accept": "application/vnd.github.v3.raw",
                     "User-Agent": "XMOJ-Script-Server"
                 }
