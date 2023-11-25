@@ -12,6 +12,7 @@ export class Process {
     private SessionID: string;
     private RemoteIP: string;
     private XMOJDatabase: Database;
+    private logs;
     private RequestData: Request;
     private Fetch = async (RequestURL: URL): Promise<Response> => {
         Output.Log("Fetch: " + RequestURL.toString());
@@ -1091,6 +1092,7 @@ export class Process {
     };
     constructor(RequestData: Request, Environment) {
         this.XMOJDatabase = new Database(Environment.DB);
+        this.logs = Environment.logdb;
         this.CaptchaSecretKey = Environment.CaptchaSecretKey;
         this.GithubImagePAT = Environment.GithubImagePAT;
         this.RequestData = RequestData;
@@ -1141,6 +1143,10 @@ export class Process {
                     break;
                 }
             }
+            this.logs.writeDataPoint({
+                'blobs': [this.RemoteIP, PathName],
+                'indexes': [this.Username]
+            });
             throw await this.ProcessFunctions[PathName](RequestJSON["Data"]);
         }
         catch (ResponseData) {

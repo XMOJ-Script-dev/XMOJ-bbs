@@ -12,3 +12,6 @@ crons = ["0 0 * * *"]
 
 [placement]
 mode = "smart"
+
+[[analytics_engine_datasets]]
+binding = "logdb"
