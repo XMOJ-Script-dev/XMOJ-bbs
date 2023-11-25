@@ -1145,6 +1145,7 @@ export class Process {
             }
             this.logs.writeDataPoint({
                 'blobs': [this.RemoteIP, PathName],
+                'doubles': [new Date().getTime()],
                 'indexes': [this.Username]
             });
             throw await this.ProcessFunctions[PathName](RequestJSON["Data"]);
