@@ -318,7 +318,7 @@ export class Process {
             //check if the post is locked
             if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_lock", {
                 post_id: Data["PostID"]
-            }))["TableSize"] === 1&&!this.IsAdmin()) {
+            }))["TableSize"] === 1 && !this.IsAdmin()) {
                 return new Result(false, "讨论已被锁定");
             }
             Data["Content"] = Data["Content"].trim();
@@ -1119,6 +1119,29 @@ export class Process {
             const responseJSON = await response.json();
             return new Result(true, "获得统计数据成功", responseJSON);
         },
+        LastOnline: async (Data: object): Promise<Result> => {
+            ThrowErrorIfFailed(this.CheckParams(Data, {
+                "Username": "string"
+            }));
+            const query = "SELECT index1 AS username, blob1 AS ip, blob2 AS path, timestamp FROM logdb WHERE index1=\'" + Data["Username"] + "\' ORDER BY timestamp DESC LIMIT 1"
+            const API = `https://api.cloudflare.com/client/v4/accounts/${this.ACCOUNT_ID}/analytics_engine/sql`;
+            const response = await fetch(API, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.API_TOKEN}`,
+                },
+                body: query,
+            });
+            const responseJSON = await response.json();
+            // parse json and return ["data"][0][timestamp]
+            if (responseJSON.data && responseJSON.data.length > 0) {
+                let timestamp = responseJSON.data[0].timestamp;
+                let unixTime = Date.parse(timestamp);
+                return new Result(true, "获得最近登录时间成功", {"logintime": unixTime });
+            } else {
+                return new Result(false, "获得最近登录时间失败", {});
+            }
+        }
     };
     constructor(RequestData: Request, Environment) {
         this.XMOJDatabase = new Database(Environment.DB);
