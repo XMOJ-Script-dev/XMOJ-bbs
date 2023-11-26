@@ -318,7 +318,7 @@ export class Process {
             //check if the post is locked
             if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_lock", {
                 post_id: Data["PostID"]
-            }))["TableSize"] === 1) {
+            }))["TableSize"] === 1&&!this.IsAdmin()) {
                 return new Result(false, "讨论已被锁定");
             }
             Data["Content"] = Data["Content"].trim();
