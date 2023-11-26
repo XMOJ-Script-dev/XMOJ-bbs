@@ -315,7 +315,12 @@ export class Process {
             if (Post.toString() == "") {
                 return new Result(false, "未找到讨论");
             }
-
+            //check if the post is locked
+            if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_lock", {
+                post_id: Data["PostID"]
+            }))["TableSize"] === 1) {
+                return new Result(false, "讨论已被锁定");
+            }
             Data["Content"] = Data["Content"].trim();
             if (Data["Content"] === "") {
                 return new Result(false, "内容不能为空");
