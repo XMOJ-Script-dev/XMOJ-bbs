@@ -14,7 +14,7 @@ export class Process {
     private SessionID: string;
     private RemoteIP: string;
     private XMOJDatabase: Database;
-    private logs;
+    private logs: { writeDataPoint: (arg0: { blobs: string[]; indexes: string[]; }) => void; };
     private RequestData: Request;
     private Fetch = async (RequestURL: URL): Promise<Response> => {
         Output.Log("Fetch: " + RequestURL.toString());
