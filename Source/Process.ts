@@ -2,6 +2,7 @@ import { Result, ThrowErrorIfFailed } from "./Result";
 import { Database } from "./Database";
 import { Output } from "./Output";
 import { CheerioAPI, load } from "cheerio";
+import * as sqlstring from 'sqlstring';
 import CryptoJS from "crypto-js";
 
 export class Process {
@@ -1107,7 +1108,10 @@ export class Process {
             if (Data["Username"] !== this.Username && !this.IsAdmin()) {
                 return new Result(false, "没有权限获取此用户日志");
             }
-            const query = "SELECT index1 AS username, blob1 AS ip, blob2 AS path, timestamp FROM logdb WHERE index1=\'" + Data["Username"] + "\' ORDER BY timestamp ASC"
+
+            let sanitizedUsername = sqlstring.escape(Data["Username"]);
+            const query = `SELECT index1 AS username, blob1 AS ip, blob2 AS path, timestamp FROM logdb WHERE index1=${sanitizedUsername} ORDER BY timestamp ASC`;
+
             const API = `https://api.cloudflare.com/client/v4/accounts/${this.ACCOUNT_ID}/analytics_engine/sql`;
             const response = await fetch(API, {
                 method: 'POST',
@@ -1123,7 +1127,9 @@ export class Process {
             ThrowErrorIfFailed(this.CheckParams(Data, {
                 "Username": "string"
             }));
-            const query = "SELECT index1 AS username, blob1 AS ip, blob2 AS path, timestamp FROM logdb WHERE index1=\'" + Data["Username"] + "\' ORDER BY timestamp DESC LIMIT 1"
+            let username = Data["Username"];
+            let sanitizedUsername = sqlstring.escape(username);
+            const query = `SELECT timestamp FROM logdb WHERE index1=${sanitizedUsername} ORDER BY timestamp DESC LIMIT 1`;
             const API = `https://api.cloudflare.com/client/v4/accounts/${this.ACCOUNT_ID}/analytics_engine/sql`;
             const response = await fetch(API, {
                 method: 'POST',
