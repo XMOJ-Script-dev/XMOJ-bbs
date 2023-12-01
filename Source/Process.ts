@@ -1110,7 +1110,7 @@ export class Process {
             }
 
             let sanitizedUsername = sqlstring.escape(Data["Username"]);
-            const query = `SELECT index1 AS username, blob1 AS ip, blob2 AS path, timestamp FROM logdb WHERE index1=${sanitizedUsername} ORDER BY timestamp ASC`;
+            const query = `SELECT index1 AS username, blob1 AS IP, blob2 AS Path, blob3 AS Version, blob4 AS DebugMode, timestamp FROM logdb WHERE index1=${sanitizedUsername} ORDER BY timestamp ASC`;
 
             const API = `https://api.cloudflare.com/client/v4/accounts/${this.ACCOUNT_ID}/analytics_engine/sql`;
             const response = await fetch(API, {
