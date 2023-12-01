@@ -1189,10 +1189,19 @@ export class Process {
             catch (Error) {
                 throw new Result(false, "请求格式有误");
             }
-            ThrowErrorIfFailed(this.CheckParams(RequestJSON, {
-                "Authentication": "object",
-                "Data": "object"
-            }));
+            if(RequestJSON["Version"]) {
+                ThrowErrorIfFailed(this.CheckParams(RequestJSON, {
+                    "Authentication": "object",
+                    "Data": "object",
+                    "Version": "string",
+                    "DebugMode": "boolean"
+                }));
+            } else {
+                ThrowErrorIfFailed(this.CheckParams(RequestJSON, {
+                    "Authentication": "object",
+                    "Data": "object"
+                }));
+            }
             var TokenFailedCount = 0;
             while (true) {
                 if ((await this.CheckToken(RequestJSON["Authentication"])).Data["Success"]) {
