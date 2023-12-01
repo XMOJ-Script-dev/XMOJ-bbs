@@ -1202,6 +1202,8 @@ export class Process {
                     "Authentication": "object",
                     "Data": "object"
                 }));
+                //send a warning
+                this.ProcessFunctions.SendMail({"ToUser": "shanwenxiao", "Content": "[系统通知] 我使用了旧版本的XMOJ-Script, 请提醒我升级"});
             }
             var TokenFailedCount = 0;
             while (true) {
