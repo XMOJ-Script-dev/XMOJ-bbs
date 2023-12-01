@@ -1143,7 +1143,7 @@ export class Process {
             if (responseJSON.data && responseJSON.data.length > 0) {
                 let timestamp = responseJSON.data[0].timestamp;
                 let unixTime = Date.parse(timestamp);
-                return new Result(true, "获得最近登录时间成功", {"logintime": unixTime });
+                return new Result(true, "获得最近登录时间成功", { "logintime": unixTime });
             } else {
                 return new Result(false, "获得最近登录时间失败", {});
             }
@@ -1189,7 +1189,7 @@ export class Process {
             catch (Error) {
                 throw new Result(false, "请求格式有误");
             }
-            if(RequestJSON["Version"]) {
+            if (RequestJSON["Version"]) {
                 ThrowErrorIfFailed(this.CheckParams(RequestJSON, {
                     "Authentication": "object",
                     "Data": "object",
@@ -1197,6 +1197,7 @@ export class Process {
                     "DebugMode": "boolean"
                 }));
             } else {
+                //old version, deprecated
                 ThrowErrorIfFailed(this.CheckParams(RequestJSON, {
                     "Authentication": "object",
                     "Data": "object"
@@ -1213,10 +1214,18 @@ export class Process {
                     break;
                 }
             }
-            this.logs.writeDataPoint({
-                'blobs': [this.RemoteIP, PathName],
-                'indexes': [this.Username]
-            });
+            if (RequestJSON["Version"]) {
+                this.logs.writeDataPoint({
+                    'blobs': [this.RemoteIP, PathName, RequestJSON["Version"], RequestJSON["DebugMode"]],
+                    'indexes': [this.Username]
+                });
+            } else {
+                //old version, deprecated
+                this.logs.writeDataPoint({
+                    'blobs': [this.RemoteIP, PathName],
+                    'indexes': [this.Username]
+                });
+            }
             throw await this.ProcessFunctions[PathName](RequestJSON["Data"]);
         }
         catch (ResponseData) {
