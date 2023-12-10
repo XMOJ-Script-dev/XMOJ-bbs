@@ -1,6 +1,6 @@
 {
   "name": "xmoj-bbs",
-  "version": "1.0.224",
+  "version": "1.0.225",
   "private": false,
   "scripts": {
     "deploy": "wrangler deploy",
