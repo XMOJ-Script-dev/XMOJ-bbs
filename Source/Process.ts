@@ -1189,20 +1189,12 @@ export class Process {
             catch (Error) {
                 throw new Result(false, "请求格式有误");
             }
-            if (RequestJSON["Version"]) {
-                ThrowErrorIfFailed(this.CheckParams(RequestJSON, {
+            ThrowErrorIfFailed(this.CheckParams(RequestJSON, {
                     "Authentication": "object",
                     "Data": "object",
                     "Version": "string",
                     "DebugMode": "boolean"
-                }));
-            } else {
-                //old version, deprecated
-                ThrowErrorIfFailed(this.CheckParams(RequestJSON, {
-                    "Authentication": "object",
-                    "Data": "object"
-                }));
-            }
+            }));
             var TokenFailedCount = 0;
             while (true) {
                 if ((await this.CheckToken(RequestJSON["Authentication"])).Data["Success"]) {
@@ -1214,20 +1206,10 @@ export class Process {
                     break;
                 }
             }
-            if (RequestJSON["Version"]) {
-                this.logs.writeDataPoint({
-                    'blobs': [this.RemoteIP, PathName, RequestJSON["Version"], RequestJSON["DebugMode"]],
-                    'indexes': [this.Username]
-                });
-            } else {
-                //old version, deprecated
-                this.logs.writeDataPoint({
-                    'blobs': [this.RemoteIP, PathName],
-                    'indexes': [this.Username]
-                });
-                //send a warning
-                this.ProcessFunctions.SendMail({"ToUser": "shanwenxiao", "Content": "[系统通知] 我使用了旧版本的XMOJ-Script, 请提醒我升级"});
-            }
+            this.logs.writeDataPoint({
+                'blobs': [this.RemoteIP, PathName, RequestJSON["Version"], RequestJSON["DebugMode"]],
+                'indexes': [this.Username]
+            });
             throw await this.ProcessFunctions[PathName](RequestJSON["Data"]);
         }
         catch (ResponseData) {
