@@ -15,5 +15,20 @@
     "cheerio": "^1.0.0-rc.12",
     "crypto-js": "^4.1.1",
     "sqlstring": "^2.3.3"
-  }
+  },
+  "description": "The backend of XMOJ-Script",
+  "main": "Source/index.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/XMOJ-Script-dev/XMOJ-bbs.git"
+  },
+  "keywords": [
+    "xmoj"
+  ],
+  "author": "XMOJ-Script-dev",
+  "license": "AGPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/XMOJ-Script-dev/XMOJ-bbs/issues"
+  },
+  "homepage": "https://github.com/XMOJ-Script-dev/XMOJ-bbs#readme"
 }

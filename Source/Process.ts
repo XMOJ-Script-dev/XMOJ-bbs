@@ -281,7 +281,7 @@ export class Process {
             if (Data["Content"].trim() === "") {
                 return new Result(false, "内容不能为空");
             }
-            if (!this.IsAdmin && Data["BoardID"] === 0) {
+            if (!this.IsAdmin && Data["BoardID"] == 0) {
                 return new Result(false, "没有权限发表公告");
             }
             if (Data["BoardID"] !== 0 && ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_board", {
