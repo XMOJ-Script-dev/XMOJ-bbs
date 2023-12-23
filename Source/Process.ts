@@ -272,9 +272,6 @@ export class Process {
                 "BoardID": "number"
             }));
             ThrowErrorIfFailed(await this.VerifyCaptcha(Data["CaptchaSecretKey"]));
-            if (this.Username=="shihongxi"){
-                return new Result(false, "您已被禁言");
-            }
             if (Data["Title"].trim() === "") {
                 return new Result(false, "标题不能为空");
             }
@@ -314,9 +311,6 @@ export class Process {
                 "CaptchaSecretKey": "string"
             }));
             ThrowErrorIfFailed(await this.VerifyCaptcha(Data["CaptchaSecretKey"]));
-            if (this.Username=="shihongxi"){
-                return new Result(false, "您已被禁言");
-            }
             let Post = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_post", ["title", "user_id"], { post_id: Data["PostID"] }));
             if (Post.toString() == "") {
                 return new Result(false, "未找到讨论");
