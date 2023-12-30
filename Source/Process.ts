@@ -1205,10 +1205,10 @@ export class Process {
                     break;
                 }
             }
-            // this.logs.writeDataPoint({
-            //     'blobs': [this.RemoteIP, PathName, RequestJSON["Version"], RequestJSON["DebugMode"]],
-            //     'indexes': [this.Username]
-            // });
+            this.logs.writeDataPoint({
+                'blobs': [this.RemoteIP, PathName, RequestJSON["Version"], RequestJSON["DebugMode"]],
+                'indexes': [this.Username]
+            });
             throw await this.ProcessFunctions[PathName](RequestJSON["Data"]);
         }
         catch (ResponseData) {
