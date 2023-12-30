@@ -1,3 +1,4 @@
+-- Migration number: 0000 	 2023-12-30T11:26:45.725Z
 DROP TABLE IF EXISTS badge;
 
 CREATE TABLE badge (
@@ -93,3 +94,4 @@ CREATE TABLE std_answer (
     problem_id INTEGER PRIMARY KEY NOT NULL,
     std_code TEXT
 );
+
