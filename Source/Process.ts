@@ -7,13 +7,13 @@ import CryptoJS from "crypto-js";
 
 export class Process {
     private AdminUserList: Array<string> = ["zhuchenrui2", "shanwenxiao", "shihongxi"];
-    private CaptchaSecretKey: string;
+    private readonly CaptchaSecretKey: string;
     private GithubImagePAT: string;
-    private ACCOUNT_ID: string;
-    private API_TOKEN: string;
+    private readonly ACCOUNT_ID: string;
+    private readonly API_TOKEN: string;
     private Username: string;
     private SessionID: string;
-    private RemoteIP: string;
+    private readonly RemoteIP: string;
     private XMOJDatabase: Database;
     private logs: { writeDataPoint: (arg0: { blobs: string[]; indexes: string[]; }) => void; };
     private RequestData: Request;
@@ -76,7 +76,7 @@ export class Process {
             }
         }
 
-        let SessionUsername: string = await this.Fetch(new URL("http://www.xmoj.tech/template/bs3/profile.php"))
+        let SessionUsername: string = await this.Fetch(new URL("https://www.xmoj.tech/template/bs3/profile.php"))
             .then((Response) => {
                 return Response.text();
             }).then((Response) => {
@@ -117,7 +117,7 @@ export class Process {
         return new Result(true, "令牌匹配");
     }
     public IfUserExist = async (Username: string): Promise<Result> => {
-        return await this.Fetch(new URL("http://www.xmoj.tech/userinfo.php?user=" + Username))
+        return await this.Fetch(new URL("https://www.xmoj.tech/userinfo.php?user=" + Username))
             .then((Response) => {
                 return Response.text();
             }).then((Response) => {
@@ -179,7 +179,7 @@ export class Process {
         }
     }
     public GetProblemScore = async (ProblemID: number): Promise<number> => {
-        return await this.Fetch(new URL("http://www.xmoj.tech/status.php?user_id=" + this.Username + "&problem_id=" + ProblemID))
+        return await this.Fetch(new URL("https://www.xmoj.tech/status.php?user_id=" + this.Username + "&problem_id=" + ProblemID))
             .then((Response) => {
                 return Response.text();
             }).then((Response) => {
@@ -868,10 +868,10 @@ export class Process {
             }))["TableSize"] !== 0) {
                 return new Result(true, "此题已经有人上传标程");
             }
-            var StdCode: string = "";
-            var PageIndex: number = 0;
+            let StdCode: string = "";
+            let PageIndex: number = 0;
             while (StdCode === "") {
-                await this.Fetch(new URL("http://www.xmoj.tech/problemstatus.php?id=" + ProblemID + "&page=" + PageIndex))
+                await this.Fetch(new URL("https://www.xmoj.tech/problemstatus.php?id=" + ProblemID + "&page=" + PageIndex))
                     .then((Response) => {
                         return Response.text();
                     }).then(async (Response) => {
@@ -895,7 +895,7 @@ export class Process {
                                 if (SID.indexOf("(") != -1) {
                                     SID = SID.substring(0, SID.indexOf("("));
                                 }
-                                await this.Fetch(new URL("http://www.xmoj.tech/getsource.php?id=" + SID))
+                                await this.Fetch(new URL("https://www.xmoj.tech/getsource.php?id=" + SID))
                                     .then((Response) => {
                                         return Response.text();
                                     })
