@@ -278,7 +278,7 @@ export class Process {
             if (Data["Content"].trim() === "") {
                 return new Result(false, "内容不能为空");
             }
-            if (!this.IsAdmin && Data["BoardID"] == 0) {
+            if (!this.IsAdmin() && Data["BoardID"] == 1) {
                 return new Result(false, "没有权限发表公告");
             }
             if (Data["BoardID"] !== 0 && ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_board", {
@@ -1205,10 +1205,10 @@ export class Process {
                     break;
                 }
             }
-            this.logs.writeDataPoint({
-                'blobs': [this.RemoteIP, PathName, RequestJSON["Version"], RequestJSON["DebugMode"]],
-                'indexes': [this.Username]
-            });
+            // this.logs.writeDataPoint({
+            //     'blobs': [this.RemoteIP, PathName, RequestJSON["Version"], RequestJSON["DebugMode"]],
+            //     'indexes': [this.Username]
+            // });
             throw await this.ProcessFunctions[PathName](RequestJSON["Data"]);
         }
         catch (ResponseData) {
