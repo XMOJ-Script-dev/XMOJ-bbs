@@ -290,7 +290,7 @@ export class Process {
       if (Data["Content"].trim() === "") {
         return new Result(false, "内容不能为空");
       }
-      if (!this.IsAdmin() && (Data["BoardID"] == 1 || Data["BoardID"] == 6)) {
+      if (!this.IsAdmin() && (Data["BoardID"] == 0 || Data["BoardID"] == 5)) {
         return new Result(false, "没有权限发表公告");
       }
       if (Data["BoardID"] !== 0 && ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_board", {
@@ -328,7 +328,7 @@ export class Process {
         return new Result(false, "未找到讨论");
       }
       //console.log(Post[0]["board_id"]);
-      if (Post[0]["board_id"] == 6) {
+      if (Post[0]["board_id"] == 5) {
         return new Result(false, "此讨论不允许回复");
       }
       //check if the post is locked
