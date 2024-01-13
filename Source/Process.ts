@@ -344,6 +344,7 @@ export class Process {
                 return new Result(false, "内容不能为空");
             }
             let MentionPeople = new Array<string>();
+            // @ts-ignore
             for (let Match of String(Data["Content"]).matchAll(/@([a-zA-Z0-9]+)/g)) {
                 if (ThrowErrorIfFailed(await this.IfUserExist(Match[1]))["Exist"]) {
                     MentionPeople.push(Match[1]);
@@ -591,6 +592,7 @@ export class Process {
                 return new Result(false, "内容不能为空");
             }
             let MentionPeople = new Array<string>();
+            // @ts-ignore
             for (let Match of String(Data["Content"]).matchAll(/@([a-zA-Z0-9]+)/g)) {
                 if (ThrowErrorIfFailed(await this.IfUserExist(Match[1]))["Exist"]) {
                     MentionPeople.push(Match[1]);
