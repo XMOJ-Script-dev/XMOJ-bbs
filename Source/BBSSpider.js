@@ -31,7 +31,7 @@ const GetPost = async (i) => {
         return;
     }
     console.log(i + " / " + PostCount + " " + ((i - 1) / PostCount * 100).toFixed(2) + "%");
-    await fetch("http://www.xmoj.tech/discuss3/thread.php?tid=" + i)
+    await fetch("https://www.xmoj.tech/discuss3/thread.php?tid=" + i)
         .then((Response) => {
             return Response.text();
         })
