@@ -20,6 +20,7 @@ import {Database} from "./Database";
 import {Output} from "./Output";
 import {CheerioAPI, load} from "cheerio";
 import * as sqlstring from 'sqlstring';
+// @ts-ignore
 import CryptoJS from "crypto-js";
 
 export class Process {
@@ -1112,7 +1113,7 @@ export class Process {
         return new Blob();
       });
     },
-    SendData: async (Data: object): Promise<Result> => {
+    SendData: async (): Promise<Result> => {
       //instantly return
       return new Result(true, "数据发送成功");
     },
