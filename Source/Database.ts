@@ -37,7 +37,7 @@ export class Database {
             Output.Warn("Error while executing SQL query: \n" +
                 "    Query    : \"" + QueryString + "\"\n" +
                 "    Arguments: " + JSON.stringify(BindData) + "\n" +
-                "    Error    : \"" + ErrorDetail) + "\"\n";
+                "    Error    : \"" + ErrorDetail);
             return new Result(false, "数据库查询失败：" + String(ErrorDetail));
         }
     }
