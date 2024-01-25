@@ -21,5 +21,8 @@ profile:
 #  - id: <plugin.id> #(plugin id can be found at https://plugins.jetbrains.com)
 #Specify Qodana linter for analysis (Applied in CI/CD pipeline)
 linter: jetbrains/qodana-js:latest
+bootstrap: |+
+  # Use npm to install dependencies
+  npm install
 include:
   - name: CheckDependencyLicenses
