@@ -15,34 +15,37 @@
  *     along with XMOJ-bbs.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { Process } from "./Process";
-import { Database } from "./Database";
+import {Process} from "./Process";
+import {Database} from "./Database";
+import {D1Database} from "@cloudflare/workers-types";
 
 export default {
-    async fetch(RequestData: Request, Environment, Context) {
-        let Processor = new Process(RequestData, Environment);
-        return await Processor.Process();
-    },
-    async scheduled(Event, Environment, Context) {
-        let XMOJDatabase = new Database(Environment.DB);
-        Context.waitUntil(new Promise<void>(async (Resolve) => {
-            await XMOJDatabase.Delete("short_message", {
-                "send_time": {
-                    "Operator": "<=",
-                    "Value": new Date().getTime() - 1000 * 60 * 60 * 24 * 14
-                },
-                "is_read": {
-                    "Operator": "=",
-                    "Value": 1
-                }
-            });
-            await XMOJDatabase.Delete("phpsessid", {
-                "create_time": {
-                    "Operator": "<=",
-                    "Value": new Date().getTime() - 1000 * 60 * 60 * 24 * 7
-                }
-            });
-            Resolve();
-        }));
-    },
+  async fetch(RequestData: Request, Environment: any, Context: any) {
+    let Processor = new Process(RequestData, Environment);
+    return await Processor.Process();
+  },
+  async scheduled(Event: any, Environment: { DB: D1Database; }, Context: {
+    waitUntil: (arg0: Promise<void>) => void;
+  }) {
+    let XMOJDatabase = new Database(Environment.DB);
+    Context.waitUntil(new Promise<void>(async (Resolve) => {
+      await XMOJDatabase.Delete("short_message", {
+        "send_time": {
+          "Operator": "<=",
+          "Value": new Date().getTime() - 1000 * 60 * 60 * 24 * 14
+        },
+        "is_read": {
+          "Operator": "=",
+          "Value": 1
+        }
+      });
+      await XMOJDatabase.Delete("phpsessid", {
+        "create_time": {
+          "Operator": "<=",
+          "Value": new Date().getTime() - 1000 * 60 * 60 * 24 * 7
+        }
+      });
+      Resolve();
+    }));
+  },
 };
