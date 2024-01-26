@@ -1,7 +1,6 @@
 name = "xmoj-bbs"
 main = "Source/index.ts"
 compatibility_date = "2023-09-17"
-node_compat = true
 
 [[d1_databases]]
 binding = "DB"
