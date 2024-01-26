@@ -880,15 +880,6 @@ export class Process {
       if (await this.GetProblemScore(ProblemID) !== 100) {
         return new Result(false, "没有权限上传此标程");
       }
-      let pastSub: any = ThrowErrorIfFailed(await this.XMOJDatabase.Select("std_answer", ["std_code"], {
-        problem_id: Data["ProblemID"]
-      }));
-      if (pastSub[0]["std_code"] === "这道题没有标程（即用户std没有AC这道题）") {
-        //legacy, remove
-        await this.XMOJDatabase.Delete("std_answer", {
-          problem_id: Data["ProblemID"]
-        });
-      }
       if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("std_answer", {
         problem_id: ProblemID
       }))["TableSize"] !== 0) {
@@ -948,56 +939,32 @@ export class Process {
       }
       if (StdCode === "这道题没有标程（即用户std没有AC这道题）") {
         StdCode = "";
-        while (StdCode === "") {
-          await this.Fetch(new URL("https://www.xmoj.tech/problemstatus.php?id=" + ProblemID + "&page=" + PageIndex))
-            .then((Response) => {
-              return Response.text();
-            }).then(async (Response) => {
-              if (Response.indexOf("[NEXT]") === -1) {
-                StdCode = "这道题没有标程（即用户std没有AC这道题）";
-                return;
-              }
-              let ParsedDocument: CheerioAPI = load(Response);
-              let SubmitTable = ParsedDocument("#problemstatus");
-              if (SubmitTable.length == 0) {
-                Output.Error("Get Std code failed: Cannot find submit table\n" +
-                  "ProblemID: \"" + ProblemID + "\"\n" +
-                  "Username : \"" + this.Username + "\"\n");
-                ThrowErrorIfFailed(new Result(false, "获取标程失败"));
-              }
-              let SubmitTableBody = SubmitTable.children().eq(1);
-              for (let i = 1; i < SubmitTableBody.children().length; i++) {
-                let SubmitRow = SubmitTableBody.children().eq(i);
-                if (SubmitRow.children().eq(2).text().trim() === this.Username) {
-                  let SID: string = SubmitRow.children().eq(1).text();
-                  if (SID.indexOf("(") != -1) {
-                    SID = SID.substring(0, SID.indexOf("("));
-                  }
-                  await this.Fetch(new URL("https://www.xmoj.tech/getsource.php?id=" + SID))
-                    .then((Response) => {
-                      return Response.text();
-                    })
-                    .then((Response) => {
-                      Response = Response.substring(0, Response.indexOf("<!--not cached-->")).trim();
-                      if (Response === "I am sorry, You could not view this code!") {
-                        Output.Error("Get Std code failed: Cannot view code\n" +
-                          "ProblemID: \"" + ProblemID + "\"\n" +
-                          "Username : \"" + this.Username + "\"\n");
-                        ThrowErrorIfFailed(new Result(false, "获取标程失败"));
-                      }
-                      Response = Response.substring(0, Response.indexOf("/**************************************************************")).trim();
-                      StdCode = Response;
-                    });
-                }
-              }
-            }).catch((Error) => {
-              Output.Error("Get Std code failed: " + Error + "\n" +
-                "ProblemID: \"" + ProblemID + "\"\n" +
-                "Username : \"" + this.Username + "\"\n");
-              ThrowErrorIfFailed(new Result(false, "获取标程失败"));
-            });
-          PageIndex++;
-        }
+        let SID: string = "0";
+        await this.Fetch(new URL("https://www.xmoj.tech/status.php?problem_id=" + ProblemID + "&jresult=4"))
+          .then((response) => {
+            return response.text();
+          }).then((body) => {
+            const $ = load(body);
+            SID = $(".oddrow > td:nth-child(2)").html();
+          }).catch((Error) => {
+            Output.Error("Get Std code failed: " + Error + "\n" +
+              "ProblemID: \"" + ProblemID + "\"\n" +
+              "Username : \"" + this.Username + "\"\n");
+            ThrowErrorIfFailed(new Result(false, "获取SID失败"));
+          });
+        await this.Fetch(new URL("https://www.xmoj.tech/getsource.php?id=" + SID))
+          .then((Response) => {
+            return Response.text();
+          }).then((Response) => {
+            StdCode = Response.substring(0, Response.indexOf("/**************************************************************")).trim();
+          })
+          .catch((Error) => {
+            Output.Error("Get Std code failed: " + Error + "\n" +
+              "ProblemID: \"" + ProblemID + "\"\n" +
+              "Username : \"" + this.Username + "\"\n");
+            ThrowErrorIfFailed(new Result(false, "获取标程失败"));
+          });
+        StdCode = '//Code by ' + this.Username + '\n' + StdCode;
       }
       ThrowErrorIfFailed(await this.XMOJDatabase.Insert("std_answer", {
         problem_id: Data["ProblemID"],
