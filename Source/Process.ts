@@ -878,7 +878,7 @@ export class Process {
       }));
       let ProblemID = Data["ProblemID"];
       if (ProblemID === 0) {
-        return new Result(false, "ProblemID不能为0");
+        return new Result(true, "ProblemID不能为0"); //this isn't really an error, so we return true
       }
       if (await this.GetProblemScore(ProblemID) !== 100) {
         return new Result(false, "没有权限上传此标程");
