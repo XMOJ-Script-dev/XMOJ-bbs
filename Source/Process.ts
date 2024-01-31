@@ -147,6 +147,19 @@ export class Process {
         return new Result(false, "用户检查失败");
       });
   }
+  public IfUserExistChecker = async (Username: string): Promise<Result> => {
+    var rst = this.IfUserExist(Username);
+    //if failed try again
+    let retryCount = 3; // Define how many times you want to retry
+    for (let i = 0; i < retryCount; i++) {
+      if (!rst["Success"]) {
+        rst = this.IfUserExist(Username);
+      } else {
+        break; // If the function is successful, break the loop
+      }
+    }
+    return rst;
+  }
   public IsAdmin = (): boolean => {
     return this.AdminUserList.indexOf(this.Username) !== -1;
   }
@@ -233,6 +246,19 @@ export class Process {
         ThrowErrorIfFailed(new Result(false, "获取题目分数失败"));
         return 0;
       });
+  }
+  public GetProblemScoreChecker = async (ProblemID: number): Promise<number> => {
+    var rst = this.GetProblemScore(ProblemID);
+    //if failed try again
+    let retryCount = 3; // Define how many times you want to retry
+    for (let i = 0; i < retryCount; i++) {
+      if (rst["Success"]) {
+        rst = this.GetProblemScore(ProblemID);
+      } else {
+        break; // If the function is successful, break the loop
+      }
+    }
+    return rst;
   }
   private AddBBSMention = async (ToUserID: string, PostID: number): Promise<void> => {
     if (ToUserID === this.Username) {
@@ -345,7 +371,7 @@ export class Process {
       let MentionPeople = new Array<string>();
       // @ts-ignore
       for (let Match of String(Data["Content"]).matchAll(/@([a-zA-Z0-9]+)/g)) {
-        if (ThrowErrorIfFailed(await this.IfUserExist(Match[1]))["Exist"]) {
+        if (ThrowErrorIfFailed(await this.IfUserExistChecker(Match[1]))["Exist"]) {
           MentionPeople.push(Match[1]);
         }
       }
@@ -593,7 +619,7 @@ export class Process {
       let MentionPeople = new Array<string>();
       // @ts-ignore
       for (let Match of String(Data["Content"]).matchAll(/@([a-zA-Z0-9]+)/g)) {
-        if (ThrowErrorIfFailed(await this.IfUserExist(Match[1]))["Exist"]) {
+        if (ThrowErrorIfFailed(await this.IfUserExistChecker(Match[1]))["Exist"]) {
           MentionPeople.push(Match[1]);
         }
       }
@@ -801,7 +827,7 @@ export class Process {
         "ToUser": "string",
         "Content": "string"
       }));
-      if (ThrowErrorIfFailed(await this.IfUserExist(Data["ToUser"]))["Exist"] === false) {
+      if (ThrowErrorIfFailed(await this.IfUserExistChecker(Data["ToUser"]))["Exist"] === false) {
         return new Result(false, "未找到用户");
       }
       if (Data["ToUser"] === this.Username) {
@@ -880,7 +906,7 @@ export class Process {
       if (ProblemID === 0) {
         return new Result(true, "ProblemID不能为0, 已忽略"); //this isn't really an error, so we return true
       }
-      if (await this.GetProblemScore(ProblemID) !== 100) {
+      if (await this.GetProblemScoreChecker(ProblemID) !== 100) {
         return new Result(false, "没有权限上传此标程");
       }
       if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("std_answer", {
@@ -990,7 +1016,7 @@ export class Process {
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "ProblemID": "number"
       }));
-      if (await this.GetProblemScore(Data["ProblemID"]) < 50) {
+      if (await this.GetProblemScoreChecker(Data["ProblemID"]) < 50) {
         return new Result(false, "没有权限获取此标程");
       }
       let Std = ThrowErrorIfFailed(await this.XMOJDatabase.Select("std_answer", ["std_code"], {
