@@ -24,7 +24,7 @@ import * as sqlstring from 'sqlstring';
 import CryptoJS from "crypto-js";
 
 export class Process {
-  private AdminUserList: Array<string> = ["zhuchenrui2", "shanwenxiao", "shihongxi"];
+  private AdminUserList: Array<string> = ["zhuchenrui2", "shanwenxiao", "zhouyiqing", "shihongxi"];
   private readonly CaptchaSecretKey: string;
   private GithubImagePAT: string;
   private readonly ACCOUNT_ID: string;
