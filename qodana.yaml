@@ -27,3 +27,7 @@ bootstrap: |
 include:
   - name: CheckDependencyLicenses
   - name: DuplicatedCode
+exclude:
+  - name: ExceptionCaughtLocallyJS
+    paths:
+      - Source/Process.ts
