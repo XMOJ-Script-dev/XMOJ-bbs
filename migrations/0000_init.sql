@@ -1,33 +1,26 @@
 -- Migration number: 0000 	 2023-12-30T11:26:45.725Z
-DROP TABLE IF EXISTS badge;
 
-CREATE TABLE badge (
+CREATE TABLE IF NOT EXISTS badge (
     user_id TEXT PRIMARY KEY NOT NULL,
     background_color TEXT NOT NULL DEFAULT "#000000",
     color TEXT NOT NULL DEFAULT "#ffffff",
     content TEXT NOT NULL DEFAULT "VIP"
 );
 
-DROP TABLE IF EXISTS bbs_lock;
-
-CREATE TABLE bbs_lock (
+CREATE TABLE IF NOT EXISTS bbs_lock (
     post_id INTEGER PRIMARY KEY NOT NULL,
     lock_person TEXT NOT NULL,
     lock_time INTEGER NOT NULL
 );
 
-DROP TABLE IF EXISTS bbs_mention;
-
-CREATE TABLE bbs_mention (
+CREATE TABLE IF NOT EXISTS bbs_mention (
     bbs_mention_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     to_user_id TEXT NOT NULL,
     post_id INTEGER NOT NULL,
     bbs_mention_time TIMESTAMP NOT NULL
 );
 
-DROP TABLE IF EXISTS bbs_post;
-
-CREATE TABLE bbs_post (
+CREATE TABLE IF NOT EXISTS bbs_post (
     post_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     user_id TEXT NOT NULL,
     problem_id INT NOT NULL,
@@ -36,9 +29,7 @@ CREATE TABLE bbs_post (
     board_id INTEGER NOT NULL
 );
 
-DROP TABLE IF EXISTS bbs_reply;
-
-CREATE TABLE bbs_reply (
+CREATE TABLE IF NOT EXISTS bbs_reply (
     reply_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     post_id INTEGER NOT NULL,
     user_id TEXT NOT NULL,
@@ -48,9 +39,7 @@ CREATE TABLE bbs_reply (
     edit_person TEXT
 );
 
-DROP TABLE IF EXISTS bbs_board;
-
-CREATE TABLE bbs_board (
+CREATE TABLE IF NOT EXISTS bbs_board (
     board_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     board_name TEXT NOT NULL
 );
@@ -60,17 +49,13 @@ INSERT INTO bbs_board (board_name) VALUES ('灌水区');
 INSERT INTO bbs_board (board_name) VALUES ('反馈区');
 INSERT INTO bbs_board (board_name) VALUES ('题目总版');
 
-DROP TABLE IF EXISTS phpsessid;
-
-CREATE TABLE phpsessid (
+CREATE TABLE IF NOT EXISTS phpsessid (
     token TEXT PRIMARY KEY NOT NULL,
     user_id TEXT NOT NULL,
     create_time INTEGER NOT NULL
 );
 
-DROP TABLE IF EXISTS short_message;
-
-CREATE TABLE short_message (
+CREATE TABLE IF NOT EXISTS short_message (
     message_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     message_from TEXT NOT NULL,
     message_to TEXT NOT NULL,
@@ -79,18 +64,14 @@ CREATE TABLE short_message (
     send_time INTEGER NOT NULL
 );
 
-DROP TABLE IF EXISTS short_message_mention;
-
-CREATE TABLE short_message_mention (
+CREATE TABLE IF NOT EXISTS short_message_mention (
     mail_mention_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     from_user_id TEXT NOT NULL,
     to_user_id TEXT NOT NULL,
     mail_mention_time TIMESTAMP NOT NULL
 );
 
-DROP TABLE IF EXISTS std_answer;
-
-CREATE TABLE std_answer (
+CREATE TABLE IF NOT EXISTS std_answer (
     problem_id INTEGER PRIMARY KEY NOT NULL,
     std_code TEXT
 );

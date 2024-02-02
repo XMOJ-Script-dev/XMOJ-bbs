@@ -1284,6 +1284,9 @@ export class Process {
         'blobs': [this.RemoteIP, PathName, RequestJSON["Version"], RequestJSON["DebugMode"]],
         'indexes': [this.Username]
       });
+      // if (this.Username === "shanwenxiao") {
+      //   throw new Result(false, "你已被封禁");
+      // }
       throw await this.ProcessFunctions[PathName](RequestJSON["Data"]);
     } catch (ResponseData) {
       if (!(ResponseData instanceof Result)) {
