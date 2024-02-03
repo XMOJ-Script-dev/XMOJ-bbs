@@ -3,7 +3,7 @@
 The backend of XMOJ-Script
 
 
-## history
+## History
 
 This backend originated from https://github.com/langningchen/XMOJ-Script/discussions/38
 
