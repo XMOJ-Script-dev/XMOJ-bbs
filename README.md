@@ -1,4 +1,5 @@
 # XMOJ-bbs
+[![Qodana](https://github.com/XMOJ-Script-dev/XMOJ-bbs/actions/workflows/qodana_code_quality.yml/badge.svg)](https://github.com/XMOJ-Script-dev/XMOJ-bbs/actions/workflows/qodana_code_quality.yml)
 
 The backend of XMOJ-Script
 
