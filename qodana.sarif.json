@@ -7,7 +7,7 @@
         "driver": {
           "name": "QDJS",
           "fullName": "Qodana for JS",
-          "version": "233.13014.80",
+          "version": "233.14246.173",
           "rules": [],
           "taxa": [
             {
@@ -169,6 +169,10 @@
               "name": "HTML"
             },
             {
+              "id": "Cucumber",
+              "name": "Cucumber"
+            },
+            {
               "id": "JavaScript and TypeScript/Unused symbols",
               "name": "Unused symbols",
               "relationships": [
@@ -185,10 +189,6 @@
                   ]
                 }
               ]
-            },
-            {
-              "id": "Cucumber",
-              "name": "Cucumber"
             },
             {
               "id": "JavaScript and TypeScript/Data flow",
@@ -691,7 +691,7 @@
         "extensions": [
           {
             "name": "org.editorconfig.editorconfigjetbrains",
-            "version": "233.13014",
+            "version": "233.14246",
             "rules": [
               {
                 "id": "EditorConfigCharClassRedundancy",
@@ -1660,7 +1660,7 @@
           },
           {
             "name": "JavaScript",
-            "version": "233.13014",
+            "version": "233.14246",
             "rules": [
               {
                 "id": "ConstantConditionalExpressionJS",
@@ -1981,7 +1981,7 @@
                   {
                     "target": {
                       "id": "JavaScript and TypeScript/Unused symbols",
-                      "index": 15,
+                      "index": 16,
                       "toolComponent": {
                         "name": "QDJS"
                       }
@@ -3148,39 +3148,6 @@
                 ]
               },
               {
-                "id": "PointlessBooleanExpressionJS",
-                "shortDescription": {
-                  "text": "Pointless statement or boolean expression"
-                },
-                "fullDescription": {
-                  "text": "Reports a pointless or pointlessly complicated boolean expression or statement. Example: 'let a = !(false && x);\n  let b = false || x;' After the quick fix is applied the result looks like: 'let a = true;\n  let b = x;'",
-                  "markdown": "Reports a pointless or pointlessly complicated boolean expression or statement.\n\nExample:\n\n\n      let a = !(false && x);\n      let b = false || x;\n\nAfter the quick fix is applied the result looks like:\n\n\n      let a = true;\n      let b = x;\n"
-                },
-                "defaultConfiguration": {
-                  "enabled": true,
-                  "level": "warning",
-                  "parameters": {
-                    "suppressToolId": "PointlessBooleanExpressionJS",
-                    "ideaSeverity": "WARNING",
-                    "qodanaSeverity": "High"
-                  }
-                },
-                "relationships": [
-                  {
-                    "target": {
-                      "id": "JavaScript and TypeScript/Control flow issues",
-                      "index": 2,
-                      "toolComponent": {
-                        "name": "QDJS"
-                      }
-                    },
-                    "kinds": [
-                      "superset"
-                    ]
-                  }
-                ]
-              },
-              {
                 "id": "JSReferencingMutableVariableFromClosure",
                 "shortDescription": {
                   "text": "Referencing mutable variable from closure"
@@ -3203,6 +3170,39 @@
                     "target": {
                       "id": "JavaScript and TypeScript/General",
                       "index": 10,
+                      "toolComponent": {
+                        "name": "QDJS"
+                      }
+                    },
+                    "kinds": [
+                      "superset"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "PointlessBooleanExpressionJS",
+                "shortDescription": {
+                  "text": "Pointless statement or boolean expression"
+                },
+                "fullDescription": {
+                  "text": "Reports a pointless or pointlessly complicated boolean expression or statement. Example: 'let a = !(false && x);\n  let b = false || x;' After the quick fix is applied the result looks like: 'let a = true;\n  let b = x;'",
+                  "markdown": "Reports a pointless or pointlessly complicated boolean expression or statement.\n\nExample:\n\n\n      let a = !(false && x);\n      let b = false || x;\n\nAfter the quick fix is applied the result looks like:\n\n\n      let a = true;\n      let b = x;\n"
+                },
+                "defaultConfiguration": {
+                  "enabled": true,
+                  "level": "warning",
+                  "parameters": {
+                    "suppressToolId": "PointlessBooleanExpressionJS",
+                    "ideaSeverity": "WARNING",
+                    "qodanaSeverity": "High"
+                  }
+                },
+                "relationships": [
+                  {
+                    "target": {
+                      "id": "JavaScript and TypeScript/Control flow issues",
+                      "index": 2,
                       "toolComponent": {
                         "name": "QDJS"
                       }
@@ -3676,39 +3676,6 @@
                 ]
               },
               {
-                "id": "JSConstantReassignment",
-                "shortDescription": {
-                  "text": "Attempt to assign to const or readonly variable"
-                },
-                "fullDescription": {
-                  "text": "Reports reassigning a value to a constant or a readonly variable.",
-                  "markdown": "Reports reassigning a value to a constant or a readonly variable."
-                },
-                "defaultConfiguration": {
-                  "enabled": true,
-                  "level": "error",
-                  "parameters": {
-                    "suppressToolId": "JSConstantReassignment",
-                    "ideaSeverity": "ERROR",
-                    "qodanaSeverity": "Critical"
-                  }
-                },
-                "relationships": [
-                  {
-                    "target": {
-                      "id": "JavaScript and TypeScript/Validity issues",
-                      "index": 24,
-                      "toolComponent": {
-                        "name": "QDJS"
-                      }
-                    },
-                    "kinds": [
-                      "superset"
-                    ]
-                  }
-                ]
-              },
-              {
                 "id": "TypeScriptCheckImport",
                 "shortDescription": {
                   "text": "Unresolved imported name"
@@ -3731,6 +3698,39 @@
                     "target": {
                       "id": "JavaScript and TypeScript/TypeScript",
                       "index": 23,
+                      "toolComponent": {
+                        "name": "QDJS"
+                      }
+                    },
+                    "kinds": [
+                      "superset"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "JSConstantReassignment",
+                "shortDescription": {
+                  "text": "Attempt to assign to const or readonly variable"
+                },
+                "fullDescription": {
+                  "text": "Reports reassigning a value to a constant or a readonly variable.",
+                  "markdown": "Reports reassigning a value to a constant or a readonly variable."
+                },
+                "defaultConfiguration": {
+                  "enabled": true,
+                  "level": "error",
+                  "parameters": {
+                    "suppressToolId": "JSConstantReassignment",
+                    "ideaSeverity": "ERROR",
+                    "qodanaSeverity": "Critical"
+                  }
+                },
+                "relationships": [
+                  {
+                    "target": {
+                      "id": "JavaScript and TypeScript/Validity issues",
+                      "index": 24,
                       "toolComponent": {
                         "name": "QDJS"
                       }
@@ -3994,7 +3994,7 @@
                   {
                     "target": {
                       "id": "JavaScript and TypeScript/Unused symbols",
-                      "index": 15,
+                      "index": 16,
                       "toolComponent": {
                         "name": "QDJS"
                       }
@@ -4072,39 +4072,6 @@
                 ]
               },
               {
-                "id": "BlockStatementJS",
-                "shortDescription": {
-                  "text": "Unnecessary block statement"
-                },
-                "fullDescription": {
-                  "text": "Reports a block statement that is not used as the body of 'if', 'for', 'while', 'do', 'with', or 'try' statements, or as the body of a function declaration. Starting from ECMAScript 6, JavaScript blocks introduce new scopes for 'let' and 'const' variables, but still free-standing block statements may be confusing and result in subtle bugs when used with 'var' variables.",
-                  "markdown": "Reports a block statement that is not used as the body of `if`, `for`, `while`, `do`, `with`, or `try` statements, or as the body of a function declaration. Starting from ECMAScript 6, JavaScript blocks introduce new scopes for `let` and `const` variables, but still free-standing block statements may be confusing and result in subtle bugs when used with `var` variables."
-                },
-                "defaultConfiguration": {
-                  "enabled": false,
-                  "level": "warning",
-                  "parameters": {
-                    "suppressToolId": "BlockStatementJS",
-                    "ideaSeverity": "WARNING",
-                    "qodanaSeverity": "High"
-                  }
-                },
-                "relationships": [
-                  {
-                    "target": {
-                      "id": "JavaScript and TypeScript/Potentially confusing code constructs",
-                      "index": 25,
-                      "toolComponent": {
-                        "name": "QDJS"
-                      }
-                    },
-                    "kinds": [
-                      "superset"
-                    ]
-                  }
-                ]
-              },
-              {
                 "id": "AnonymousFunctionJS",
                 "shortDescription": {
                   "text": "Anonymous function"
@@ -4127,6 +4094,39 @@
                     "target": {
                       "id": "JavaScript and TypeScript/Potentially undesirable code constructs",
                       "index": 11,
+                      "toolComponent": {
+                        "name": "QDJS"
+                      }
+                    },
+                    "kinds": [
+                      "superset"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "BlockStatementJS",
+                "shortDescription": {
+                  "text": "Unnecessary block statement"
+                },
+                "fullDescription": {
+                  "text": "Reports a block statement that is not used as the body of 'if', 'for', 'while', 'do', 'with', or 'try' statements, or as the body of a function declaration. Starting from ECMAScript 6, JavaScript blocks introduce new scopes for 'let' and 'const' variables, but still free-standing block statements may be confusing and result in subtle bugs when used with 'var' variables.",
+                  "markdown": "Reports a block statement that is not used as the body of `if`, `for`, `while`, `do`, `with`, or `try` statements, or as the body of a function declaration. Starting from ECMAScript 6, JavaScript blocks introduce new scopes for `let` and `const` variables, but still free-standing block statements may be confusing and result in subtle bugs when used with `var` variables."
+                },
+                "defaultConfiguration": {
+                  "enabled": false,
+                  "level": "warning",
+                  "parameters": {
+                    "suppressToolId": "BlockStatementJS",
+                    "ideaSeverity": "WARNING",
+                    "qodanaSeverity": "High"
+                  }
+                },
+                "relationships": [
+                  {
+                    "target": {
+                      "id": "JavaScript and TypeScript/Potentially confusing code constructs",
+                      "index": 25,
                       "toolComponent": {
                         "name": "QDJS"
                       }
@@ -4303,39 +4303,6 @@
                 ]
               },
               {
-                "id": "ES6PossiblyAsyncFunction",
-                "shortDescription": {
-                  "text": "'await' in non-async function"
-                },
-                "fullDescription": {
-                  "text": "Reports a usage of 'await' in a function that was possibly intended to be async but is actually missing the 'async' modifier. Although 'await' can be used as an identifier, it is likely that it was intended to be used as an operator, so the containing function should be made 'async'.",
-                  "markdown": "Reports a usage of `await` in a function that was possibly intended to be async but is actually missing the `async` modifier. Although `await` can be used as an identifier, it is likely that it was intended to be used as an operator, so the containing function should be made `async`."
-                },
-                "defaultConfiguration": {
-                  "enabled": true,
-                  "level": "note",
-                  "parameters": {
-                    "suppressToolId": "ES6PossiblyAsyncFunction",
-                    "ideaSeverity": "WEAK WARNING",
-                    "qodanaSeverity": "Moderate"
-                  }
-                },
-                "relationships": [
-                  {
-                    "target": {
-                      "id": "JavaScript and TypeScript/Async code and promises",
-                      "index": 47,
-                      "toolComponent": {
-                        "name": "QDJS"
-                      }
-                    },
-                    "kinds": [
-                      "superset"
-                    ]
-                  }
-                ]
-              },
-              {
                 "id": "TextLabelInSwitchStatementJS",
                 "shortDescription": {
                   "text": "Text label in 'switch' statement"
@@ -4358,6 +4325,39 @@
                     "target": {
                       "id": "JavaScript and TypeScript/Switch statement issues",
                       "index": 45,
+                      "toolComponent": {
+                        "name": "QDJS"
+                      }
+                    },
+                    "kinds": [
+                      "superset"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "ES6PossiblyAsyncFunction",
+                "shortDescription": {
+                  "text": "'await' in non-async function"
+                },
+                "fullDescription": {
+                  "text": "Reports a usage of 'await' in a function that was possibly intended to be async but is actually missing the 'async' modifier. Although 'await' can be used as an identifier, it is likely that it was intended to be used as an operator, so the containing function should be made 'async'.",
+                  "markdown": "Reports a usage of `await` in a function that was possibly intended to be async but is actually missing the `async` modifier. Although `await` can be used as an identifier, it is likely that it was intended to be used as an operator, so the containing function should be made `async`."
+                },
+                "defaultConfiguration": {
+                  "enabled": true,
+                  "level": "note",
+                  "parameters": {
+                    "suppressToolId": "ES6PossiblyAsyncFunction",
+                    "ideaSeverity": "WEAK WARNING",
+                    "qodanaSeverity": "Moderate"
+                  }
+                },
+                "relationships": [
+                  {
+                    "target": {
+                      "id": "JavaScript and TypeScript/Async code and promises",
+                      "index": 47,
                       "toolComponent": {
                         "name": "QDJS"
                       }
@@ -5227,39 +5227,6 @@
                 ]
               },
               {
-                "id": "EmptyTryBlockJS",
-                "shortDescription": {
-                  "text": "Empty 'try' block"
-                },
-                "fullDescription": {
-                  "text": "Reports an empty 'try' block, which usually indicates an error.",
-                  "markdown": "Reports an empty `try` block, which usually indicates an error."
-                },
-                "defaultConfiguration": {
-                  "enabled": false,
-                  "level": "warning",
-                  "parameters": {
-                    "suppressToolId": "EmptyTryBlockJS",
-                    "ideaSeverity": "WARNING",
-                    "qodanaSeverity": "High"
-                  }
-                },
-                "relationships": [
-                  {
-                    "target": {
-                      "id": "JavaScript and TypeScript/Try statement issues",
-                      "index": 29,
-                      "toolComponent": {
-                        "name": "QDJS"
-                      }
-                    },
-                    "kinds": [
-                      "superset"
-                    ]
-                  }
-                ]
-              },
-              {
                 "id": "ES6ClassMemberInitializationOrder",
                 "shortDescription": {
                   "text": "Use of possibly unassigned property in a static initializer"
@@ -5282,6 +5249,39 @@
                     "target": {
                       "id": "JavaScript and TypeScript/General",
                       "index": 10,
+                      "toolComponent": {
+                        "name": "QDJS"
+                      }
+                    },
+                    "kinds": [
+                      "superset"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "EmptyTryBlockJS",
+                "shortDescription": {
+                  "text": "Empty 'try' block"
+                },
+                "fullDescription": {
+                  "text": "Reports an empty 'try' block, which usually indicates an error.",
+                  "markdown": "Reports an empty `try` block, which usually indicates an error."
+                },
+                "defaultConfiguration": {
+                  "enabled": false,
+                  "level": "warning",
+                  "parameters": {
+                    "suppressToolId": "EmptyTryBlockJS",
+                    "ideaSeverity": "WARNING",
+                    "qodanaSeverity": "High"
+                  }
+                },
+                "relationships": [
+                  {
+                    "target": {
+                      "id": "JavaScript and TypeScript/Try statement issues",
+                      "index": 29,
                       "toolComponent": {
                         "name": "QDJS"
                       }
@@ -5854,6 +5854,39 @@
                 ]
               },
               {
+                "id": "JSAnnotator",
+                "shortDescription": {
+                  "text": "ECMAScript specification is not followed"
+                },
+                "fullDescription": {
+                  "text": "Reports basic syntax issues and inconsistencies with language specification, such as invalid usages of keywords, usages of incompatible numeric format, or multiple parameters to getters/setters. Generally, such errors must always be reported and shouldn't be disabled. But in some cases, such as issues due to the dynamic nature of JavaScript, the use of not yet supported language features, or bugs in IDE's checker, it may be handy to disable reporting these very basic errors.",
+                  "markdown": "Reports basic syntax issues and inconsistencies with language specification, such as invalid usages of keywords, usages of incompatible numeric format, or multiple parameters to getters/setters.   \nGenerally, such errors must always be reported and shouldn't be disabled. But in some cases, such as issues due to the dynamic nature of JavaScript, the use of not yet supported language features, or bugs in IDE's checker, it may be handy to disable reporting these very basic errors."
+                },
+                "defaultConfiguration": {
+                  "enabled": false,
+                  "level": "error",
+                  "parameters": {
+                    "suppressToolId": "JSAnnotator",
+                    "ideaSeverity": "ERROR",
+                    "qodanaSeverity": "Critical"
+                  }
+                },
+                "relationships": [
+                  {
+                    "target": {
+                      "id": "JavaScript and TypeScript/General",
+                      "index": 10,
+                      "toolComponent": {
+                        "name": "QDJS"
+                      }
+                    },
+                    "kinds": [
+                      "superset"
+                    ]
+                  }
+                ]
+              },
+              {
                 "id": "JSUnfilteredForInLoop",
                 "shortDescription": {
                   "text": "Unfiltered for..in loop"
@@ -5909,39 +5942,6 @@
                     "target": {
                       "id": "JavaScript and TypeScript/Probable bugs",
                       "index": 13,
-                      "toolComponent": {
-                        "name": "QDJS"
-                      }
-                    },
-                    "kinds": [
-                      "superset"
-                    ]
-                  }
-                ]
-              },
-              {
-                "id": "JSAnnotator",
-                "shortDescription": {
-                  "text": "ECMAScript specification is not followed"
-                },
-                "fullDescription": {
-                  "text": "Reports basic syntax issues and inconsistencies with language specification, such as invalid usages of keywords, usages of incompatible numeric format, or multiple parameters to getters/setters. Generally, such errors must always be reported and shouldn't be disabled. But in some cases, such as issues due to the dynamic nature of JavaScript, the use of not yet supported language features, or bugs in IDE's checker, it may be handy to disable reporting these very basic errors.",
-                  "markdown": "Reports basic syntax issues and inconsistencies with language specification, such as invalid usages of keywords, usages of incompatible numeric format, or multiple parameters to getters/setters.   \nGenerally, such errors must always be reported and shouldn't be disabled. But in some cases, such as issues due to the dynamic nature of JavaScript, the use of not yet supported language features, or bugs in IDE's checker, it may be handy to disable reporting these very basic errors."
-                },
-                "defaultConfiguration": {
-                  "enabled": false,
-                  "level": "error",
-                  "parameters": {
-                    "suppressToolId": "JSAnnotator",
-                    "ideaSeverity": "ERROR",
-                    "qodanaSeverity": "Critical"
-                  }
-                },
-                "relationships": [
-                  {
-                    "target": {
-                      "id": "JavaScript and TypeScript/General",
-                      "index": 10,
                       "toolComponent": {
                         "name": "QDJS"
                       }
@@ -7801,39 +7801,6 @@
                 ]
               },
               {
-                "id": "IfStatementWithIdenticalBranchesJS",
-                "shortDescription": {
-                  "text": "'if' statement with identical branches"
-                },
-                "fullDescription": {
-                  "text": "Reports an 'if' statement with identical 'then' and 'else' branches. Such statements are almost certainly an error.",
-                  "markdown": "Reports an `if` statement with identical `then` and `else` branches. Such statements are almost certainly an error."
-                },
-                "defaultConfiguration": {
-                  "enabled": false,
-                  "level": "warning",
-                  "parameters": {
-                    "suppressToolId": "IfStatementWithIdenticalBranchesJS",
-                    "ideaSeverity": "WARNING",
-                    "qodanaSeverity": "High"
-                  }
-                },
-                "relationships": [
-                  {
-                    "target": {
-                      "id": "JavaScript and TypeScript/Control flow issues",
-                      "index": 2,
-                      "toolComponent": {
-                        "name": "QDJS"
-                      }
-                    },
-                    "kinds": [
-                      "superset"
-                    ]
-                  }
-                ]
-              },
-              {
                 "id": "PlatformDetectionJS",
                 "shortDescription": {
                   "text": "Inaccurate platform detection"
@@ -7856,6 +7823,39 @@
                     "target": {
                       "id": "JavaScript and TypeScript/DOM issues",
                       "index": 46,
+                      "toolComponent": {
+                        "name": "QDJS"
+                      }
+                    },
+                    "kinds": [
+                      "superset"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "IfStatementWithIdenticalBranchesJS",
+                "shortDescription": {
+                  "text": "'if' statement with identical branches"
+                },
+                "fullDescription": {
+                  "text": "Reports an 'if' statement with identical 'then' and 'else' branches. Such statements are almost certainly an error.",
+                  "markdown": "Reports an `if` statement with identical `then` and `else` branches. Such statements are almost certainly an error."
+                },
+                "defaultConfiguration": {
+                  "enabled": false,
+                  "level": "warning",
+                  "parameters": {
+                    "suppressToolId": "IfStatementWithIdenticalBranchesJS",
+                    "ideaSeverity": "WARNING",
+                    "qodanaSeverity": "High"
+                  }
+                },
+                "relationships": [
+                  {
+                    "target": {
+                      "id": "JavaScript and TypeScript/Control flow issues",
+                      "index": 2,
                       "toolComponent": {
                         "name": "QDJS"
                       }
@@ -8098,39 +8098,6 @@
                 ]
               },
               {
-                "id": "TypeScriptDuplicateUnionOrIntersectionType",
-                "shortDescription": {
-                  "text": "Duplicate union or intersection type component"
-                },
-                "fullDescription": {
-                  "text": "Reports a duplicate type inside a union or intersection.",
-                  "markdown": "Reports a duplicate type inside a union or intersection."
-                },
-                "defaultConfiguration": {
-                  "enabled": true,
-                  "level": "warning",
-                  "parameters": {
-                    "suppressToolId": "TypeScriptDuplicateUnionOrIntersectionType",
-                    "ideaSeverity": "WARNING",
-                    "qodanaSeverity": "High"
-                  }
-                },
-                "relationships": [
-                  {
-                    "target": {
-                      "id": "JavaScript and TypeScript/TypeScript",
-                      "index": 23,
-                      "toolComponent": {
-                        "name": "QDJS"
-                      }
-                    },
-                    "kinds": [
-                      "superset"
-                    ]
-                  }
-                ]
-              },
-              {
                 "id": "TrivialConditionalJS",
                 "shortDescription": {
                   "text": "Redundant conditional expression"
@@ -8164,19 +8131,19 @@
                 ]
               },
               {
-                "id": "ES6UnusedImports",
+                "id": "TypeScriptDuplicateUnionOrIntersectionType",
                 "shortDescription": {
-                  "text": "Unused import"
+                  "text": "Duplicate union or intersection type component"
                 },
                 "fullDescription": {
-                  "text": "Reports a redundant 'import' statement. This is usually the case if the imported symbols are not used in the source file. To avoid side-effects, consider using bare import 'import 'packageName'' instead of the regular one.",
-                  "markdown": "Reports a redundant `import` statement. This is usually the case if the imported symbols are not used in the source file. To avoid side-effects, consider using bare import `import 'packageName'` instead of the regular one."
+                  "text": "Reports a duplicate type inside a union or intersection.",
+                  "markdown": "Reports a duplicate type inside a union or intersection."
                 },
                 "defaultConfiguration": {
                   "enabled": true,
                   "level": "warning",
                   "parameters": {
-                    "suppressToolId": "ES6UnusedImports",
+                    "suppressToolId": "TypeScriptDuplicateUnionOrIntersectionType",
                     "ideaSeverity": "WARNING",
                     "qodanaSeverity": "High"
                   }
@@ -8184,8 +8151,41 @@
                 "relationships": [
                   {
                     "target": {
-                      "id": "JavaScript and TypeScript/Imports and dependencies",
-                      "index": 41,
+                      "id": "JavaScript and TypeScript/TypeScript",
+                      "index": 23,
+                      "toolComponent": {
+                        "name": "QDJS"
+                      }
+                    },
+                    "kinds": [
+                      "superset"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "InnerHTMLJS",
+                "shortDescription": {
+                  "text": "Use of 'innerHTML' property"
+                },
+                "fullDescription": {
+                  "text": "Reports a JavaScript access to DOM nodes as text using the 'innerHTML' property. Most usages of 'innerHTML' are performed better with explicit DOM calls, such as 'getElementByID()' and 'createElement()'. Additionally, 'innerHTML' will not work with XML DOMs, including DOMs for XHTML if viewed as XML. This can lead to difficulties in diagnosing bugs.",
+                  "markdown": "Reports a JavaScript access to DOM nodes as text using the `innerHTML` property. Most usages of `innerHTML` are performed better with explicit DOM calls, such as `getElementByID()` and `createElement()`. Additionally, `innerHTML` will not work with XML DOMs, including DOMs for XHTML if viewed as XML. This can lead to difficulties in diagnosing bugs."
+                },
+                "defaultConfiguration": {
+                  "enabled": false,
+                  "level": "warning",
+                  "parameters": {
+                    "suppressToolId": "InnerHTMLJS",
+                    "ideaSeverity": "WARNING",
+                    "qodanaSeverity": "High"
+                  }
+                },
+                "relationships": [
+                  {
+                    "target": {
+                      "id": "JavaScript and TypeScript/DOM issues",
+                      "index": 46,
                       "toolComponent": {
                         "name": "QDJS"
                       }
@@ -8230,19 +8230,19 @@
                 ]
               },
               {
-                "id": "InnerHTMLJS",
+                "id": "ES6UnusedImports",
                 "shortDescription": {
-                  "text": "Use of 'innerHTML' property"
+                  "text": "Unused import"
                 },
                 "fullDescription": {
-                  "text": "Reports a JavaScript access to DOM nodes as text using the 'innerHTML' property. Most usages of 'innerHTML' are performed better with explicit DOM calls, such as 'getElementByID()' and 'createElement()'. Additionally, 'innerHTML' will not work with XML DOMs, including DOMs for XHTML if viewed as XML. This can lead to difficulties in diagnosing bugs.",
-                  "markdown": "Reports a JavaScript access to DOM nodes as text using the `innerHTML` property. Most usages of `innerHTML` are performed better with explicit DOM calls, such as `getElementByID()` and `createElement()`. Additionally, `innerHTML` will not work with XML DOMs, including DOMs for XHTML if viewed as XML. This can lead to difficulties in diagnosing bugs."
+                  "text": "Reports a redundant 'import' statement. This is usually the case if the imported symbols are not used in the source file. To avoid side-effects, consider using bare import 'import 'packageName'' instead of the regular one.",
+                  "markdown": "Reports a redundant `import` statement. This is usually the case if the imported symbols are not used in the source file. To avoid side-effects, consider using bare import `import 'packageName'` instead of the regular one."
                 },
                 "defaultConfiguration": {
-                  "enabled": false,
+                  "enabled": true,
                   "level": "warning",
                   "parameters": {
-                    "suppressToolId": "InnerHTMLJS",
+                    "suppressToolId": "ES6UnusedImports",
                     "ideaSeverity": "WARNING",
                     "qodanaSeverity": "High"
                   }
@@ -8250,8 +8250,8 @@
                 "relationships": [
                   {
                     "target": {
-                      "id": "JavaScript and TypeScript/DOM issues",
-                      "index": 46,
+                      "id": "JavaScript and TypeScript/Imports and dependencies",
+                      "index": 41,
                       "toolComponent": {
                         "name": "QDJS"
                       }
@@ -8581,7 +8581,7 @@
                   {
                     "target": {
                       "id": "JavaScript and TypeScript/Unused symbols",
-                      "index": 15,
+                      "index": 16,
                       "toolComponent": {
                         "name": "QDJS"
                       }
@@ -8668,7 +8668,7 @@
           },
           {
             "name": "AngularJS",
-            "version": "233.13014",
+            "version": "233.14246",
             "rules": [
               {
                 "id": "AngularNgOptimizedImage",
@@ -8686,6 +8686,39 @@
                     "suppressToolId": "AngularNgOptimizedImage",
                     "ideaSeverity": "WEAK WARNING",
                     "qodanaSeverity": "Moderate"
+                  }
+                },
+                "relationships": [
+                  {
+                    "target": {
+                      "id": "Angular",
+                      "index": 3,
+                      "toolComponent": {
+                        "name": "QDJS"
+                      }
+                    },
+                    "kinds": [
+                      "superset"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "AngularIncorrectBlockUsage",
+                "shortDescription": {
+                  "text": "Incorrect usage of Angular block"
+                },
+                "fullDescription": {
+                  "text": "Reports problems with Angular blocks.",
+                  "markdown": "Reports problems with Angular blocks."
+                },
+                "defaultConfiguration": {
+                  "enabled": false,
+                  "level": "error",
+                  "parameters": {
+                    "suppressToolId": "AngularIncorrectBlockUsage",
+                    "ideaSeverity": "ERROR",
+                    "qodanaSeverity": "Critical"
                   }
                 },
                 "relationships": [
@@ -8785,6 +8818,39 @@
                     "suppressToolId": "AngularCliAddDependency",
                     "ideaSeverity": "WARNING",
                     "qodanaSeverity": "High"
+                  }
+                },
+                "relationships": [
+                  {
+                    "target": {
+                      "id": "Angular",
+                      "index": 3,
+                      "toolComponent": {
+                        "name": "QDJS"
+                      }
+                    },
+                    "kinds": [
+                      "superset"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "AngularDeferBlockOnTrigger",
+                "shortDescription": {
+                  "text": "Problems with @defer `on` triggers"
+                },
+                "fullDescription": {
+                  "text": "Reports issues with triggers in `on` parameters in `@defer` block.",
+                  "markdown": "Reports issues with triggers in \\`on\\` parameters in \\`@defer\\` block."
+                },
+                "defaultConfiguration": {
+                  "enabled": false,
+                  "level": "error",
+                  "parameters": {
+                    "suppressToolId": "AngularDeferBlockOnTrigger",
+                    "ideaSeverity": "ERROR",
+                    "qodanaSeverity": "Critical"
                   }
                 },
                 "relationships": [
@@ -9049,6 +9115,39 @@
                     "suppressToolId": "AngularInvalidI18nAttribute",
                     "ideaSeverity": "WARNING",
                     "qodanaSeverity": "High"
+                  }
+                },
+                "relationships": [
+                  {
+                    "target": {
+                      "id": "Angular",
+                      "index": 3,
+                      "toolComponent": {
+                        "name": "QDJS"
+                      }
+                    },
+                    "kinds": [
+                      "superset"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "AngularForBlockNonIterableVar",
+                "shortDescription": {
+                  "text": "Non-iterable type in @for block"
+                },
+                "fullDescription": {
+                  "text": "Reports that the type of variable to iterate over does not have '[Symbol.iterator]()' method, which returns an iterator.",
+                  "markdown": "Reports that the type of variable to iterate over does not have `[Symbol.iterator]()` method, which returns an iterator."
+                },
+                "defaultConfiguration": {
+                  "enabled": false,
+                  "level": "error",
+                  "parameters": {
+                    "suppressToolId": "AngularForBlockNonIterableVar",
+                    "ideaSeverity": "ERROR",
+                    "qodanaSeverity": "Critical"
                   }
                 },
                 "relationships": [
@@ -9439,7 +9538,7 @@
           },
           {
             "name": "org.intellij.plugins.postcss",
-            "version": "233.13014",
+            "version": "233.14246",
             "rules": [
               {
                 "id": "PostCssCustomSelector",
@@ -9616,7 +9715,7 @@
           },
           {
             "name": "org.jetbrains.plugins.sass",
-            "version": "233.13014",
+            "version": "233.14246",
             "rules": [
               {
                 "id": "SassScssUnresolvedMixin",
@@ -9760,7 +9859,7 @@
           },
           {
             "name": "com.jetbrains.sh",
-            "version": "233.13014",
+            "version": "233.14246",
             "rules": [
               {
                 "id": "ShellCheck",
@@ -9805,7 +9904,7 @@
           },
           {
             "name": "Karma",
-            "version": "233.13014",
+            "version": "233.14246",
             "rules": [
               {
                 "id": "KarmaConfigFile",
@@ -9850,7 +9949,7 @@
           },
           {
             "name": "com.intellij",
-            "version": "233.13014.80",
+            "version": "233.14246.173",
             "rules": [
               {
                 "id": "JsonSchemaDeprecation",
@@ -9961,7 +10060,7 @@
                   "markdown": "Reports duplicated blocks of code from the selected scope: the same file or the entire project.\n\nThe inspection features quick-fixes that help you to set the size of detected duplicates, navigate to repetitive code fragments, and compare them in a tool window.\n\nThe inspection options allow you to select the scope of the reported duplicated fragments and set the initial size for the duplicated language constructs."
                 },
                 "defaultConfiguration": {
-                  "enabled": false,
+                  "enabled": true,
                   "level": "note",
                   "parameters": {
                     "suppressToolId": "DuplicatedCode",
@@ -11908,7 +12007,7 @@
           },
           {
             "name": "gherkin",
-            "version": "233.13014",
+            "version": "233.14246",
             "rules": [
               {
                 "id": "GherkinScenarioToScenarioOutline",
@@ -11932,7 +12031,7 @@
                   {
                     "target": {
                       "id": "Cucumber",
-                      "index": 16,
+                      "index": 15,
                       "toolComponent": {
                         "name": "QDJS"
                       }
@@ -11965,7 +12064,7 @@
                   {
                     "target": {
                       "id": "Cucumber",
-                      "index": 16,
+                      "index": 15,
                       "toolComponent": {
                         "name": "QDJS"
                       }
@@ -11998,7 +12097,7 @@
                   {
                     "target": {
                       "id": "Cucumber",
-                      "index": 16,
+                      "index": 15,
                       "toolComponent": {
                         "name": "QDJS"
                       }
@@ -12031,7 +12130,7 @@
                   {
                     "target": {
                       "id": "Cucumber",
-                      "index": 16,
+                      "index": 15,
                       "toolComponent": {
                         "name": "QDJS"
                       }
@@ -12064,7 +12163,7 @@
                   {
                     "target": {
                       "id": "Cucumber",
-                      "index": 16,
+                      "index": 15,
                       "toolComponent": {
                         "name": "QDJS"
                       }
@@ -12097,7 +12196,7 @@
                   {
                     "target": {
                       "id": "Cucumber",
-                      "index": 16,
+                      "index": 15,
                       "toolComponent": {
                         "name": "QDJS"
                       }
@@ -12130,7 +12229,7 @@
                   {
                     "target": {
                       "id": "Cucumber",
-                      "index": 16,
+                      "index": 15,
                       "toolComponent": {
                         "name": "QDJS"
                       }
@@ -12151,7 +12250,7 @@
           },
           {
             "name": "HtmlTools",
-            "version": "233.13014",
+            "version": "233.14246",
             "rules": [
               {
                 "id": "HtmlRequiredAltAttribute",
@@ -12526,7 +12625,7 @@
           },
           {
             "name": "com.intellij.css",
-            "version": "233.13014",
+            "version": "233.14246",
             "rules": [
               {
                 "id": "CssInvalidHtmlTagReference",
@@ -13528,7 +13627,7 @@
           },
           {
             "name": "com.dmarcotte.handlebars",
-            "version": "233.13014",
+            "version": "233.14246",
             "rules": [
               {
                 "id": "HbEmptyBlock",
@@ -13573,7 +13672,7 @@
           },
           {
             "name": "com.intellij.plugins.dependencyAnalysis",
-            "version": "233.13014",
+            "version": "233.14246",
             "rules": [
               {
                 "id": "CheckThirdPartySoftwareList",
@@ -13684,7 +13783,7 @@
           },
           {
             "name": "org.jetbrains.plugins.yaml",
-            "version": "233.13014",
+            "version": "233.14246",
             "rules": [
               {
                 "id": "YAMLSchemaValidation",
@@ -13927,7 +14026,7 @@
           },
           {
             "name": "org.jetbrains.plugins.less",
-            "version": "233.13014",
+            "version": "233.14246",
             "rules": [
               {
                 "id": "LessUnresolvedMixin",
@@ -14038,7 +14137,7 @@
           },
           {
             "name": "org.intellij.intelliLang",
-            "version": "233.13014",
+            "version": "233.14246",
             "rules": [
               {
                 "id": "InjectedReferences",
@@ -14083,7 +14182,7 @@
           },
           {
             "name": "org.jetbrains.plugins.vue",
-            "version": "233.13014",
+            "version": "233.14246",
             "rules": [
               {
                 "id": "VueDataFunction",
@@ -14293,7 +14392,7 @@
           },
           {
             "name": "org.intellij.qodana",
-            "version": "233.13014",
+            "version": "233.14246",
             "rules": [
               {
                 "id": "JsCoverageInspection",
@@ -14371,7 +14470,7 @@
           },
           {
             "name": "org.jetbrains.security.package-checker",
-            "version": "233.13014",
+            "version": "233.14246",
             "rules": [
               {
                 "id": "VulnerableLibrariesLocal",
@@ -14452,7 +14551,7 @@
           },
           {
             "name": "com.jetbrains.lang.ejs",
-            "version": "233.13014",
+            "version": "233.14246",
             "rules": [
               {
                 "id": "EjsUnresolvedInclude",
@@ -14497,7 +14596,7 @@
           },
           {
             "name": "intellij.webpack",
-            "version": "233.13014",
+            "version": "233.14246",
             "rules": [
               {
                 "id": "WebpackConfigHighlighting",
@@ -14542,7 +14641,7 @@
           },
           {
             "name": "tslint",
-            "version": "233.13014",
+            "version": "233.14246",
             "rules": [
               {
                 "id": "TsLint",
@@ -14587,7 +14686,7 @@
           },
           {
             "name": "com.jetbrains.plugins.jade",
-            "version": "233.13014",
+            "version": "233.14246",
             "rules": [
               {
                 "id": "JadeTabsAndSpaces",
@@ -14632,7 +14731,7 @@
           },
           {
             "name": "tanvd.grazi",
-            "version": "233.13014",
+            "version": "233.14246",
             "rules": [
               {
                 "id": "LanguageDetectionInspection",
@@ -14712,20 +14811,8 @@
       },
       "invocations": [
         {
-          "startTimeUtc": "2024-01-25T11:37:03.192545577Z",
+          "startTimeUtc": "2024-02-03T02:32:36.392493378Z",
           "exitCode": 0,
-          "toolExecutionNotifications": [
-            {
-              "message": {
-                "text": "Reporting from [] 'sanity' inspections was suspended due to high problems count."
-              },
-              "level": "error",
-              "timeUtc": "2024-01-25T11:37:21.994498406Z",
-              "properties": {
-                "qodanaKind": "sanityFailure"
-              }
-            }
-          ],
           "executionSuccessful": true
         }
       ],
@@ -14733,11 +14820,11 @@
       "versionControlProvenance": [
         {
           "repositoryUri": "https://github.com/XMOJ-Script-dev/XMOJ-bbs.git",
-          "revisionId": "599bc85086c3b92f63c0acf8d790702c3da404bf",
+          "revisionId": "c1cbec2ca732bb1307f26ee79f0a1dc064691567",
           "branch": "refs/heads/master",
           "properties": {
             "repoUrl": "https://github.com/XMOJ-Script-dev/XMOJ-bbs.git",
-            "lastAuthorName": "boomzero",
+            "lastAuthorName": "Zhu Chenrui",
             "vcsType": "Git",
             "lastAuthorEmail": "thomas_rainbowfish@icloud.com"
           }
@@ -14745,37 +14832,71 @@
       ],
       "results": [
         {
-          "ruleId": "ExceptionCaughtLocallyJS",
+          "ruleId": "DuplicatedCode",
           "kind": "fail",
-          "level": "warning",
+          "level": "note",
           "message": {
-            "text": "'throw' of exception caught locally",
-            "markdown": "'throw' of exception caught locally"
+            "text": "Duplicated code",
+            "markdown": "Duplicated code"
           },
           "locations": [
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "Source/Process.ts",
+                  "uri": "Source/Database.ts",
                   "uriBaseId": "SRCROOT"
                 },
                 "region": {
-                  "startLine": 1247,
+                  "startLine": 124,
                   "startColumn": 9,
-                  "charOffset": 49684,
-                  "charLength": 5,
+                  "charOffset": 5384,
+                  "charLength": 530,
                   "snippet": {
-                    "text": "throw"
+                    "text": "if (Condition !== undefined) {\n            QueryString += \" WHERE \";\n            for (let i in Condition) {\n                if (typeof Condition[i] != \"object\") {\n                    QueryString += \"`\" + i + \"` = ? AND \";\n                }\n                else {\n                    QueryString += \"`\" + i + \"` \" + Condition[i][\"Operator\"] + \" ? AND \";\n                }\n            }\n            QueryString = QueryString.substring(0, QueryString.length - 5);\n        }\n        QueryString += \";\";\n        let BindData = Array();"
                   },
-                  "sourceLanguage": "JavaScript"
+                  "sourceLanguage": "TypeScript"
                 },
                 "contextRegion": {
-                  "startLine": 1245,
+                  "startLine": 124,
                   "startColumn": 1,
-                  "charOffset": 49577,
-                  "charLength": 225,
+                  "charOffset": 5376,
+                  "charLength": 538,
                   "snippet": {
-                    "text": "      PathName = PathName.substring(1);\n      if (this.ProcessFunctions[PathName] === undefined) {\n        throw new Result(false, \"访问的页面不存在\");\n      }\n      if (this.RequestData.method === \"GET\" && PathName === \"GetImage\") {"
+                    "text": "        if (Condition !== undefined) {\n            QueryString += \" WHERE \";\n            for (let i in Condition) {\n                if (typeof Condition[i] != \"object\") {\n                    QueryString += \"`\" + i + \"` = ? AND \";\n                }\n                else {\n                    QueryString += \"`\" + i + \"` \" + Condition[i][\"Operator\"] + \" ? AND \";\n                }\n            }\n            QueryString = QueryString.substring(0, QueryString.length - 5);\n        }\n        QueryString += \";\";\n        let BindData = Array();"
+                  },
+                  "sourceLanguage": "TypeScript"
+                }
+              },
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "XMOJ-bbs",
+                  "kind": "module"
+                }
+              ]
+            },
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "Source/Database.ts",
+                  "uriBaseId": "SRCROOT"
+                },
+                "region": {
+                  "startLine": 153,
+                  "startColumn": 9,
+                  "charOffset": 6513,
+                  "charLength": 530,
+                  "snippet": {
+                    "text": "if (Condition !== undefined) {\n            QueryString += \" WHERE \";\n            for (let i in Condition) {\n                if (typeof Condition[i] != \"object\") {\n                    QueryString += \"`\" + i + \"` = ? AND \";\n                }\n                else {\n                    QueryString += \"`\" + i + \"` \" + Condition[i][\"Operator\"] + \" ? AND \";\n                }\n            }\n            QueryString = QueryString.substring(0, QueryString.length - 5);\n        }\n        QueryString += \";\";\n        let BindData = Array();"
+                  },
+                  "sourceLanguage": "TypeScript"
+                },
+                "contextRegion": {
+                  "startLine": 153,
+                  "startColumn": 1,
+                  "charOffset": 6505,
+                  "charLength": 538,
+                  "snippet": {
+                    "text": "        if (Condition !== undefined) {\n            QueryString += \" WHERE \";\n            for (let i in Condition) {\n                if (typeof Condition[i] != \"object\") {\n                    QueryString += \"`\" + i + \"` = ? AND \";\n                }\n                else {\n                    QueryString += \"`\" + i + \"` \" + Condition[i][\"Operator\"] + \" ? AND \";\n                }\n            }\n            QueryString = QueryString.substring(0, QueryString.length - 5);\n        }\n        QueryString += \";\";\n        let BindData = Array();"
                   },
                   "sourceLanguage": "TypeScript"
                 }
@@ -14789,23 +14910,24 @@
             }
           ],
           "partialFingerprints": {
-            "equalIndicator/v1": "380f9747ca84bb267760d611535072753713ff07def12ba3aaabb83c03547724"
+            "equalIndicator/v1": "15fd9a66a4c7334a62af0fc24357ca7be6d1e584a50a97f79f31330150e28840"
           },
+          "baselineState": "new",
           "properties": {
-            "ideaSeverity": "WARNING",
-            "qodanaSeverity": "High",
+            "ideaSeverity": "WEAK WARNING",
+            "qodanaSeverity": "Moderate",
             "tags": [
-              "JavaScript"
+              "TypeScript"
             ]
           }
         },
         {
-          "ruleId": "ExceptionCaughtLocallyJS",
+          "ruleId": "DuplicatedCode",
           "kind": "fail",
-          "level": "warning",
+          "level": "note",
           "message": {
-            "text": "'throw' of exception caught locally",
-            "markdown": "'throw' of exception caught locally"
+            "text": "Duplicated code",
+            "markdown": "Duplicated code"
           },
           "locations": [
             {
@@ -14815,132 +14937,56 @@
                   "uriBaseId": "SRCROOT"
                 },
                 "region": {
-                  "startLine": 1268,
-                  "startColumn": 9,
-                  "charOffset": 50418,
-                  "charLength": 5,
-                  "snippet": {
-                    "text": "throw"
-                  },
-                  "sourceLanguage": "JavaScript"
-                },
-                "contextRegion": {
-                  "startLine": 1266,
-                  "startColumn": 1,
-                  "charOffset": 50333,
-                  "charLength": 184,
-                  "snippet": {
-                    "text": "        RequestJSON = await this.RequestData.json();\n      } catch (Error) {\n        throw new Result(false, \"请求格式有误\");\n      }\n      ThrowErrorIfFailed(this.CheckParams(RequestJSON, {"
-                  },
-                  "sourceLanguage": "TypeScript"
-                }
-              },
-              "logicalLocations": [
-                {
-                  "fullyQualifiedName": "XMOJ-bbs",
-                  "kind": "module"
-                }
-              ]
-            }
-          ],
-          "partialFingerprints": {
-            "equalIndicator/v1": "634a27be46cd1719868f702849a802103e4ef7d37bde33026947e4fde36961d4"
-          },
-          "properties": {
-            "ideaSeverity": "WARNING",
-            "qodanaSeverity": "High",
-            "tags": [
-              "JavaScript"
-            ]
-          }
-        },
-        {
-          "ruleId": "ExceptionCaughtLocallyJS",
-          "kind": "fail",
-          "level": "warning",
-          "message": {
-            "text": "'throw' of exception caught locally",
-            "markdown": "'throw' of exception caught locally"
-          },
-          "locations": [
-            {
-              "physicalLocation": {
-                "artifactLocation": {
-                  "uri": "Source/Process.ts",
-                  "uriBaseId": "SRCROOT"
-                },
-                "region": {
-                  "startLine": 1262,
-                  "startColumn": 9,
-                  "charOffset": 50245,
-                  "charLength": 5,
-                  "snippet": {
-                    "text": "throw"
-                  },
-                  "sourceLanguage": "JavaScript"
-                },
-                "contextRegion": {
-                  "startLine": 1260,
-                  "startColumn": 1,
-                  "charOffset": 50148,
-                  "charLength": 172,
-                  "snippet": {
-                    "text": "      }\n      if (this.RequestData.headers.get(\"content-type\") !== \"application/json\") {\n        throw new Result(false, \"不允许此资源类型\");\n      }\n      let RequestJSON: object;"
-                  },
-                  "sourceLanguage": "TypeScript"
-                }
-              },
-              "logicalLocations": [
-                {
-                  "fullyQualifiedName": "XMOJ-bbs",
-                  "kind": "module"
-                }
-              ]
-            }
-          ],
-          "partialFingerprints": {
-            "equalIndicator/v1": "8c9b59eeaa25acd898f247bb766c993088377d4ac59e22906007b7bd6f9094d8"
-          },
-          "properties": {
-            "ideaSeverity": "WARNING",
-            "qodanaSeverity": "High",
-            "tags": [
-              "JavaScript"
-            ]
-          }
-        },
-        {
-          "ruleId": "ExceptionCaughtLocallyJS",
-          "kind": "fail",
-          "level": "warning",
-          "message": {
-            "text": "'throw' of exception caught locally",
-            "markdown": "'throw' of exception caught locally"
-          },
-          "locations": [
-            {
-              "physicalLocation": {
-                "artifactLocation": {
-                  "uri": "Source/Process.ts",
-                  "uriBaseId": "SRCROOT"
-                },
-                "region": {
-                  "startLine": 1291,
+                  "startLine": 367,
                   "startColumn": 7,
-                  "charOffset": 51179,
-                  "charLength": 5,
+                  "charOffset": 14585,
+                  "charLength": 418,
                   "snippet": {
-                    "text": "throw"
+                    "text": "Data[\"Content\"] = Data[\"Content\"].trim();\n      if (Data[\"Content\"] === \"\") {\n        return new Result(false, \"内容不能为空\");\n      }\n      let MentionPeople = new Array<string>();\n      // @ts-ignore\n      for (let Match of String(Data[\"Content\"]).matchAll(/@([a-zA-Z0-9]+)/g)) {\n        if (ThrowErrorIfFailed(await this.IfUserExistChecker(Match[1]))[\"Exist\"]) {\n          MentionPeople.push(Match[1]);\n        }\n      }"
                   },
-                  "sourceLanguage": "JavaScript"
+                  "sourceLanguage": "TypeScript"
                 },
                 "contextRegion": {
-                  "startLine": 1289,
+                  "startLine": 367,
                   "startColumn": 1,
-                  "charOffset": 51128,
-                  "charLength": 192,
+                  "charOffset": 14579,
+                  "charLength": 424,
                   "snippet": {
-                    "text": "        'indexes': [this.Username]\n      });\n      throw await this.ProcessFunctions[PathName](RequestJSON[\"Data\"]);\n    } catch (ResponseData) {\n      if (!(ResponseData instanceof Result)) {"
+                    "text": "      Data[\"Content\"] = Data[\"Content\"].trim();\n      if (Data[\"Content\"] === \"\") {\n        return new Result(false, \"内容不能为空\");\n      }\n      let MentionPeople = new Array<string>();\n      // @ts-ignore\n      for (let Match of String(Data[\"Content\"]).matchAll(/@([a-zA-Z0-9]+)/g)) {\n        if (ThrowErrorIfFailed(await this.IfUserExistChecker(Match[1]))[\"Exist\"]) {\n          MentionPeople.push(Match[1]);\n        }\n      }"
+                  },
+                  "sourceLanguage": "TypeScript"
+                }
+              },
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "XMOJ-bbs",
+                  "kind": "module"
+                }
+              ]
+            },
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "Source/Process.ts",
+                  "uriBaseId": "SRCROOT"
+                },
+                "region": {
+                  "startLine": 615,
+                  "startColumn": 7,
+                  "charOffset": 23668,
+                  "charLength": 418,
+                  "snippet": {
+                    "text": "Data[\"Content\"] = Data[\"Content\"].trim();\n      if (Data[\"Content\"] === \"\") {\n        return new Result(false, \"内容不能为空\");\n      }\n      let MentionPeople = new Array<string>();\n      // @ts-ignore\n      for (let Match of String(Data[\"Content\"]).matchAll(/@([a-zA-Z0-9]+)/g)) {\n        if (ThrowErrorIfFailed(await this.IfUserExistChecker(Match[1]))[\"Exist\"]) {\n          MentionPeople.push(Match[1]);\n        }\n      }"
+                  },
+                  "sourceLanguage": "TypeScript"
+                },
+                "contextRegion": {
+                  "startLine": 615,
+                  "startColumn": 1,
+                  "charOffset": 23662,
+                  "charLength": 424,
+                  "snippet": {
+                    "text": "      Data[\"Content\"] = Data[\"Content\"].trim();\n      if (Data[\"Content\"] === \"\") {\n        return new Result(false, \"内容不能为空\");\n      }\n      let MentionPeople = new Array<string>();\n      // @ts-ignore\n      for (let Match of String(Data[\"Content\"]).matchAll(/@([a-zA-Z0-9]+)/g)) {\n        if (ThrowErrorIfFailed(await this.IfUserExistChecker(Match[1]))[\"Exist\"]) {\n          MentionPeople.push(Match[1]);\n        }\n      }"
                   },
                   "sourceLanguage": "TypeScript"
                 }
@@ -14954,8 +15000,189 @@
             }
           ],
           "partialFingerprints": {
-            "equalIndicator/v1": "b7a132306eb47d7cca7a6081612e40e8440c95484dd2c490d7c6f61cd5e247b7"
+            "equalIndicator/v1": "2308bd01de6842df530bf14706a173c4758129180666e5921ef22f220cc6b802"
           },
+          "baselineState": "new",
+          "properties": {
+            "ideaSeverity": "WEAK WARNING",
+            "qodanaSeverity": "Moderate",
+            "tags": [
+              "TypeScript"
+            ]
+          }
+        },
+        {
+          "ruleId": "DuplicatedCode",
+          "kind": "fail",
+          "level": "note",
+          "message": {
+            "text": "Duplicated code",
+            "markdown": "Duplicated code"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "Source/Database.ts",
+                  "uriBaseId": "SRCROOT"
+                },
+                "region": {
+                  "startLine": 79,
+                  "startColumn": 9,
+                  "charOffset": 3398,
+                  "charLength": 470,
+                  "snippet": {
+                    "text": "if (Condition !== undefined) {\n            QueryString += \" WHERE \";\n            for (let i in Condition) {\n                if (typeof Condition[i] != \"object\") {\n                    QueryString += \"`\" + i + \"` = ? AND \";\n                }\n                else {\n                    QueryString += \"`\" + i + \"` \" + Condition[i][\"Operator\"] + \" ? AND \";\n                }\n            }\n            QueryString = QueryString.substring(0, QueryString.length - 5);\n        }"
+                  },
+                  "sourceLanguage": "TypeScript"
+                },
+                "contextRegion": {
+                  "startLine": 79,
+                  "startColumn": 1,
+                  "charOffset": 3390,
+                  "charLength": 478,
+                  "snippet": {
+                    "text": "        if (Condition !== undefined) {\n            QueryString += \" WHERE \";\n            for (let i in Condition) {\n                if (typeof Condition[i] != \"object\") {\n                    QueryString += \"`\" + i + \"` = ? AND \";\n                }\n                else {\n                    QueryString += \"`\" + i + \"` \" + Condition[i][\"Operator\"] + \" ? AND \";\n                }\n            }\n            QueryString = QueryString.substring(0, QueryString.length - 5);\n        }"
+                  },
+                  "sourceLanguage": "TypeScript"
+                }
+              },
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "XMOJ-bbs",
+                  "kind": "module"
+                }
+              ]
+            },
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "Source/Database.ts",
+                  "uriBaseId": "SRCROOT"
+                },
+                "region": {
+                  "startLine": 124,
+                  "startColumn": 9,
+                  "charOffset": 5384,
+                  "charLength": 470,
+                  "snippet": {
+                    "text": "if (Condition !== undefined) {\n            QueryString += \" WHERE \";\n            for (let i in Condition) {\n                if (typeof Condition[i] != \"object\") {\n                    QueryString += \"`\" + i + \"` = ? AND \";\n                }\n                else {\n                    QueryString += \"`\" + i + \"` \" + Condition[i][\"Operator\"] + \" ? AND \";\n                }\n            }\n            QueryString = QueryString.substring(0, QueryString.length - 5);\n        }"
+                  },
+                  "sourceLanguage": "TypeScript"
+                },
+                "contextRegion": {
+                  "startLine": 124,
+                  "startColumn": 1,
+                  "charOffset": 5376,
+                  "charLength": 478,
+                  "snippet": {
+                    "text": "        if (Condition !== undefined) {\n            QueryString += \" WHERE \";\n            for (let i in Condition) {\n                if (typeof Condition[i] != \"object\") {\n                    QueryString += \"`\" + i + \"` = ? AND \";\n                }\n                else {\n                    QueryString += \"`\" + i + \"` \" + Condition[i][\"Operator\"] + \" ? AND \";\n                }\n            }\n            QueryString = QueryString.substring(0, QueryString.length - 5);\n        }"
+                  },
+                  "sourceLanguage": "TypeScript"
+                }
+              },
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "XMOJ-bbs",
+                  "kind": "module"
+                }
+              ]
+            },
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "Source/Database.ts",
+                  "uriBaseId": "SRCROOT"
+                },
+                "region": {
+                  "startLine": 153,
+                  "startColumn": 9,
+                  "charOffset": 6513,
+                  "charLength": 470,
+                  "snippet": {
+                    "text": "if (Condition !== undefined) {\n            QueryString += \" WHERE \";\n            for (let i in Condition) {\n                if (typeof Condition[i] != \"object\") {\n                    QueryString += \"`\" + i + \"` = ? AND \";\n                }\n                else {\n                    QueryString += \"`\" + i + \"` \" + Condition[i][\"Operator\"] + \" ? AND \";\n                }\n            }\n            QueryString = QueryString.substring(0, QueryString.length - 5);\n        }"
+                  },
+                  "sourceLanguage": "TypeScript"
+                },
+                "contextRegion": {
+                  "startLine": 153,
+                  "startColumn": 1,
+                  "charOffset": 6505,
+                  "charLength": 478,
+                  "snippet": {
+                    "text": "        if (Condition !== undefined) {\n            QueryString += \" WHERE \";\n            for (let i in Condition) {\n                if (typeof Condition[i] != \"object\") {\n                    QueryString += \"`\" + i + \"` = ? AND \";\n                }\n                else {\n                    QueryString += \"`\" + i + \"` \" + Condition[i][\"Operator\"] + \" ? AND \";\n                }\n            }\n            QueryString = QueryString.substring(0, QueryString.length - 5);\n        }"
+                  },
+                  "sourceLanguage": "TypeScript"
+                }
+              },
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "XMOJ-bbs",
+                  "kind": "module"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "equalIndicator/v1": "d67209fbcdd41b263720fa5a3a33557139daa9d99b385e08ddcfff6ef10cd768"
+          },
+          "baselineState": "new",
+          "properties": {
+            "ideaSeverity": "WEAK WARNING",
+            "qodanaSeverity": "Moderate",
+            "tags": [
+              "TypeScript"
+            ]
+          }
+        },
+        {
+          "ruleId": "ExceptionCaughtLocallyJS",
+          "kind": "fail",
+          "level": "warning",
+          "message": {
+            "text": "'throw' of exception caught locally",
+            "markdown": "'throw' of exception caught locally"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "Source/Process.ts",
+                  "uriBaseId": "SRCROOT"
+                },
+                "region": {
+                  "startLine": 1290,
+                  "startColumn": 7,
+                  "charOffset": 50620,
+                  "charLength": 5,
+                  "snippet": {
+                    "text": "throw"
+                  },
+                  "sourceLanguage": "JavaScript"
+                },
+                "contextRegion": {
+                  "startLine": 1288,
+                  "startColumn": 1,
+                  "charOffset": 50558,
+                  "charLength": 203,
+                  "snippet": {
+                    "text": "      //   throw new Result(false, \"你已被封禁\");\n      // }\n      throw await this.ProcessFunctions[PathName](RequestJSON[\"Data\"]);\n    } catch (ResponseData) {\n      if (!(ResponseData instanceof Result)) {"
+                  },
+                  "sourceLanguage": "TypeScript"
+                }
+              },
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "XMOJ-bbs",
+                  "kind": "module"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "equalIndicator/v1": "47f314382d17d5a2c421af54075734edf856ad7d78360a157d358c8524e4a7da"
+          },
+          "baselineState": "unchanged",
           "properties": {
             "ideaSeverity": "WARNING",
             "qodanaSeverity": "High",
@@ -14980,9 +15207,9 @@
                   "uriBaseId": "SRCROOT"
                 },
                 "region": {
-                  "startLine": 1259,
+                  "startLine": 1255,
                   "startColumn": 9,
-                  "charOffset": 50111,
+                  "charOffset": 49448,
                   "charLength": 5,
                   "snippet": {
                     "text": "throw"
@@ -14990,9 +15217,9 @@
                   "sourceLanguage": "JavaScript"
                 },
                 "contextRegion": {
-                  "startLine": 1257,
+                  "startLine": 1253,
                   "startColumn": 1,
-                  "charOffset": 50047,
+                  "charOffset": 49384,
                   "charLength": 189,
                   "snippet": {
                     "text": "      }\n      if (this.RequestData.method !== \"POST\") {\n        throw new Result(false, \"不允许此请求方式\");\n      }\n      if (this.RequestData.headers.get(\"content-type\") !== \"application/json\") {"
@@ -15009,8 +15236,345 @@
             }
           ],
           "partialFingerprints": {
-            "equalIndicator/v1": "b92191a2f46e4c9068b852111b3e2e77201ed1332e15c6991f255e19a1ff6c1a"
+            "equalIndicator/v1": "4b420cc5a3cccb3e057748cc22dfc8530fb4c6c5707dddd9cab4b8f00f2edef8"
           },
+          "baselineState": "unchanged",
+          "properties": {
+            "ideaSeverity": "WARNING",
+            "qodanaSeverity": "High",
+            "tags": [
+              "JavaScript"
+            ]
+          }
+        },
+        {
+          "ruleId": "ExceptionCaughtLocallyJS",
+          "kind": "fail",
+          "level": "warning",
+          "message": {
+            "text": "'throw' of exception caught locally",
+            "markdown": "'throw' of exception caught locally"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "Source/Process.ts",
+                  "uriBaseId": "SRCROOT"
+                },
+                "region": {
+                  "startLine": 1264,
+                  "startColumn": 9,
+                  "charOffset": 49755,
+                  "charLength": 5,
+                  "snippet": {
+                    "text": "throw"
+                  },
+                  "sourceLanguage": "JavaScript"
+                },
+                "contextRegion": {
+                  "startLine": 1262,
+                  "startColumn": 1,
+                  "charOffset": 49670,
+                  "charLength": 184,
+                  "snippet": {
+                    "text": "        RequestJSON = await this.RequestData.json();\n      } catch (Error) {\n        throw new Result(false, \"请求格式有误\");\n      }\n      ThrowErrorIfFailed(this.CheckParams(RequestJSON, {"
+                  },
+                  "sourceLanguage": "TypeScript"
+                }
+              },
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "XMOJ-bbs",
+                  "kind": "module"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "equalIndicator/v1": "88d48393aa669ec5dc5b34adb717dc9726e4e1c3399d0805d4b6ba0a12c61397"
+          },
+          "baselineState": "unchanged",
+          "properties": {
+            "ideaSeverity": "WARNING",
+            "qodanaSeverity": "High",
+            "tags": [
+              "JavaScript"
+            ]
+          }
+        },
+        {
+          "ruleId": "ExceptionCaughtLocallyJS",
+          "kind": "fail",
+          "level": "warning",
+          "message": {
+            "text": "'throw' of exception caught locally",
+            "markdown": "'throw' of exception caught locally"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "Source/Process.ts",
+                  "uriBaseId": "SRCROOT"
+                },
+                "region": {
+                  "startLine": 1258,
+                  "startColumn": 9,
+                  "charOffset": 49582,
+                  "charLength": 5,
+                  "snippet": {
+                    "text": "throw"
+                  },
+                  "sourceLanguage": "JavaScript"
+                },
+                "contextRegion": {
+                  "startLine": 1256,
+                  "startColumn": 1,
+                  "charOffset": 49485,
+                  "charLength": 172,
+                  "snippet": {
+                    "text": "      }\n      if (this.RequestData.headers.get(\"content-type\") !== \"application/json\") {\n        throw new Result(false, \"不允许此资源类型\");\n      }\n      let RequestJSON: object;"
+                  },
+                  "sourceLanguage": "TypeScript"
+                }
+              },
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "XMOJ-bbs",
+                  "kind": "module"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "equalIndicator/v1": "a16b915317159b1defc1c62993e3daa87c1c8458cdfbc334c2cea06996c57756"
+          },
+          "baselineState": "unchanged",
+          "properties": {
+            "ideaSeverity": "WARNING",
+            "qodanaSeverity": "High",
+            "tags": [
+              "JavaScript"
+            ]
+          }
+        },
+        {
+          "ruleId": "ExceptionCaughtLocallyJS",
+          "kind": "fail",
+          "level": "warning",
+          "message": {
+            "text": "'throw' of exception caught locally",
+            "markdown": "'throw' of exception caught locally"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "Source/Process.ts",
+                  "uriBaseId": "SRCROOT"
+                },
+                "region": {
+                  "startLine": 1243,
+                  "startColumn": 9,
+                  "charOffset": 49021,
+                  "charLength": 5,
+                  "snippet": {
+                    "text": "throw"
+                  },
+                  "sourceLanguage": "JavaScript"
+                },
+                "contextRegion": {
+                  "startLine": 1241,
+                  "startColumn": 1,
+                  "charOffset": 48914,
+                  "charLength": 225,
+                  "snippet": {
+                    "text": "      PathName = PathName.substring(1);\n      if (this.ProcessFunctions[PathName] === undefined) {\n        throw new Result(false, \"访问的页面不存在\");\n      }\n      if (this.RequestData.method === \"GET\" && PathName === \"GetImage\") {"
+                  },
+                  "sourceLanguage": "TypeScript"
+                }
+              },
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "XMOJ-bbs",
+                  "kind": "module"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "equalIndicator/v1": "f8663637308514364d62d695b28b8f467b430aeb60dac2932efb43fd1974cbbf"
+          },
+          "baselineState": "unchanged",
+          "properties": {
+            "ideaSeverity": "WARNING",
+            "qodanaSeverity": "High",
+            "tags": [
+              "JavaScript"
+            ]
+          }
+        },
+        {
+          "ruleId": "JSIgnoredPromiseFromCall",
+          "kind": "fail",
+          "level": "note",
+          "message": {
+            "text": "Promise returned from GetPost is ignored",
+            "markdown": "Promise returned from GetPost is ignored"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "Source/BBSSpider.js",
+                  "uriBaseId": "SRCROOT"
+                },
+                "region": {
+                  "startLine": 67,
+                  "startColumn": 1,
+                  "charOffset": 3876,
+                  "charLength": 7,
+                  "snippet": {
+                    "text": "GetPost"
+                  },
+                  "sourceLanguage": "JavaScript"
+                },
+                "contextRegion": {
+                  "startLine": 65,
+                  "startColumn": 1,
+                  "charOffset": 3847,
+                  "charLength": 41,
+                  "snippet": {
+                    "text": "    await GetPost(i + 1);\n};\nGetPost(1);\n"
+                  },
+                  "sourceLanguage": "JavaScript"
+                }
+              },
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "XMOJ-bbs",
+                  "kind": "module"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "equalIndicator/v1": "2010b51ff0a3d080159315ad88bbce3eb3548e2c2703fd81f0ac46a72ba0ee16"
+          },
+          "baselineState": "new",
+          "properties": {
+            "ideaSeverity": "WEAK WARNING",
+            "qodanaSeverity": "Moderate",
+            "tags": [
+              "JavaScript"
+            ]
+          }
+        },
+        {
+          "ruleId": "JSUnusedLocalSymbols",
+          "kind": "fail",
+          "level": "warning",
+          "message": {
+            "text": "Unused parameter Context",
+            "markdown": "Unused parameter Context"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "Source/index.ts",
+                  "uriBaseId": "SRCROOT"
+                },
+                "region": {
+                  "startLine": 23,
+                  "startColumn": 55,
+                  "charOffset": 994,
+                  "charLength": 7,
+                  "snippet": {
+                    "text": "Context"
+                  },
+                  "sourceLanguage": "JavaScript"
+                },
+                "contextRegion": {
+                  "startLine": 21,
+                  "startColumn": 1,
+                  "charOffset": 922,
+                  "charLength": 184,
+                  "snippet": {
+                    "text": "\nexport default {\n  async fetch(RequestData: Request, Environment: any, Context: any) {\n    let Processor = new Process(RequestData, Environment);\n    return await Processor.Process();"
+                  },
+                  "sourceLanguage": "TypeScript"
+                }
+              },
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "XMOJ-bbs",
+                  "kind": "module"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "equalIndicator/v1": "20e9cccf617562d19c18a6e46df9b0d39d275c8b5d493215dc21c96db206cb92"
+          },
+          "baselineState": "new",
+          "properties": {
+            "ideaSeverity": "WARNING",
+            "qodanaSeverity": "High",
+            "tags": [
+              "JavaScript"
+            ]
+          }
+        },
+        {
+          "ruleId": "JSUnusedLocalSymbols",
+          "kind": "fail",
+          "level": "warning",
+          "message": {
+            "text": "Unused parameter Message",
+            "markdown": "Unused parameter Message"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "Source/Output.ts",
+                  "uriBaseId": "SRCROOT"
+                },
+                "region": {
+                  "startLine": 19,
+                  "startColumn": 25,
+                  "charOffset": 842,
+                  "charLength": 7,
+                  "snippet": {
+                    "text": "Message"
+                  },
+                  "sourceLanguage": "JavaScript"
+                },
+                "contextRegion": {
+                  "startLine": 17,
+                  "startColumn": 1,
+                  "charOffset": 795,
+                  "charLength": 130,
+                  "snippet": {
+                    "text": "\nexport class Output {\n    public static Debug(Message: any): void {\n        // console.debug(\"\\x1b[36m%s\\x1b[0m\", Message);\n    }"
+                  },
+                  "sourceLanguage": "TypeScript"
+                }
+              },
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "XMOJ-bbs",
+                  "kind": "module"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "equalIndicator/v1": "9ac390f9bbc0a08704cd67baee0dae6a08596ecce1675195836c79f810f93d12"
+          },
+          "baselineState": "new",
           "properties": {
             "ideaSeverity": "WARNING",
             "qodanaSeverity": "High",
@@ -15021,10 +15585,10 @@
         }
       ],
       "automationDetails": {
-        "id": "project/qodana/2024-01-25",
-        "guid": "04578f05-077b-45ec-9c1b-a908ba7db03c",
+        "id": "project/qodana/2024-02-03",
+        "guid": "c83c170b-e241-4179-8cb5-536280455872",
         "properties": {
-          "jobUrl": "https://github.com/XMOJ-Script-dev/XMOJ-bbs/actions/runs/7653928991"
+          "jobUrl": "https://github.com/XMOJ-Script-dev/XMOJ-bbs/actions/runs/7763976178"
         }
       },
       "newlineSequences": [
@@ -15035,9 +15599,9 @@
         "configProfile": "starter",
         "deviceId": "200820300000000-459f-ea84-1243-be2f77c5a75f",
         "qodanaNewResultSummary": {
-          "high": 7,
-          "moderate": 1,
-          "total": 8
+          "moderate": 4,
+          "high": 2,
+          "total": 6
         }
       }
     }
