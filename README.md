@@ -1,7 +1,9 @@
 # XMOJ-bbs
 [![Qodana](https://github.com/XMOJ-Script-dev/XMOJ-bbs/actions/workflows/qodana_code_quality.yml/badge.svg)](https://github.com/XMOJ-Script-dev/XMOJ-bbs/actions/workflows/qodana_code_quality.yml)
 
-The backend of XMOJ-Script
+This is currently used for the backed of [XMOJ-Script](https://github.com/XMOJ-Script-dev/XMOJ-Script)
+
+You can also get your version of this on cloudflare using wrangler!
 
 
 ## History
