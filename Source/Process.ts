@@ -138,6 +138,13 @@ export class Process {
     return new Result(true, "令牌匹配");
   }
   public IfUserExist = async (Username: string): Promise<Result> => {
+    if(ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("phpsessid", {
+      user_id: Username
+    }))["TableSize"] !== 0){
+      return new Result(true, "用户检查成功", {
+        "Exist": true
+      });
+    }
     return await this.Fetch(new URL("https://www.xmoj.tech/userinfo.php?user=" + Username))
       .then((Response) => {
         return Response.text();
