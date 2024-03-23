@@ -1,0 +1,1 @@
+This folder contains the built output assets for the worker "xmoj-bbs" generated at 2024-03-01T12:08:00.130Z.

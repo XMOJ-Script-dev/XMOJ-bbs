@@ -23,6 +23,10 @@ import * as sqlstring from 'sqlstring';
 // @ts-ignore
 import CryptoJS from "crypto-js";
 
+function sleep(time) {
+  return new Promise((resolve) => setTimeout(resolve, time));
+}
+
 export class Process {
   private AdminUserList: Array<string> = ["zhuchenrui2", "shanwenxiao", "zhouyiqing", "shihongxi"];
   private readonly CaptchaSecretKey: string;
@@ -150,13 +154,14 @@ export class Process {
   public IfUserExistChecker = async (Username: string): Promise<Result> => {
     var rst = this.IfUserExist(Username);
     //if failed try again
-    let retryCount = 3; // Define how many times you want to retry
+    let retryCount = 20; // Define how many times you want to retry
     for (let i = 0; i < retryCount; i++) {
       if (!rst["Success"]) {
         rst = this.IfUserExist(Username);
       } else {
         break; // If the function is successful, break the loop
       }
+      await sleep(500);
     }
     return rst;
   }
@@ -250,13 +255,14 @@ export class Process {
   public GetProblemScoreChecker = async (ProblemID: number): Promise<number> => {
     var rst = this.GetProblemScore(ProblemID);
     //if failed try again
-    let retryCount = 3; // Define how many times you want to retry
+    let retryCount = 20; // Define how many times you want to retry
     for (let i = 0; i < retryCount; i++) {
       if (rst["Success"]) {
         rst = this.GetProblemScore(ProblemID);
       } else {
         break; // If the function is successful, break the loop
       }
+      await sleep(500);
     }
     return rst;
   }
@@ -1284,9 +1290,6 @@ export class Process {
         'blobs': [this.RemoteIP, PathName, RequestJSON["Version"], RequestJSON["DebugMode"]],
         'indexes': [this.Username]
       });
-      // if (this.Username === "shanwenxiao") {
-      //   throw new Result(false, "你已被封禁");
-      // }
       throw await this.ProcessFunctions[PathName](RequestJSON["Data"]);
     } catch (ResponseData) {
       if (!(ResponseData instanceof Result)) {
