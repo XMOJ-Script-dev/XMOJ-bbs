@@ -28,7 +28,7 @@ function sleep(time) {
 }
 
 export class Process {
-  private AdminUserList: Array<string> = ["zhuchenrui2", "shanwenxiao", "zhouyiqing", "shihongxi"];
+  private AdminUserList: Array<string> = ["zhuchenrui2", "shanwenxiao", "shihongxi"];
   private readonly CaptchaSecretKey: string;
   private GithubImagePAT: string;
   private readonly ACCOUNT_ID: string;
