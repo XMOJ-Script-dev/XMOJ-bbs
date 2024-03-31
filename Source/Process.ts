@@ -122,7 +122,7 @@ export class Process {
         "Username       : \"" + this.Username + "\"\n");
       return new Result(false, "令牌不匹配");
     }
-    //check if th item already exists in db
+    //check if the item already exists in db
     if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("phpsessid", {
       token: HashedToken
     }))["TableSize"] == 0) {
@@ -138,6 +138,9 @@ export class Process {
     return new Result(true, "令牌匹配");
   }
   public IfUserExist = async (Username: string): Promise<Result> => {
+    if (Username !== Username.toLowerCase()) {
+      return new Result(false, "用户名必须为小写");
+    }
     if(ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("phpsessid", {
       user_id: Username
     }))["TableSize"] !== 0){
