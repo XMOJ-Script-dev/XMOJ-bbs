@@ -30,7 +30,7 @@ function sleep(time) {
 export class Process {
   private AdminUserList: Array<string> = ["zhuchenrui2", "shanwenxiao", "shihongxi"];
 
-  private AllowEditList: Array<string> = ["zhuchenrui2", "shanwenxiao", "shihongxi"];
+  private DenyBadgeEditList: Array<string> = ["shanwenxiao"];
   private readonly CaptchaSecretKey: string;
   private GithubImagePAT: string;
   private readonly ACCOUNT_ID: string;
@@ -180,8 +180,8 @@ export class Process {
   public IsAdmin = (): boolean => {
     return this.AdminUserList.indexOf(this.Username) !== -1;
   }
-  public AllowEdit = (): boolean => {
-    return this.AllowEditList.indexOf(this.Username) !== -1;
+  public DenyEdit = (): boolean => {
+    return this.DenyBadgeEditList.indexOf(this.Username) !== -1;
   }
   public VerifyCaptcha = async (CaptchaToken: string): Promise<Result> => {
     const ErrorDescriptions: Object = {
@@ -270,13 +270,14 @@ export class Process {
   public GetProblemScoreChecker = async (ProblemID: number): Promise<number> => {
     var rst = this.GetProblemScore(ProblemID);
     //if failed try again
-    let retryCount = 3; // Define how many times you want to retry
+    let retryCount = 20; // Define how many times you want to retry
     for (let i = 0; i < retryCount; i++) {
       if (rst["Success"]) {
         rst = this.GetProblemScore(ProblemID);
       } else {
         break; // If the function is successful, break the loop
       }
+      await sleep(500);
     }
     return rst;
   }
@@ -1068,7 +1069,10 @@ export class Process {
         "Color": "string",
         "Content": "string"
       }));
-      if (!this.IsAdmin() && !this.AllowEdit() && Data["UserID"] !== this.Username) {
+      if (!this.IsAdmin() && Data["UserID"] !== this.Username) {
+        return new Result(false, "没有权限编辑此标签");
+      }
+      if (this.DenyEdit()) {
         return new Result(false, "没有权限编辑此标签");
       }
       if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("badge", {
