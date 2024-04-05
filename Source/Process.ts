@@ -29,6 +29,8 @@ function sleep(time) {
 
 export class Process {
   private AdminUserList: Array<string> = ["zhuchenrui2", "shanwenxiao", "shihongxi"];
+
+  private DenyBadgeEditList: Array<string> = ["shanwenxiao"];
   private readonly CaptchaSecretKey: string;
   private GithubImagePAT: string;
   private readonly ACCOUNT_ID: string;
@@ -141,9 +143,9 @@ export class Process {
     if (Username !== Username.toLowerCase()) {
       return new Result(false, "用户名必须为小写");
     }
-    if(ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("phpsessid", {
+    if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("phpsessid", {
       user_id: Username
-    }))["TableSize"] !== 0){
+    }))["TableSize"] !== 0) {
       return new Result(true, "用户检查成功", {
         "Exist": true
       });
@@ -177,6 +179,9 @@ export class Process {
   }
   public IsAdmin = (): boolean => {
     return this.AdminUserList.indexOf(this.Username) !== -1;
+  }
+  public DenyEdit = (): boolean => {
+    return this.DenyBadgeEditList.indexOf(this.Username) !== -1;
   }
   public VerifyCaptcha = async (CaptchaToken: string): Promise<Result> => {
     const ErrorDescriptions: Object = {
@@ -1065,6 +1070,9 @@ export class Process {
         "Content": "string"
       }));
       if (!this.IsAdmin() && Data["UserID"] !== this.Username) {
+        return new Result(false, "没有权限编辑此标签");
+      }
+      if (this.DenyEdit()) {
         return new Result(false, "没有权限编辑此标签");
       }
       if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("badge", {
