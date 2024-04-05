@@ -23,12 +23,10 @@ import * as sqlstring from 'sqlstring';
 // @ts-ignore
 import CryptoJS from "crypto-js";
 
-function sleep(time) {
-  return new Promise((resolve) => setTimeout(resolve, time));
-}
-
 export class Process {
   private AdminUserList: Array<string> = ["zhuchenrui2", "shanwenxiao", "shihongxi"];
+  
+  private AllowEditList: Array<string> = ["zhuchenrui2", "shanwenxiao", "shihongxi"];
   private readonly CaptchaSecretKey: string;
   private GithubImagePAT: string;
   private readonly ACCOUNT_ID: string;
@@ -122,7 +120,7 @@ export class Process {
         "Username       : \"" + this.Username + "\"\n");
       return new Result(false, "令牌不匹配");
     }
-    //check if the item already exists in db
+    //check if th item already exists in db
     if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("phpsessid", {
       token: HashedToken
     }))["TableSize"] == 0) {
@@ -138,16 +136,6 @@ export class Process {
     return new Result(true, "令牌匹配");
   }
   public IfUserExist = async (Username: string): Promise<Result> => {
-    if (Username !== Username.toLowerCase()) {
-      return new Result(false, "用户名必须为小写");
-    }
-    if(ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("phpsessid", {
-      user_id: Username
-    }))["TableSize"] !== 0){
-      return new Result(true, "用户检查成功", {
-        "Exist": true
-      });
-    }
     return await this.Fetch(new URL("https://www.xmoj.tech/userinfo.php?user=" + Username))
       .then((Response) => {
         return Response.text();
@@ -164,20 +152,22 @@ export class Process {
   public IfUserExistChecker = async (Username: string): Promise<Result> => {
     var rst = this.IfUserExist(Username);
     //if failed try again
-    let retryCount = 20; // Define how many times you want to retry
+    let retryCount = 3; // Define how many times you want to retry
     for (let i = 0; i < retryCount; i++) {
       if (!rst["Success"]) {
         rst = this.IfUserExist(Username);
       } else {
         break; // If the function is successful, break the loop
       }
-      await sleep(500);
     }
     return rst;
   }
   public IsAdmin = (): boolean => {
     return this.AdminUserList.indexOf(this.Username) !== -1;
   }
+    public AllowEdit = (): boolean => {
+      return this.AllowEditList.indexOf(this.Username) !== -1;
+    }
   public VerifyCaptcha = async (CaptchaToken: string): Promise<Result> => {
     const ErrorDescriptions: Object = {
       "missing-input-secret": "密钥为空",
@@ -265,14 +255,13 @@ export class Process {
   public GetProblemScoreChecker = async (ProblemID: number): Promise<number> => {
     var rst = this.GetProblemScore(ProblemID);
     //if failed try again
-    let retryCount = 20; // Define how many times you want to retry
+    let retryCount = 3; // Define how many times you want to retry
     for (let i = 0; i < retryCount; i++) {
       if (rst["Success"]) {
         rst = this.GetProblemScore(ProblemID);
       } else {
         break; // If the function is successful, break the loop
       }
-      await sleep(500);
     }
     return rst;
   }
@@ -1064,7 +1053,7 @@ export class Process {
         "Color": "string",
         "Content": "string"
       }));
-      if (!this.IsAdmin() && Data["UserID"] !== this.Username) {
+      if (!this.IsAdmin() && !this.AllowEdit() && Data["UserID"] !== this.Username) {
         return new Result(false, "没有权限编辑此标签");
       }
       if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("badge", {
