@@ -26,9 +26,10 @@ import CryptoJS from "crypto-js";
 function sleep(time) {
   return new Promise((resolve) => setTimeout(resolve, time));
 }
+
 export class Process {
   private AdminUserList: Array<string> = ["zhuchenrui2", "shanwenxiao", "shihongxi"];
-  
+
   private AllowEditList: Array<string> = ["zhuchenrui2", "shanwenxiao", "shihongxi"];
   private readonly CaptchaSecretKey: string;
   private GithubImagePAT: string;
@@ -139,16 +140,16 @@ export class Process {
     return new Result(true, "令牌匹配");
   }
   public IfUserExist = async (Username: string): Promise<Result> => {
-        if (Username !== Username.toLowerCase()) {
-          return new Result(false, "用户名必须为小写");
-        }
-        if(ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("phpsessid", {
+    if (Username !== Username.toLowerCase()) {
+      return new Result(false, "用户名必须为小写");
+    }
+    if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("phpsessid", {
       user_id: Username
-        }))["TableSize"] !== 0){
-          return new Result(true, "用户检查成功", {
-            "Exist": true
-          });
-        }
+    }))["TableSize"] !== 0) {
+      return new Result(true, "用户检查成功", {
+        "Exist": true
+      });
+    }
     return await this.Fetch(new URL("https://www.xmoj.tech/userinfo.php?user=" + Username))
       .then((Response) => {
         return Response.text();
@@ -179,9 +180,9 @@ export class Process {
   public IsAdmin = (): boolean => {
     return this.AdminUserList.indexOf(this.Username) !== -1;
   }
-    public AllowEdit = (): boolean => {
-      return this.AllowEditList.indexOf(this.Username) !== -1;
-    }
+  public AllowEdit = (): boolean => {
+    return this.AllowEditList.indexOf(this.Username) !== -1;
+  }
   public VerifyCaptcha = async (CaptchaToken: string): Promise<Result> => {
     const ErrorDescriptions: Object = {
       "missing-input-secret": "密钥为空",
