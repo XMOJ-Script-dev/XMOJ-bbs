@@ -854,6 +854,9 @@ export class Process {
       if (Data["ToUser"] === this.Username) {
         return new Result(false, "无法给自己发送短消息");
       }
+      if (Data["Content"].length() > 2000) {
+        return new Result(false, "短消息过长");
+      }
       let MessageID = ThrowErrorIfFailed(await this.XMOJDatabase.Insert("short_message", {
         message_from: this.Username,
         message_to: Data["ToUser"],
