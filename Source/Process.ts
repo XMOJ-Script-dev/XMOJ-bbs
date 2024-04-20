@@ -1077,7 +1077,7 @@ export class Process {
       if (this.DenyEdit()) {
         return new Result(false, "没有权限编辑此标签");
       }
-      if (Data["Content"] === "管理员") {
+      if (Data["Content"].includes("管理员")) {
         return new Result(false, "您设置的标签内容含有敏感词汇，请修改后重试");
       }
       if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("badge", {
