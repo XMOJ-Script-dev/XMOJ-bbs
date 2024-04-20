@@ -343,7 +343,7 @@ export class Process {
       if (Data["BoardID"] !== 0 && ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_board", {
         board_id: Data["BoardID"]
       }))["TableSize"] === 0) {
-        return new Result(false, "未找到板块");
+        return new Result(false, "该板块不存在");
       }
       let PostID = ThrowErrorIfFailed(await this.XMOJDatabase.Insert("bbs_post", {
         user_id: this.Username,
@@ -372,7 +372,7 @@ export class Process {
       ThrowErrorIfFailed(await this.VerifyCaptcha(Data["CaptchaSecretKey"]));
       let Post = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_post", ["title", "user_id", "board_id"], {post_id: Data["PostID"]}));
       if (Post.toString() == "") {
-        return new Result(false, "未找到讨论");
+        return new Result(false, "该讨论不存在");
       }
       //console.log(Post[0]["board_id"]);
       if (Post[0]["board_id"] == 5) {
@@ -516,7 +516,7 @@ export class Process {
         post_id: Data["PostID"]
       }));
       if (Post.toString() == "") {
-        return new Result(false, "未找到讨论");
+        return new Result(false, "该讨论不存在");
       }
       ResponseData.PageCount = Math.ceil(ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_reply", {post_id: Data["PostID"]}))["TableSize"] / 10);
       if (ResponseData.PageCount === 0) {
@@ -567,7 +567,7 @@ export class Process {
       if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_post", {
         post_id: Data["PostID"]
       }))["TableSize"] === 0) {
-        return new Result(false, "未找到讨论");
+        return new Result(false, "该讨论不存在");
       }
       if (!this.IsAdmin()) {
         return new Result(false, "没有权限锁定此讨论");
@@ -591,7 +591,7 @@ export class Process {
       if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_post", {
         post_id: Data["PostID"]
       }))["TableSize"] === 0) {
-        return new Result(false, "未找到讨论");
+        return new Result(false, "解锁失败，该讨论不存在");
       }
       if (!this.IsAdmin()) {
         return new Result(false, "没有权限解锁此讨论");
@@ -615,7 +615,7 @@ export class Process {
         reply_id: Data["ReplyID"]
       }));
       if (Reply.toString() === "") {
-        return new Result(false, "未找到回复");
+        return new Result(false, "编辑失败，未找到此回复");
       }
       if (!this.IsAdmin() && Reply[0]["user_id"] !== this.Username) {
         return new Result(false, "没有权限编辑此回复");
@@ -623,7 +623,7 @@ export class Process {
       if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_post", {
         post_id: Reply[0]["post_id"]
       }))["TableSize"] === 0) {
-        return new Result(false, "未找到讨论");
+        return new Result(false, "编辑失败，该回复所属的讨论不存在");
       }
 
       if (!this.IsAdmin() && ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_lock", {
@@ -663,7 +663,7 @@ export class Process {
         post_id: Data["PostID"]
       }));
       if (Post.toString() === "") {
-        return new Result(false, "未找到讨论");
+        return new Result(false, "删除失败，该讨论不存在");
       }
       if (!this.IsAdmin() && ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_lock", {
         post_id: Data["PostID"]
@@ -690,7 +690,7 @@ export class Process {
       }));
       let Reply = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_reply", ["user_id", "post_id"], {reply_id: Data["ReplyID"]}));
       if (Reply.toString() === "") {
-        return new Result(false, "未找到回复");
+        return new Result(false, "删除失败，该讨论不存在");
       }
       if (!this.IsAdmin() && ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_lock", {
         post_id: Reply[0]["post_id"]
@@ -1083,7 +1083,7 @@ export class Process {
       if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("badge", {
         user_id: Data["UserID"]
       }))["TableSize"] === 0) {
-        return new Result(false, "未找到标签");
+        return new Result(false, "编辑失败，该标签在数据库中不存在");
       }
       ThrowErrorIfFailed(await this.XMOJDatabase.Update("badge", {
         background_color: Data["BackgroundColor"],
@@ -1102,7 +1102,7 @@ export class Process {
         user_id: Data["UserID"]
       }));
       if (BadgeData.toString() == "") {
-        return new Result(false, "未找到标签");
+        return new Result(false, "获取标签失败，该标签在数据库中不存在");
       }
       return new Result(true, "获得标签成功", {
         Content: BadgeData[0]["content"],
