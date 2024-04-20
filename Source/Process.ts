@@ -29,10 +29,11 @@ function sleep(time) {
 
 export class Process {
   private AdminUserList: Array<string> = ["zhuchenrui2", "shanwenxiao", "shihongxi"];
-  private DenyBadgeEditList: Array<string> = [""];
+  private DenyBadgeEditList: Array<string> = [];
   private readonly CaptchaSecretKey: string;
   private GithubImagePAT: string;
   private readonly ACCOUNT_ID: string;
+  private AI: any;
   private readonly API_TOKEN: string;
   private Username: string;
   private SessionID: string;
@@ -1075,9 +1076,18 @@ export class Process {
         return new Result(false, "没有权限编辑此标签");
       }
       if (this.DenyEdit()) {
-        return new Result(false, "没有权限编辑此标签");
+        return new Result(false, "你被禁止修改标签");
       }
       if (Data["Content"].includes("管理员")) {
+        return new Result(false, "您设置的标签内容含有敏感词汇，请修改后重试");
+      }
+      const check = await this.AI.run(
+        "@cf/huggingface/distilbert-sst-2-int8",
+        {
+          text: Data["Content"],
+        }
+      );
+      if (check[check[0]["label"] == "NEGATIVE" ? 0 : 1]["score"].toFixed() > 0.85) {
         return new Result(false, "您设置的标签内容含有敏感词汇，请修改后重试");
       }
       if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("badge", {
@@ -1254,6 +1264,7 @@ export class Process {
 
   constructor(RequestData: Request, Environment) {
     this.XMOJDatabase = new Database(Environment.DB);
+    this.AI = Environment.AI;
     this.logs = Environment.logdb;
     this.CaptchaSecretKey = Environment.CaptchaSecretKey;
     this.GithubImagePAT = Environment.GithubImagePAT;

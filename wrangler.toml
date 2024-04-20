@@ -15,3 +15,6 @@ mode = "smart"
 
 [[analytics_engine_datasets]]
 binding = "logdb"
+
+[ai]
+binding = "AI"
