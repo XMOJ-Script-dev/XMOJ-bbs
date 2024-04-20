@@ -1080,6 +1080,20 @@ export class Process {
       if (Data["Content"].includes("管理员")) {
         return new Result(false, "您设置的标签内容含有敏感词汇，请修改后重试");
       }
+      await fetch(new URL("https://api.52vmy.cn/api/min?msg=" + Data["Content"] ), {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "User-Agent": "XMOJ-Script-Server"
+        },
+        body: JSON.stringify({
+          message: `${this.Username} ${new Date().getFullYear()}/${new Date().getMonth() + 1}/${new Date().getDate()} ${new Date().getHours()}:${new Date().getMinutes()}:${new Date().getSeconds()}`,
+          content: ImageData
+        })
+      }).then((Response) => {
+        let bad=Response.json().substring(Response.indexOf("num")+8, Response.indexOf("num")+8);
+        if (bad !== 0) return new Result(false, "您设置的标签内容含有敏感词汇，请修改后重试");
+      });
       if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("badge", {
         user_id: Data["UserID"]
       }))["TableSize"] === 0) {
