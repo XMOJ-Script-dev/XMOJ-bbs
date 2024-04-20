@@ -1,6 +1,7 @@
 name = "xmoj-bbs"
 main = "Source/index.ts"
 compatibility_date = "2023-09-17"
+account_id = "89969bdf9d5ab8202f8ad8b8ae2c40b8"
 
 [[d1_databases]]
 binding = "DB"
