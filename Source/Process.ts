@@ -1,3 +1,5 @@
+// noinspection ExceptionCaughtLocallyJS,JSUnusedGlobalSymbols
+
 /*
  *     Copyright (C) 2023-2024  XMOJ-bbs contributors
  *     This file is part of XMOJ-bbs.
