@@ -29,7 +29,7 @@ function sleep(time) {
 
 export class Process {
   private AdminUserList: Array<string> = ["zhuchenrui2", "shanwenxiao", "shihongxi"];
-  private DenyBadgeEditList: Array<string> = [];
+  private DenyBadgeEditList: Array<string> = [""];
   private readonly CaptchaSecretKey: string;
   private GithubImagePAT: string;
   private readonly ACCOUNT_ID: string;
