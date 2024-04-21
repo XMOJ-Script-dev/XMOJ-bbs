@@ -23,7 +23,7 @@ import * as sqlstring from 'sqlstring';
 // @ts-ignore
 import CryptoJS from "crypto-js";
 
-function sleep(time) {
+function sleep(time: number) {
   return new Promise((resolve) => setTimeout(resolve, time));
 }
 
@@ -164,7 +164,7 @@ export class Process {
       });
   }
   public IfUserExistChecker = async (Username: string): Promise<Result> => {
-    var rst = this.IfUserExist(Username);
+    let rst = this.IfUserExist(Username);
     //if failed try again
     let retryCount = 20; // Define how many times you want to retry
     for (let i = 0; i < retryCount; i++) {
@@ -268,7 +268,7 @@ export class Process {
       });
   }
   public GetProblemScoreChecker = async (ProblemID: number): Promise<number> => {
-    var rst = this.GetProblemScore(ProblemID);
+    let rst = this.GetProblemScore(ProblemID);
     //if failed try again
     let retryCount = 20; // Define how many times you want to retry
     for (let i = 0; i < retryCount; i++) {
@@ -818,7 +818,7 @@ export class Process {
           OrderIncreasing: false,
           Limit: 1
         }));
-        let LastMessage;
+        let LastMessage: Object;
         if (LastMessageFrom.toString() === "") {
           LastMessage = LastMessageTo;
         } else if (LastMessageTo.toString() === "") {
@@ -1078,8 +1078,11 @@ export class Process {
       if (this.DenyEdit()) {
         return new Result(false, "你被禁止修改标签");
       }
+      if (Data["Content"] === "") {
+        return new Result(false, "标签内容不能为空");
+      }
       if (Data["Content"].includes("管理员")) {
-        return new Result(false, "您设置的标签内容含有敏感词汇，请修改后重试");
+        return new Result(false, "请不要试图冒充管理员");
       }
       const check = await this.AI.run(
         "@cf/huggingface/distilbert-sst-2-int8",
@@ -1309,7 +1312,7 @@ export class Process {
         "Version": "string",
         "DebugMode": "boolean"
       }));
-      var TokenFailedCount = 0;
+      let TokenFailedCount = 0;
       while (true) {
         if ((await this.CheckToken(RequestJSON["Authentication"])).Data["Success"]) {
           break;
