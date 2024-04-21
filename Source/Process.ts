@@ -424,7 +424,7 @@ export class Process {
       }));
       let ResponseData = {
         Posts: new Array<Object>,
-        PageCount: Math.ceil(ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_post"))["TableSize"] / 10)
+        PageCount: Math.ceil(ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_post"))["TableSize"] / 15)
       };
       if (ResponseData.PageCount === 0) {
         return new Result(true, "获得讨论列表成功", ResponseData);
@@ -519,7 +519,7 @@ export class Process {
       if (Post.toString() == "") {
         return new Result(false, "该讨论不存在");
       }
-      ResponseData.PageCount = Math.ceil(ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_reply", {post_id: Data["PostID"]}))["TableSize"] / 10);
+      ResponseData.PageCount = Math.ceil(ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_reply", {post_id: Data["PostID"]}))["TableSize"] / 15);
       if (ResponseData.PageCount === 0) {
         return new Result(true, "获得讨论成功", ResponseData);
       }
@@ -545,8 +545,8 @@ export class Process {
       let Reply = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_reply", [], {post_id: Data["PostID"]}, {
         Order: "reply_time",
         OrderIncreasing: true,
-        Limit: 10,
-        Offset: (Data["Page"] - 1) * 10
+        Limit: 15,
+        Offset: (Data["Page"] - 1) * 15
       }));
       for (let i in Reply) {
         let ReplyItem = Reply[i];
