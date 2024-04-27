@@ -788,6 +788,16 @@ export class Process {
       }));
       return new Result(true, "阅读短消息提及成功");
     },
+    ReadUserMailMention: async (Data: object): Promise<Result> => {
+      ThrowErrorIfFailed(this.CheckParams(Data, {
+        "UserID": "string"
+      }));
+      ThrowErrorIfFailed(await this.XMOJDatabase.Delete("short_message_mention", {
+        from_user_id: Data["UserID"],
+        to_user_id: this.Username
+      }));
+      return new Result(true, "阅读短消息提及成功");
+    },
     GetMailList: async (Data: object): Promise<Result> => {
       ThrowErrorIfFailed(this.CheckParams(Data, {}));
       let ResponseData = {
