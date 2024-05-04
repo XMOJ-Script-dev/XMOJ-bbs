@@ -860,7 +860,7 @@ export class Process {
         "ToUser": "string",
         "Content": "string"
       }));
-      if (ThrowErrorIfFailed(await this.IfUserExistChecker(Data["ToUser"]))["Exist"] === false) {
+      if (Data["Content"].startsWith("您好，我是") && ThrowErrorIfFailed(await this.IfUserExistChecker(Data["ToUser"]))["Exist"] === false) {
         return new Result(false, "未找到用户");
       }
       if (Data["ToUser"] === this.Username) {
