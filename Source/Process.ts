@@ -860,7 +860,7 @@ export class Process {
         "ToUser": "string",
         "Content": "string"
       }));
-      if (!this.IsAdmin() && ThrowErrorIfFailed(await this.IfUserExistChecker(Data["ToUser"]))["Exist"] === false) {
+      if (ThrowErrorIfFailed(await this.IfUserExistChecker(Data["ToUser"]))["Exist"] === false) {
         return new Result(false, "未找到用户");
       }
       if (Data["ToUser"] === this.Username) {
@@ -1052,7 +1052,7 @@ export class Process {
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "ProblemID": "number"
       }));
-      if (!this.IsAdmin() && await this.GetProblemScoreChecker(Data["ProblemID"]) < 50) {
+      if (await this.GetProblemScoreChecker(Data["ProblemID"]) < 50) {
         return new Result(false, "没有权限获取此标程");
       }
       let Std = ThrowErrorIfFailed(await this.XMOJDatabase.Select("std_answer", ["std_code"], {
