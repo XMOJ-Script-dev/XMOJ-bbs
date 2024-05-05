@@ -11,3 +11,14 @@ This backend originated from https://github.com/langningchen/XMOJ-Script/discuss
 
 It is written in typescript, and is RESTful.
 The legacy incompatible backend is written in php.
+
+## Contributors
+
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+
+<!-- markdownlint-restore -->
+<!-- prettier-ignore-end -->
+
+<!-- ALL-CONTRIBUTORS-LIST:END -->
