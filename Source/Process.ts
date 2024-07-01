@@ -45,11 +45,11 @@ export class Process {
   private RequestData: Request;
   private Fetch = async (RequestURL: URL): Promise<Response> => {
     Output.Log("Fetch: " + RequestURL.toString());
-    let Abort = new AbortController();
+    const Abort = new AbortController();
     setTimeout(() => {
       Abort.abort();
     }, 5000);
-    let RequestData = new Request(RequestURL, {
+    const RequestData = new Request(RequestURL, {
       headers: {
         "Cookie": "PHPSESSID=" + this.SessionID
       },
