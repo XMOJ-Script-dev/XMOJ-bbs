@@ -45,11 +45,11 @@ export class Process {
   private RequestData: Request;
   private Fetch = async (RequestURL: URL): Promise<Response> => {
     Output.Log("Fetch: " + RequestURL.toString());
-    const Abort = new AbortController();
+    let Abort = new AbortController();
     setTimeout(() => {
       Abort.abort();
     }, 5000);
-    const RequestData = new Request(RequestURL, {
+    let RequestData = new Request(RequestURL, {
       headers: {
         "Cookie": "PHPSESSID=" + this.SessionID
       },
@@ -948,11 +948,8 @@ export class Process {
       const std = ThrowErrorIfFailed(await this.XMOJDatabase.Select("std_answer", ["std_code"], {
         problem_id: Data["ProblemID"]
       }));
-      const qualityChecklist = ["shanwenxiao"];
-      for (const user in qualityChecklist) {
-        if (std.toString().startsWith("//Code by " + user)) {
-          await this.XMOJDatabase.Delete("std_answer", {problem_id: Data["ProblemID"]});
-        }
+      if (std.toString().startsWith("//Code by shanwenxiao") && this.Username !== "shanwenxiao") {
+        await this.XMOJDatabase.Delete("std_answer", {problem_id: Data["ProblemID"]});
       }
       if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("std_answer", {
         problem_id: ProblemID
