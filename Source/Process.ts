@@ -945,6 +945,15 @@ export class Process {
       if (await this.GetProblemScoreChecker(ProblemID) !== 100) {
         return new Result(false, "没有权限上传此标程");
       }
+      let std = ThrowErrorIfFailed(await this.XMOJDatabase.Select("std_answer", ["std_code"], {
+        problem_id: Data["ProblemID"]
+      }));
+      let qualityChecklist = ["shanwenxiao"];
+      for (let user in qualityChecklist) {
+        if (std.toString().startsWith("//Code by " + user)) {
+          await this.XMOJDatabase.Delete("std_answer", {problem_id: Data["ProblemID"]});
+        }
+      }
       if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("std_answer", {
         problem_id: ProblemID
       }))["TableSize"] !== 0) {
