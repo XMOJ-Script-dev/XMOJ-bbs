@@ -948,7 +948,7 @@ export class Process {
       const std = ThrowErrorIfFailed(await this.XMOJDatabase.Select("std_answer", ["std_code"], {
         problem_id: Data["ProblemID"]
       }));
-      if (std.toString().startsWith("//Code by shanwenxiao") && this.Username !== "shanwenxiao") {
+      if (std.toString().includes("shanwenxiao") && this.Username !== "shanwenxiao") {
         await this.XMOJDatabase.Delete("std_answer", {problem_id: Data["ProblemID"]});
       }
       if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("std_answer", {
