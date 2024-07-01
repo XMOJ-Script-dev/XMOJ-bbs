@@ -45,11 +45,11 @@ export class Process {
   private RequestData: Request;
   private Fetch = async (RequestURL: URL): Promise<Response> => {
     Output.Log("Fetch: " + RequestURL.toString());
-    let Abort = new AbortController();
+    const Abort = new AbortController();
     setTimeout(() => {
       Abort.abort();
     }, 5000);
-    let RequestData = new Request(RequestURL, {
+    const RequestData = new Request(RequestURL, {
       headers: {
         "Cookie": "PHPSESSID=" + this.SessionID
       },
@@ -58,7 +58,7 @@ export class Process {
     return await fetch(RequestData);
   }
   public CheckParams = (Data: object, Checklist: object): Result => {
-    for (let i in Data) {
+    for (const i in Data) {
       if (Checklist[i] === undefined) {
         return new Result(false, "参数" + i + "未知");
       }
@@ -70,7 +70,7 @@ export class Process {
         return new Result(false, "参数" + i + "期望类型" + Checklist[i] + "实际类型" + typeof Data[i]);
       }
     }
-    for (let i in Checklist) {
+    for (const i in Checklist) {
       if (Data[i] === undefined) {
         return new Result(false, "参数" + i + "未找到");
       }
@@ -85,8 +85,8 @@ export class Process {
     this.SessionID = Data["SessionID"];
     this.Username = Data["Username"];
     // return new Result(true, "令牌检测跳过");
-    let HashedToken: string = CryptoJS.SHA3(this.SessionID).toString();
-    let CurrentSessionData = ThrowErrorIfFailed(await this.XMOJDatabase.Select("phpsessid", ["user_id", "create_time"], {
+    const HashedToken: string = CryptoJS.SHA3(this.SessionID).toString();
+    const CurrentSessionData = ThrowErrorIfFailed(await this.XMOJDatabase.Select("phpsessid", ["user_id", "create_time"], {
       token: HashedToken
     }));
     if (CurrentSessionData.toString() !== "") {
@@ -101,7 +101,7 @@ export class Process {
       }
     }
 
-    let SessionUsername: string = await this.Fetch(new URL("https://www.xmoj.tech/template/bs3/profile.php"))
+    const SessionUsername: string = await this.Fetch(new URL("https://www.xmoj.tech/template/bs3/profile.php"))
       .then((Response) => {
         return Response.text();
       }).then((Response) => {
@@ -168,7 +168,7 @@ export class Process {
   public IfUserExistChecker = async (Username: string): Promise<Result> => {
     let rst = this.IfUserExist(Username);
     //if failed try again
-    let retryCount = 20; // Define how many times you want to retry
+    const retryCount = 20; // Define how many times you want to retry
     for (let i = 0; i < retryCount; i++) {
       if (!rst["Success"]) {
         rst = this.IfUserExist(Username);
@@ -201,7 +201,7 @@ export class Process {
     if (CaptchaToken === "") {
       return new Result(false, "验证码没有完成");
     }
-    let VerifyFormData = new FormData();
+    const VerifyFormData = new FormData();
     VerifyFormData.append("secret", this.CaptchaSecretKey);
     VerifyFormData.append("response", CaptchaToken);
     VerifyFormData.append("remoteip", this.RemoteIP);
@@ -234,8 +234,8 @@ export class Process {
       .then((Response) => {
         return Response.text();
       }).then((Response) => {
-        let ParsedDocument: CheerioAPI = load(Response);
-        let ResultTable = ParsedDocument("#result-tab");
+        const ParsedDocument: CheerioAPI = load(Response);
+        const ResultTable = ParsedDocument("#result-tab");
         if (ResultTable.length == 0) {
           Output.Error("Get problem score failed: Cannot find table element\n" +
             "ProblemID: \"" + ProblemID + "\"\n" +
@@ -243,20 +243,20 @@ export class Process {
           ThrowErrorIfFailed(new Result(false, "获取题目分数失败"));
         }
         let MaxScore: number = 0;
-        let ResultTableBody = ResultTable.children().eq(1);
+        const ResultTableBody = ResultTable.children().eq(1);
         for (let i = 0; i < ResultTableBody.children().length; i++) {
-          let ResultRow = ResultTableBody.children().eq(i);
+          const ResultRow = ResultTableBody.children().eq(i);
           if (ResultRow.children().eq(4).text().trim() === "正确") {
             return 100;
           } else if (ResultRow.children().eq(4).children().length == 2) {
-            let ScoreSpan = ResultRow.children().eq(4).children().eq(1);
+            const ScoreSpan = ResultRow.children().eq(4).children().eq(1);
             if (ScoreSpan.length == 0) {
               Output.Error("Get problem score failed: Cannot find score span\n" +
                 "ProblemID: \"" + ProblemID + "\"\n" +
                 "Username : \"" + this.Username + "\"\n");
               ThrowErrorIfFailed(new Result(false, "获取题目分数失败"));
             }
-            let Score: string = ScoreSpan.text().trim();
+            const Score: string = ScoreSpan.text().trim();
             MaxScore = Math.max(MaxScore, parseInt(Score.substring(0, Score.length - 1)));
           }
         }
@@ -272,7 +272,7 @@ export class Process {
   public GetProblemScoreChecker = async (ProblemID: number): Promise<number> => {
     let rst = this.GetProblemScore(ProblemID);
     //if failed try again
-    let retryCount = 20; // Define how many times you want to retry
+    const retryCount = 20; // Define how many times you want to retry
     for (let i = 0; i < retryCount; i++) {
       if (rst["Success"]) {
         rst = this.GetProblemScore(ProblemID);
@@ -348,14 +348,14 @@ export class Process {
       }))["TableSize"] === 0) {
         return new Result(false, "该板块不存在");
       }
-      let PostID = ThrowErrorIfFailed(await this.XMOJDatabase.Insert("bbs_post", {
+      const PostID = ThrowErrorIfFailed(await this.XMOJDatabase.Insert("bbs_post", {
         user_id: this.Username,
         problem_id: Data["ProblemID"],
         title: Data["Title"],
         post_time: new Date().getTime(),
         board_id: Data["BoardID"]
       }))["InsertID"];
-      let ReplyID = ThrowErrorIfFailed(await this.XMOJDatabase.Insert("bbs_reply", {
+      const ReplyID = ThrowErrorIfFailed(await this.XMOJDatabase.Insert("bbs_reply", {
         user_id: this.Username,
         post_id: PostID,
         content: Data["Content"],
@@ -373,7 +373,7 @@ export class Process {
         "CaptchaSecretKey": "string"
       }));
       ThrowErrorIfFailed(await this.VerifyCaptcha(Data["CaptchaSecretKey"]));
-      let Post = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_post", ["title", "user_id", "board_id"], {post_id: Data["PostID"]}));
+      const Post = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_post", ["title", "user_id", "board_id"], {post_id: Data["PostID"]}));
       if (Post.toString() == "") {
         return new Result(false, "该讨论不存在");
       }
@@ -393,20 +393,20 @@ export class Process {
       }
       let MentionPeople = new Array<string>();
       // @ts-ignore
-      for (let Match of String(Data["Content"]).matchAll(/@([a-zA-Z0-9]+)/g)) {
+      for (const Match of String(Data["Content"]).matchAll(/@([a-zA-Z0-9]+)/g)) {
         if (ThrowErrorIfFailed(await this.IfUserExistChecker(Match[1]))["Exist"]) {
           MentionPeople.push(Match[1]);
         }
       }
       MentionPeople = Array.from(new Set(MentionPeople));
-      let ReplyID = ThrowErrorIfFailed(await this.XMOJDatabase.Insert("bbs_reply", {
+      const ReplyID = ThrowErrorIfFailed(await this.XMOJDatabase.Insert("bbs_reply", {
         user_id: this.Username,
         post_id: Data["PostID"],
         content: Data["Content"],
         reply_time: new Date().getTime()
       }))["InsertID"];
 
-      for (let i in MentionPeople) {
+      for (const i in MentionPeople) {
         await this.AddBBSMention(MentionPeople[i], Data["PostID"]);
       }
 
@@ -424,7 +424,7 @@ export class Process {
         "Page": "number",
         "BoardID": "number"
       }));
-      let ResponseData = {
+      const ResponseData = {
         Posts: new Array<Object>,
         PageCount: Math.ceil(ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_post"))["TableSize"] / 15)
       };
@@ -434,24 +434,24 @@ export class Process {
       if (Data["Page"] < 1 || Data["Page"] > ResponseData.PageCount) {
         return new Result(false, "参数页数不在范围1~" + ResponseData.PageCount + "内");
       }
-      let SearchCondition = {};
+      const SearchCondition = {};
       if (Data["ProblemID"] !== 0) {
         SearchCondition["problem_id"] = Data["ProblemID"];
       }
       if (Data["BoardID"] !== -1) {
         SearchCondition["board_id"] = Data["BoardID"];
       }
-      let Posts = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_post", [], SearchCondition, {
+      const Posts = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_post", [], SearchCondition, {
         Order: "post_id",
         OrderIncreasing: false,
         Limit: 15,
         Offset: (Data["Page"] - 1) * 15
       }));
-      for (let i in Posts) {
-        let Post = Posts[i];
+      for (const i in Posts) {
+        const Post = Posts[i];
 
-        let ReplyCount: number = ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_reply", {post_id: Post["post_id"]}))["TableSize"];
-        let LastReply = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_reply", ["user_id", "reply_time"], {post_id: Post["post_id"]}, {
+        const ReplyCount: number = ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_reply", {post_id: Post["post_id"]}))["TableSize"];
+        const LastReply = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_reply", ["user_id", "reply_time"], {post_id: Post["post_id"]}, {
           Order: "reply_time",
           OrderIncreasing: false,
           Limit: 1
@@ -463,12 +463,12 @@ export class Process {
           continue;
         }
 
-        let LockData = {
+        const LockData = {
           Locked: false,
           LockPerson: "",
           LockTime: 0
         };
-        let Locked = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_lock", [], {
+        const Locked = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_lock", [], {
           post_id: Post["post_id"]
         }));
         if (Locked.toString() !== "") {
@@ -500,7 +500,7 @@ export class Process {
         "PostID": "number",
         "Page": "number"
       }));
-      let ResponseData = {
+      const ResponseData = {
         UserID: "",
         ProblemID: 0,
         Title: "",
@@ -515,7 +515,7 @@ export class Process {
           LockTime: 0
         }
       };
-      let Post = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_post", [], {
+      const Post = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_post", [], {
         post_id: Data["PostID"]
       }));
       if (Post.toString() == "") {
@@ -535,7 +535,7 @@ export class Process {
       ResponseData.BoardID = Post[0]["board_id"];
       ResponseData.BoardName = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_board", ["board_name"], {board_id: Post[0]["board_id"]}))[0]["board_name"];
 
-      let Locked = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_lock", [], {
+      const Locked = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_lock", [], {
         post_id: Data["PostID"]
       }));
       if (Locked.toString() !== "") {
@@ -544,14 +544,14 @@ export class Process {
         ResponseData.Lock.LockTime = Locked[0]["lock_time"];
       }
 
-      let Reply = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_reply", [], {post_id: Data["PostID"]}, {
+      const Reply = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_reply", [], {post_id: Data["PostID"]}, {
         Order: "reply_time",
         OrderIncreasing: true,
         Limit: 15,
         Offset: (Data["Page"] - 1) * 15
       }));
-      for (let i in Reply) {
-        let ReplyItem = Reply[i];
+      for (const i in Reply) {
+        const ReplyItem = Reply[i];
         ResponseData.Reply.push({
           ReplyID: ReplyItem["reply_id"],
           UserID: ReplyItem["user_id"],
@@ -614,7 +614,7 @@ export class Process {
         "ReplyID": "number",
         "Content": "string"
       }));
-      let Reply = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_reply", ["post_id", "user_id"], {
+      const Reply = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_reply", ["post_id", "user_id"], {
         reply_id: Data["ReplyID"]
       }));
       if (Reply.toString() === "") {
@@ -639,9 +639,9 @@ export class Process {
       if (Data["Content"] === "") {
         return new Result(false, "内容不能为空");
       }
-      let MentionPeople = new Array<string>();
+      const MentionPeople = new Array<string>();
       // @ts-ignore
-      for (let Match of String(Data["Content"]).matchAll(/@([a-zA-Z0-9]+)/g)) {
+      for (const Match of String(Data["Content"]).matchAll(/@([a-zA-Z0-9]+)/g)) {
         if (ThrowErrorIfFailed(await this.IfUserExistChecker(Match[1]))["Exist"]) {
           MentionPeople.push(Match[1]);
         }
@@ -653,7 +653,7 @@ export class Process {
       }, {
         reply_id: Data["ReplyID"]
       });
-      for (let i in MentionPeople) {
+      for (const i in MentionPeople) {
         await this.AddBBSMention(MentionPeople[i], Reply[0]["post_id"]);
       }
       return new Result(true, "编辑回复成功");
@@ -662,7 +662,7 @@ export class Process {
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "PostID": "number"
       }));
-      let Post = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_post", ["user_id"], {
+      const Post = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_post", ["user_id"], {
         post_id: Data["PostID"]
       }));
       if (Post.toString() === "") {
@@ -676,10 +676,10 @@ export class Process {
       if (!this.IsAdmin() && CheckUserID && Post[0]["user_id"] !== this.Username) {
         return new Result(false, "没有权限删除此讨论");
       }
-      let Replies = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_reply", ["reply_id"], {
+      const Replies = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_reply", ["reply_id"], {
         post_id: Data["PostID"]
       }));
-      for (let i in Replies) {
+      for (const i in Replies) {
         await this.XMOJDatabase.Delete("bbs_reply", {
           reply_id: Replies[i]["reply_id"]
         });
@@ -691,7 +691,7 @@ export class Process {
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "ReplyID": "number"
       }));
-      let Reply = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_reply", ["user_id", "post_id"], {reply_id: Data["ReplyID"]}));
+      const Reply = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_reply", ["user_id", "post_id"], {reply_id: Data["ReplyID"]}));
       if (Reply.toString() === "") {
         return new Result(false, "删除失败，该讨论不存在");
       }
@@ -713,15 +713,15 @@ export class Process {
     },
     GetBBSMentionList: async (Data: object): Promise<Result> => {
       ThrowErrorIfFailed(this.CheckParams(Data, {}));
-      let ResponseData = {
+      const ResponseData = {
         MentionList: new Array<Object>()
       };
-      let Mentions = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_mention", ["bbs_mention_id", "post_id", "bbs_mention_time"], {
+      const Mentions = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_mention", ["bbs_mention_id", "post_id", "bbs_mention_time"], {
         to_user_id: this.Username
       }));
-      for (let i in Mentions) {
-        let Mention = Mentions[i];
-        let Post = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_post", ["user_id", "title"], {post_id: Mention["post_id"]}));
+      for (const i in Mentions) {
+        const Mention = Mentions[i];
+        const Post = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_post", ["user_id", "title"], {post_id: Mention["post_id"]}));
         if (Post.toString() === "") {
           continue;
         }
@@ -736,14 +736,14 @@ export class Process {
     },
     GetMailMentionList: async (Data: object): Promise<Result> => {
       ThrowErrorIfFailed(this.CheckParams(Data, {}));
-      let ResponseData = {
+      const ResponseData = {
         MentionList: new Array<Object>()
       };
-      let Mentions = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message_mention", ["mail_mention_id", "from_user_id", "mail_mention_time"], {
+      const Mentions = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message_mention", ["mail_mention_id", "from_user_id", "mail_mention_time"], {
         to_user_id: this.Username
       }));
-      for (let i in Mentions) {
-        let Mention = Mentions[i];
+      for (const i in Mentions) {
+        const Mention = Mentions[i];
         ResponseData.MentionList.push({
           MentionID: Mention["mail_mention_id"],
           FromUserID: Mention["from_user_id"],
@@ -756,7 +756,7 @@ export class Process {
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "MentionID": "number"
       }));
-      let MentionData = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_mention", ["to_user_id"], {
+      const MentionData = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_mention", ["to_user_id"], {
         bbs_mention_id: Data["MentionID"]
       }));
       if (MentionData.toString() === "") {
@@ -774,7 +774,7 @@ export class Process {
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "MentionID": "number"
       }));
-      let MentionData = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message_mention", ["to_user_id"], {
+      const MentionData = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message_mention", ["to_user_id"], {
         mail_mention_id: Data["MentionID"]
       }));
       if (MentionData.toString() === "") {
@@ -800,21 +800,21 @@ export class Process {
     },
     GetMailList: async (Data: object): Promise<Result> => {
       ThrowErrorIfFailed(this.CheckParams(Data, {}));
-      let ResponseData = {
+      const ResponseData = {
         MailList: new Array<Object>()
       };
       let OtherUsernameList = new Array<string>();
       let Mails = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message", ["message_from"], {message_to: this.Username}, {}, true));
-      for (let i in Mails) {
+      for (const i in Mails) {
         OtherUsernameList.push(Mails[i]["message_from"]);
       }
       Mails = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message", ["message_to"], {message_from: this.Username}, {}, true));
-      for (let i in Mails) {
+      for (const i in Mails) {
         OtherUsernameList.push(Mails[i]["message_to"]);
       }
       OtherUsernameList = Array.from(new Set(OtherUsernameList));
-      for (let i in OtherUsernameList) {
-        let LastMessageFrom = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message", ["content", "send_time"], {
+      for (const i in OtherUsernameList) {
+        const LastMessageFrom = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message", ["content", "send_time"], {
           message_from: OtherUsernameList[i],
           message_to: this.Username
         }, {
@@ -822,7 +822,7 @@ export class Process {
           OrderIncreasing: false,
           Limit: 1
         }));
-        let LastMessageTo = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message", ["content", "send_time"], {
+        const LastMessageTo = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message", ["content", "send_time"], {
           message_from: this.Username,
           message_to: OtherUsernameList[i]
         }, {
@@ -838,7 +838,7 @@ export class Process {
         } else {
           LastMessage = LastMessageFrom[0]["send_time"] > LastMessageTo[0]["send_time"] ? LastMessageFrom : LastMessageTo;
         }
-        let UnreadCount = ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("short_message", {
+        const UnreadCount = ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("short_message", {
           message_from: OtherUsernameList[i],
           message_to: this.Username,
           is_read: 0
@@ -869,7 +869,7 @@ export class Process {
       if (Data["Content"].length > 2000) {
         return new Result(false, "短消息过长");
       }
-      let MessageID = ThrowErrorIfFailed(await this.XMOJDatabase.Insert("short_message", {
+      const MessageID = ThrowErrorIfFailed(await this.XMOJDatabase.Insert("short_message", {
         message_from: this.Username,
         message_to: Data["ToUser"],
         content: Data["Content"],
@@ -884,7 +884,7 @@ export class Process {
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "OtherUser": "string"
       }));
-      let ResponseData = {
+      const ResponseData = {
         Mail: new Array<Object>()
       };
       let Mails = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message", [], {
@@ -894,8 +894,8 @@ export class Process {
         Order: "send_time",
         OrderIncreasing: false
       }));
-      for (let i in Mails) {
-        let Mail = Mails[i];
+      for (const i in Mails) {
+        const Mail = Mails[i];
         ResponseData.Mail.push({
           MessageID: Mail["message_id"],
           FromUser: Mail["message_from"],
@@ -912,8 +912,8 @@ export class Process {
         Order: "send_time",
         OrderIncreasing: false
       }));
-      for (let i in Mails) {
-        let Mail = Mails[i];
+      for (const i in Mails) {
+        const Mail = Mails[i];
         ResponseData.Mail.push({
           MessageID: Mail["message_id"],
           FromUser: Mail["message_from"],
@@ -938,18 +938,18 @@ export class Process {
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "ProblemID": "number"
       }));
-      let ProblemID = Data["ProblemID"];
+      const ProblemID = Data["ProblemID"];
       if (ProblemID === 0) {
         return new Result(true, "ProblemID不能为0, 已忽略"); //this isn't really an error, so we return true
       }
       if (await this.GetProblemScoreChecker(ProblemID) !== 100) {
         return new Result(false, "没有权限上传此标程");
       }
-      let std = ThrowErrorIfFailed(await this.XMOJDatabase.Select("std_answer", ["std_code"], {
+      const std = ThrowErrorIfFailed(await this.XMOJDatabase.Select("std_answer", ["std_code"], {
         problem_id: Data["ProblemID"]
       }));
-      let qualityChecklist = ["shanwenxiao"];
-      for (let user in qualityChecklist) {
+      const qualityChecklist = ["shanwenxiao"];
+      for (const user in qualityChecklist) {
         if (std.toString().startsWith("//Code by " + user)) {
           await this.XMOJDatabase.Delete("std_answer", {problem_id: Data["ProblemID"]});
         }
@@ -970,17 +970,17 @@ export class Process {
               StdCode = "这道题没有标程（即用户std没有AC这道题）";
               return;
             }
-            let ParsedDocument: CheerioAPI = load(Response);
-            let SubmitTable = ParsedDocument("#problemstatus");
+            const ParsedDocument: CheerioAPI = load(Response);
+            const SubmitTable = ParsedDocument("#problemstatus");
             if (SubmitTable.length == 0) {
               Output.Error("Get Std code failed: Cannot find submit table\n" +
                 "ProblemID: \"" + ProblemID + "\"\n" +
                 "Username : \"" + this.Username + "\"\n");
               ThrowErrorIfFailed(new Result(false, "获取标程失败"));
             }
-            let SubmitTableBody = SubmitTable.children().eq(1);
+            const SubmitTableBody = SubmitTable.children().eq(1);
             for (let i = 1; i < SubmitTableBody.children().length; i++) {
-              let SubmitRow = SubmitTableBody.children().eq(i);
+              const SubmitRow = SubmitTableBody.children().eq(i);
               if (SubmitRow.children().eq(2).text().trim() === "std") {
                 let SID: string = SubmitRow.children().eq(1).text();
                 if (SID.indexOf("(") != -1) {
@@ -1048,11 +1048,11 @@ export class Process {
     },
     GetStdList: async (Data: object): Promise<Result> => {
       ThrowErrorIfFailed(this.CheckParams(Data, {}));
-      let ResponseData = {
+      const ResponseData = {
         StdList: new Array<number>()
       };
-      let StdList = ThrowErrorIfFailed(await this.XMOJDatabase.Select("std_answer", ["problem_id"]));
-      for (let i in StdList) {
+      const StdList = ThrowErrorIfFailed(await this.XMOJDatabase.Select("std_answer", ["problem_id"]));
+      for (const i in StdList) {
         ResponseData.StdList.push(StdList[i]["problem_id"]);
       }
       return new Result(true, "获得标程列表成功", ResponseData);
@@ -1064,7 +1064,7 @@ export class Process {
       if (await this.GetProblemScoreChecker(Data["ProblemID"]) < 50) {
         return new Result(false, "没有权限获取此标程");
       }
-      let Std = ThrowErrorIfFailed(await this.XMOJDatabase.Select("std_answer", ["std_code"], {
+      const Std = ThrowErrorIfFailed(await this.XMOJDatabase.Select("std_answer", ["std_code"], {
         problem_id: Data["ProblemID"]
       }));
       if (Std.toString() === "") {
@@ -1132,7 +1132,7 @@ export class Process {
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "UserID": "string"
       }));
-      let BadgeData = ThrowErrorIfFailed(await this.XMOJDatabase.Select("badge", ["background_color", "color", "content"], {
+      const BadgeData = ThrowErrorIfFailed(await this.XMOJDatabase.Select("badge", ["background_color", "color", "content"], {
         user_id: Data["UserID"]
       }));
       if (BadgeData.toString() == "") {
@@ -1158,10 +1158,10 @@ export class Process {
     },
     GetBoards: async (Data: object): Promise<Result> => {
       ThrowErrorIfFailed(this.CheckParams(Data, {}));
-      let Boards: Array<Object> = new Array<Object>();
-      let BoardsData = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_board", []));
-      for (let i in BoardsData) {
-        let Board = BoardsData[i];
+      const Boards: Array<Object> = new Array<Object>();
+      const BoardsData = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_board", []));
+      for (const i in BoardsData) {
+        const Board = BoardsData[i];
         Boards.push({
           BoardID: Board["board_id"],
           BoardName: Board["board_name"]
@@ -1176,12 +1176,12 @@ export class Process {
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "Image": "string"
       }));
-      let Image: String = Data["Image"];
-      let ImageID: String = "";
+      const Image: string = Data["Image"];
+      let ImageID: string = "";
       for (let i = 0; i < 32; i++) {
         ImageID += String.fromCharCode(Math.floor(Math.random() * 26) + 97);
       }
-      let ImageData = Image.replace(/^data:image\/\w+;base64,/, "");
+      const ImageData = Image.replace(/^data:image\/\w+;base64,/, "");
       await fetch(new URL("https://api.github.com/repos/" + GithubImageRepo + "/contents/" + ImageID), {
         method: "PUT",
         headers: {
@@ -1245,7 +1245,7 @@ export class Process {
         return new Result(false, "没有权限获取此用户日志");
       }
 
-      let sanitizedUsername = sqlstring.escape(Data["Username"]);
+      const sanitizedUsername = sqlstring.escape(Data["Username"]);
       const query = `SELECT index1 AS username, blob1 AS IP, blob2 AS Path, blob3 AS Version, blob4 AS DebugMode, timestamp FROM logdb WHERE index1=${sanitizedUsername} ORDER BY timestamp ASC`;
 
       const API = `https://api.cloudflare.com/client/v4/accounts/${this.ACCOUNT_ID}/analytics_engine/sql`;
@@ -1263,8 +1263,8 @@ export class Process {
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "Username": "string"
       }));
-      let username = Data["Username"];
-      let sanitizedUsername = sqlstring.escape(username);
+      const username = Data["Username"];
+      const sanitizedUsername = sqlstring.escape(username);
       const query = `SELECT timestamp FROM logdb WHERE index1=${sanitizedUsername} ORDER BY timestamp DESC LIMIT 1`;
       const API = `https://api.cloudflare.com/client/v4/accounts/${this.ACCOUNT_ID}/analytics_engine/sql`;
       const response = await fetch(API, {
@@ -1277,8 +1277,8 @@ export class Process {
       const responseJSON = await response.json();
       // parse json and return ["data"][0][timestamp]
       if (responseJSON.data && responseJSON.data.length > 0) {
-        let timestamp = responseJSON.data[0].timestamp;
-        let unixTime = Date.parse(timestamp);
+        const timestamp = responseJSON.data[0].timestamp;
+        const unixTime = Date.parse(timestamp);
         return new Result(true, "获得最近登录时间成功", {"logintime": unixTime});
       } else {
         return new Result(false, "获得最近登录时间失败", {});
