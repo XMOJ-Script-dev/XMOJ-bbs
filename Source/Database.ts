@@ -29,7 +29,7 @@ export class Database {
             "    Query    : \"" + QueryString + "\"\n" +
             "    Arguments: " + JSON.stringify(BindData) + "\n");
         try {
-            let SQLResult = await this.RawDatabase.prepare(QueryString).bind(...BindData).all()
+            const SQLResult = await this.RawDatabase.prepare(QueryString).bind(...BindData).all()
             Output.Debug("SQL query returned with result: \n" +
                 "    Result: \"" + JSON.stringify(SQLResult) + "\"\n");
             return new Result(true, "数据库查询成功", SQLResult);
@@ -43,18 +43,18 @@ export class Database {
     }
     public async Insert(Table: string, Data: object): Promise<Result> {
         let QueryString = "INSERT INTO `" + Table + "` (";
-        for (let i in Data) {
+        for (const i in Data) {
             QueryString += "`" + i + "`, ";
         }
         QueryString = QueryString.substring(0, QueryString.length - 2);
         QueryString += ") VALUES (";
-        for (let i in Data) {
+        for (const i in Data) {
             QueryString += "?, ";
         }
         QueryString = QueryString.substring(0, QueryString.length - 2);
         QueryString += ");";
-        let BindData = Array();
-        for (let i in Data) {
+        const BindData = [];
+        for (const i in Data) {
             BindData.push(Data[i]);
         }
         return new Result(true, "数据库插入成功", {
@@ -70,7 +70,7 @@ export class Database {
             QueryString += "*";
         }
         else {
-            for (let i in Data) {
+            for (const i in Data) {
                 QueryString += "`" + Data[i] + "`, ";
             }
             QueryString = QueryString.substring(0, QueryString.length - 2);
@@ -78,7 +78,7 @@ export class Database {
         QueryString += " FROM `" + Table + "`";
         if (Condition !== undefined) {
             QueryString += " WHERE ";
-            for (let i in Condition) {
+            for (const i in Condition) {
                 if (typeof Condition[i] != "object") {
                     QueryString += "`" + i + "` = ? AND ";
                 }
@@ -104,8 +104,8 @@ export class Database {
             }
         }
         QueryString += ";";
-        let BindData = Array();
-        for (let i in Condition) {
+        const BindData = [];
+        for (const i in Condition) {
             if (typeof Condition[i] != "object") {
                 BindData.push(Condition[i]);
             }
@@ -117,13 +117,13 @@ export class Database {
     }
     public async Update(Table: string, Data: object, Condition?: object): Promise<Result> {
         let QueryString = "UPDATE `" + Table + "` SET ";
-        for (let i in Data) {
+        for (const i in Data) {
             QueryString += "`" + i + "` = ?, ";
         }
         QueryString = QueryString.substring(0, QueryString.length - 2);
         if (Condition !== undefined) {
             QueryString += " WHERE ";
-            for (let i in Condition) {
+            for (const i in Condition) {
                 if (typeof Condition[i] != "object") {
                     QueryString += "`" + i + "` = ? AND ";
                 }
@@ -134,11 +134,11 @@ export class Database {
             QueryString = QueryString.substring(0, QueryString.length - 5);
         }
         QueryString += ";";
-        let BindData = Array();
-        for (let i in Data) {
+        const BindData = [];
+        for (const i in Data) {
             BindData.push(Data[i]);
         }
-        for (let i in Condition) {
+        for (const i in Condition) {
             if (typeof Condition[i] != "object") {
                 BindData.push(Condition[i]);
             }
@@ -152,7 +152,7 @@ export class Database {
         let QueryString = "SELECT COUNT(*) FROM `" + Table + "`";
         if (Condition !== undefined) {
             QueryString += " WHERE ";
-            for (let i in Condition) {
+            for (const i in Condition) {
                 if (typeof Condition[i] != "object") {
                     QueryString += "`" + i + "` = ? AND ";
                 }
@@ -163,8 +163,8 @@ export class Database {
             QueryString = QueryString.substring(0, QueryString.length - 5);
         }
         QueryString += ";";
-        let BindData = Array();
-        for (let i in Condition) {
+        const BindData = [];
+        for (const i in Condition) {
             if (typeof Condition[i] != "object") {
                 BindData.push(Condition[i]);
             }
@@ -180,7 +180,7 @@ export class Database {
         let QueryString = "DELETE FROM `" + Table + "`";
         if (Condition !== undefined) {
             QueryString += " WHERE ";
-            for (let i in Condition) {
+            for (const i in Condition) {
                 if (typeof Condition[i] != "object") {
                     QueryString += "`" + i + "` = ? AND ";
                 }
@@ -191,8 +191,8 @@ export class Database {
             QueryString = QueryString.substring(0, QueryString.length - 4);
         }
         QueryString += ";";
-        let BindData = Array();
-        for (let i in Condition) {
+        const BindData = [];
+        for (const i in Condition) {
             if (typeof Condition[i] != "object") {
                 BindData.push(Condition[i]);
             }

@@ -21,13 +21,13 @@ import {D1Database} from "@cloudflare/workers-types";
 
 export default {
   async fetch(RequestData: Request, Environment: any, Context: any) {
-    let Processor = new Process(RequestData, Environment);
+    const Processor = new Process(RequestData, Environment);
     return await Processor.Process();
   },
   async scheduled(Event: any, Environment: { DB: D1Database; }, Context: {
     waitUntil: (arg0: Promise<void>) => void;
   }) {
-    let XMOJDatabase = new Database(Environment.DB);
+    const XMOJDatabase = new Database(Environment.DB);
     Context.waitUntil(new Promise<void>(async (Resolve) => {
       await XMOJDatabase.Delete("short_message", {
         "send_time": {
