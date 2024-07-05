@@ -1103,7 +1103,7 @@ export class Process {
         }
       );
       if (check[check[0]["label"] == "NEGATIVE" ? 0 : 1]["score"].toFixed() > 0.85) {
-        return new Result(false, "您设置的标签内容含有敏感词汇，请修改后重试");
+        return new Result(false, "您设置的标签内容含有负面词汇，请修改后重试");
       }
       if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("badge", {
         user_id: Data["UserID"]
