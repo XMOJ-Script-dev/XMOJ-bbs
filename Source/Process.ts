@@ -348,6 +348,15 @@ export class Process {
       }))["TableSize"] === 0) {
         return new Result(false, "该板块不存在");
       }
+      const check = await this.AI.run(
+        "@cf/huggingface/distilbert-sst-2-int8",
+        {
+          text: Data["Content"],
+        }
+      );
+      if (check[check[0]["label"] == "NEGATIVE" ? 0 : 1]["score"].toFixed() > 0.85) {
+        return new Result(false, "您发表的内容含有负面信息，请修改后重试");
+      }
       const PostID = ThrowErrorIfFailed(await this.XMOJDatabase.Insert("bbs_post", {
         user_id: this.Username,
         problem_id: Data["ProblemID"],
@@ -390,6 +399,15 @@ export class Process {
       Data["Content"] = Data["Content"].trim();
       if (Data["Content"] === "") {
         return new Result(false, "内容不能为空");
+      }
+      const check = await this.AI.run(
+        "@cf/huggingface/distilbert-sst-2-int8",
+        {
+          text: Data["Content"],
+        }
+      );
+      if (check[check[0]["label"] == "NEGATIVE" ? 0 : 1]["score"].toFixed() > 0.85) {
+        return new Result(false, "您发送的内容含有负面词汇，请修改后重试");
       }
       let MentionPeople = new Array<string>();
       // @ts-ignore
@@ -868,6 +886,15 @@ export class Process {
       }
       if (Data["Content"].length > 2000) {
         return new Result(false, "短消息过长");
+      }
+      const check = await this.AI.run(
+        "@cf/huggingface/distilbert-sst-2-int8",
+        {
+          text: Data["Content"],
+        }
+      );
+      if (check[check[0]["label"] == "NEGATIVE" ? 0 : 1]["score"].toFixed() > 0.85) {
+        return new Result(false, "您发送的短消息内容含有负面内容，请修改后重试");
       }
       const MessageID = ThrowErrorIfFailed(await this.XMOJDatabase.Insert("short_message", {
         message_from: this.Username,
