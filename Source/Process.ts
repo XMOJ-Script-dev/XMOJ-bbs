@@ -560,7 +560,7 @@ export class Process {
         ResponseData.Reply.push({
           ReplyID: ReplyItem["reply_id"],
           UserID: ReplyItem["user_id"],
-          Content: ReplyItem["content"],
+          Content: processedContent,
           ReplyTime: ReplyItem["reply_time"],
           EditTime: ReplyItem["edit_time"],
           EditPerson: ReplyItem["edit_person"]
