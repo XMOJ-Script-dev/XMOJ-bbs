@@ -428,7 +428,7 @@ export class Process {
         "Page": "number",
         "BoardID": "number"
       }));
-      const ResponseData = {
+      let ResponseData = {
         Posts: new Array<Object>,
         PageCount: Math.ceil(ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_post"))["TableSize"] / 15)
       };
