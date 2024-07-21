@@ -428,7 +428,7 @@ export class Process {
         "Page": "number",
         "BoardID": "number"
       }));
-      let ResponseData = {
+      const ResponseData = {
         Posts: new Array<Object>,
         PageCount: Math.ceil(ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_post"))["TableSize"] / 15)
       };
@@ -555,7 +555,7 @@ export class Process {
         Offset: (Data["Page"] - 1) * 15
       }));
       for (const i in Reply) {
-        let ReplyItem = Reply[i];
+        const ReplyItem = Reply[i];
         let processedContent: string = ReplyItem["content"];
         processedContent = processedContent.replace(/xmoj-bbs\.tech/g, "xmoj-bbs.me");
         ResponseData.Reply.push({
