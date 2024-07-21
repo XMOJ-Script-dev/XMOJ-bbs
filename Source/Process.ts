@@ -24,6 +24,7 @@ import {CheerioAPI, load} from "cheerio";
 import * as sqlstring from 'sqlstring';
 // @ts-ignore
 import CryptoJS from "crypto-js";
+import { D1Database } from "@cloudflare/workers-types";
 
 function sleep(time: number) {
   return new Promise((resolve) => setTimeout(resolve, time));
@@ -1282,7 +1283,7 @@ export class Process {
     }
   };
 
-  constructor(RequestData: Request, Environment) {
+  constructor(RequestData: Request, Environment: { DB: D1Database; AI: any; logdb: { writeDataPoint: (arg0: { blobs: string[]; indexes: string[]; }) => void; }; CaptchaSecretKey: string; GithubImagePAT: string; ACCOUNT_ID: string; API_TOKEN: string; }) {
     this.XMOJDatabase = new Database(Environment.DB);
     this.AI = Environment.AI;
     this.logs = Environment.logdb;
