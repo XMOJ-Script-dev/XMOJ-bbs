@@ -1048,7 +1048,7 @@ export class Process {
       const ResponseData = {
         StdList: new Array<number>()
       };
-      const StdList = ThrowErrorIfFailed(await this.XMOJDatabase.Select("std_answer", ["problem_id"]));
+      let StdList = ThrowErrorIfFailed(await this.XMOJDatabase.Select("std_answer", ["problem_id"]));
       for (const i in StdList) {
         ResponseData.StdList.push(StdList[i]["problem_id"]);
       }
