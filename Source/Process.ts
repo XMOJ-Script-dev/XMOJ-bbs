@@ -554,7 +554,7 @@ export class Process {
         Offset: (Data["Page"] - 1) * 15
       }));
       for (const i in Reply) {
-        let ReplyItem = Reply[i];
+        const ReplyItem = Reply[i];
         let processedContent: string = ReplyItem["content"];
         processedContent = processedContent.replace(/xmoj-bbs\.tech/g, "xmoj-bbs.me");
         ResponseData.Reply.push({
