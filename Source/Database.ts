@@ -47,7 +47,9 @@ export class Database {
   }
 
   public async Insert(Table: string, Data: object): Promise<Result> {
-
+    if (readonly) {
+      return new Result(false, "数据库只读模式，无法写入");
+    }
     let QueryString = "INSERT INTO `" + Table + "` (";
     for (let i in Data) {
       QueryString += "`" + i + "`, ";
@@ -121,6 +123,9 @@ export class Database {
   }
 
   public async Update(Table: string, Data: object, Condition?: object): Promise<Result> {
+    if (readonly) {
+      return new Result(false, "数据库只读模式，无法写入");
+    }
     let QueryString = "UPDATE `" + Table + "` SET ";
     for (let i in Data) {
       QueryString += "`" + i + "` = ?, ";
@@ -180,6 +185,9 @@ export class Database {
   }
 
   public async Delete(Table: string, Condition?: object): Promise<Result> {
+    if (readonly) {
+      return new Result(false, "数据库只读模式，无法写入");
+    }
     let QueryString = "DELETE FROM `" + Table + "`";
     if (Condition !== undefined) {
       QueryString += " WHERE ";
