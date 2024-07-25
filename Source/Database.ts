@@ -19,7 +19,7 @@ import {Result, ThrowErrorIfFailed} from "./Result";
 import {Output} from "./Output";
 import {D1Database} from "@cloudflare/workers-types";
 
-let readonly = false;
+let readonly = true;
 
 export class Database {
   private RawDatabase: D1Database;
