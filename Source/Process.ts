@@ -344,9 +344,6 @@ export class Process {
       if (!this.IsAdmin() && (Data["BoardID"] == 0 || Data["BoardID"] == 5)) {
         return new Result(false, "没有权限发表公告");
       }
-      if (Data["BoardID"] == 6) {
-        return new Result(false, "该板块属于快闪板块，当前暂未开放！如果您认为当前应该开放，请联系管理组！");
-      }
       if (Data["BoardID"] !== 0 && ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_board", {
         board_id: Data["BoardID"]
       }))["TableSize"] === 0) {
