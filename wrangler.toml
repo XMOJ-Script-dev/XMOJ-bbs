@@ -6,7 +6,7 @@ account_id = "89969bdf9d5ab8202f8ad8b8ae2c40b8"
 [[d1_databases]]
 binding = "DB"
 database_name = "xmoj-bbs"
-database_id = "f6607070-7f3b-4a9b-95a2-40ff67283362"
+database_id = "952d0135-a7b0-4eb7-9a1f-e529d6e7b479"
 
 [triggers]
 crons = ["0 0 * * *"]
