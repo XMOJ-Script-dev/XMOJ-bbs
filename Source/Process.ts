@@ -24,7 +24,18 @@ import {CheerioAPI, load} from "cheerio";
 import * as sqlstring from 'sqlstring';
 // @ts-ignore
 import CryptoJS from "crypto-js";
-import {D1Database, KVNamespace} from "@cloudflare/workers-types";
+import {D1Database, KVNamespace, AnalyticsEngineDataset} from "@cloudflare/workers-types";
+
+interface Environment {
+  API_TOKEN: string;
+  ACCOUNT_ID: string;
+  GithubImagePAT: string;
+  kv: KVNamespace;
+  CaptchaSecretKey: string;
+  DB: D1Database;
+  logdb: AnalyticsEngineDataset;
+  AI: any;
+}
 
 function sleep(time: number) {
   return new Promise((resolve) => setTimeout(resolve, time));
@@ -43,7 +54,7 @@ export class Process {
   private SessionID: string;
   private readonly RemoteIP: string;
   private XMOJDatabase: Database;
-  private logs: { writeDataPoint: (arg0: { blobs: string[]; indexes: string[]; }) => void; };
+  private logs: AnalyticsEngineDataset;
   private RequestData: Request;
   private Fetch = async (RequestURL: URL): Promise<Response> => {
     Output.Log("Fetch: " + RequestURL.toString());
@@ -1281,16 +1292,7 @@ export class Process {
     }
   };
 
-  constructor(RequestData: Request, Environment: {
-    kv: KVNamespace;
-    DB: D1Database;
-    AI: any;
-    logdb: { writeDataPoint: (arg0: { blobs: string[]; indexes: string[]; }) => void; };
-    CaptchaSecretKey: string;
-    GithubImagePAT: string;
-    ACCOUNT_ID: string;
-    API_TOKEN: string;
-  }) {
+  constructor(RequestData: Request, Environment: Environment) {
     this.XMOJDatabase = new Database(Environment.DB);
     this.AI = Environment.AI;
     this.kv = Environment.kv;

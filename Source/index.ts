@@ -17,10 +17,18 @@
 
 import {Process} from "./Process";
 import {Database} from "./Database";
-import {D1Database} from "@cloudflare/workers-types";
+import {D1Database, KVNamespace, AnalyticsEngineDataset} from "@cloudflare/workers-types";
+
+interface Environment {
+  kv: KVNamespace;
+  CaptchaSecretKey: string;
+  DB: D1Database;
+  logdb: AnalyticsEngineDataset;
+  AI: any;
+}
 
 export default {
-  async fetch(RequestData: Request, Environment: any, Context: any) {
+  async fetch(RequestData: Request, Environment: Environment, Context: any) {
     let Processor = new Process(RequestData, Environment);
     return await Processor.Process();
   },
