@@ -54,7 +54,7 @@ export class Process {
   private SessionID: string;
   private readonly RemoteIP: string;
   private XMOJDatabase: Database;
-  private logs: AnalyticsEngineDataset;
+  private readonly logs: AnalyticsEngineDataset;
   private RequestData: Request;
   private Fetch = async (RequestURL: URL): Promise<Response> => {
     Output.Log("Fetch: " + RequestURL.toString());
