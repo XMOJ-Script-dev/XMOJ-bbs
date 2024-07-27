@@ -1310,10 +1310,17 @@ export class Process {
       PathName = PathName.substring(1);
       if (this.RequestData.method === "GET" && PathName === "GetNotice") {
         const notice = await this.kv.get("noticeboard");
+        let resp: Result;
         if (notice === null) {
-          return new Response("No notice available", {status: 404});
+          resp = new Result(false, "没有公告");
+        } else {
+          resp = new Result(true, "获得公告成功", {"Notice": notice});
         }
-        return new Response(notice);
+        return new Response(JSON.stringify(resp), {
+          headers: {
+            "content-type": "application/json;charset=UTF-8"
+          }
+        });
       }
       if (this.ProcessFunctions[PathName] === undefined) {
         throw new Result(false, "访问的页面不存在");
