@@ -439,7 +439,9 @@ export class Process {
       }));
       let ResponseData = {
         Posts: new Array<Object>,
-        PageCount: Math.ceil(ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_post"))["TableSize"] / 15)
+        PageCount: Data["BoardID"] !== -1 ? Math.ceil(ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_post", {
+          board_id: Data["BoardID"]
+        }))["TableSize"] / 15) : Math.ceil(ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_post"))["TableSize"] / 15)
       };
       if (ResponseData.PageCount === 0) {
         return new Result(true, "获得讨论列表成功", ResponseData);
