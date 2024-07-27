@@ -1308,7 +1308,7 @@ export class Process {
       let PathName = new URL(this.RequestData.url).pathname;
       PathName = PathName === "/" ? "/GetNotice" : PathName;
       PathName = PathName.substring(1);
-      if (this.RequestData.method === "GET" && PathName === "GetNotice") {
+      if (PathName === "GetNotice") {
         const notice = await this.kv.get("noticeboard");
         let resp: Result;
         if (notice === null) {
