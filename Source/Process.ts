@@ -1363,10 +1363,14 @@ export class Process {
           break;
         }
       }
-      this.logs.writeDataPoint({
-        'blobs': [this.RemoteIP, PathName, RequestJSON["Version"], RequestJSON["DebugMode"]],
-        'indexes': [this.Username]
-      });
+      if (this.logs) {
+        this.logs.writeDataPoint({
+          'blobs': [this.RemoteIP, PathName, RequestJSON["Version"], RequestJSON["DebugMode"]],
+          'indexes': [this.Username]
+        });
+      } else {
+        console.log("Local debug mode, logging disabled");
+      }
       throw await this.ProcessFunctions[PathName](RequestJSON["Data"]);
     } catch (ResponseData) {
       if (!(ResponseData instanceof Result)) {
