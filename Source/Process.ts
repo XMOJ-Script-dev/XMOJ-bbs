@@ -1314,7 +1314,7 @@ export class Process {
         const notice = await this.kv.get("noticeboard");
         let resp: Result;
         if (notice === null) {
-          resp = new Result(false, "没有公告");
+          resp = new Result(false, "未找到公告");
         } else {
           resp = new Result(true, "获得公告成功", {"Notice": notice});
         }
