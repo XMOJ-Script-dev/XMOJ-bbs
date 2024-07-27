@@ -19,3 +19,7 @@ binding = "logdb"
 
 [ai]
 binding = "AI"
+
+kv_namespaces = [
+    { binding = "kv", id = "05ecbc2affef4f7b99359ea88422f53e" }
+]
