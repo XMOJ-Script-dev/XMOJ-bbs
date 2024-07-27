@@ -2,6 +2,9 @@ name = "xmoj-bbs"
 main = "Source/index.ts"
 compatibility_date = "2023-09-17"
 account_id = "89969bdf9d5ab8202f8ad8b8ae2c40b8"
+kv_namespaces = [
+    { binding = "kv", id = "05ecbc2affef4f7b99359ea88422f53e" }
+]
 
 [[d1_databases]]
 binding = "DB"
@@ -19,7 +22,3 @@ binding = "logdb"
 
 [ai]
 binding = "AI"
-
-kv_namespaces = [
-    { binding = "kv", id = "05ecbc2affef4f7b99359ea88422f53e" }
-]

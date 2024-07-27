@@ -1306,7 +1306,7 @@ export class Process {
   public async Process(): Promise<Response> {
     try {
       let PathName = new URL(this.RequestData.url).pathname;
-      PathName = PathName === "/" ? "/index" : PathName;
+      PathName = PathName === "/" ? "/GetNotice" : PathName;
       PathName = PathName.substring(1);
       if (this.RequestData.method === "GET" && PathName === "GetNotice") {
         const notice = await this.kv.get("noticeboard");
