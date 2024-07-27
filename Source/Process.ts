@@ -1308,6 +1308,13 @@ export class Process {
       let PathName = new URL(this.RequestData.url).pathname;
       PathName = PathName === "/" ? "/index" : PathName;
       PathName = PathName.substring(1);
+      if (this.RequestData.method === "GET" && PathName === "GetNotice") {
+        const notice = await this.kv.get("noticeboard");
+        if (notice === null) {
+          return new Response("No notice available", {status: 404});
+        }
+        return new Response(notice);
+      }
       if (this.ProcessFunctions[PathName] === undefined) {
         throw new Result(false, "访问的页面不存在");
       }
@@ -1319,13 +1326,6 @@ export class Process {
             "content-type": "image/png"
           }
         });
-      }
-      if (this.RequestData.method === "GET" && PathName === "GetNotice") {
-        const notice = await this.kv.get("noticeboard");
-        if (notice === null) {
-          return new Response("No notice available", {status: 404});
-        }
-        return new Response(notice);
       }
       if (this.RequestData.method !== "POST") {
         throw new Result(false, "不允许此请求方式");
