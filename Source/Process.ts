@@ -24,7 +24,7 @@ import {CheerioAPI, load} from "cheerio";
 import * as sqlstring from 'sqlstring';
 // @ts-ignore
 import CryptoJS from "crypto-js";
-import { D1Database } from "@cloudflare/workers-types";
+import {D1Database, KVNamespace} from "@cloudflare/workers-types";
 
 function sleep(time: number) {
   return new Promise((resolve) => setTimeout(resolve, time));
@@ -37,6 +37,7 @@ export class Process {
   private GithubImagePAT: string;
   private readonly ACCOUNT_ID: string;
   private AI: any;
+  private kv: any;
   private readonly API_TOKEN: string;
   private Username: string;
   private SessionID: string;
@@ -1280,9 +1281,19 @@ export class Process {
     }
   };
 
-  constructor(RequestData: Request, Environment: { DB: D1Database; AI: any; logdb: { writeDataPoint: (arg0: { blobs: string[]; indexes: string[]; }) => void; }; CaptchaSecretKey: string; GithubImagePAT: string; ACCOUNT_ID: string; API_TOKEN: string; }) {
+  constructor(RequestData: Request, Environment: {
+    kv: KVNamespace;
+    DB: D1Database;
+    AI: any;
+    logdb: { writeDataPoint: (arg0: { blobs: string[]; indexes: string[]; }) => void; };
+    CaptchaSecretKey: string;
+    GithubImagePAT: string;
+    ACCOUNT_ID: string;
+    API_TOKEN: string;
+  }) {
     this.XMOJDatabase = new Database(Environment.DB);
     this.AI = Environment.AI;
+    this.kv = Environment.kv;
     this.logs = Environment.logdb;
     this.CaptchaSecretKey = Environment.CaptchaSecretKey;
     this.GithubImagePAT = Environment.GithubImagePAT;
@@ -1308,6 +1319,13 @@ export class Process {
             "content-type": "image/png"
           }
         });
+      }
+      if (this.RequestData.method === "GET" && PathName === "GetNotice") {
+        const notice = await this.kv.get("noticeboard");
+        if (notice === null) {
+          return new Response("No notice available", {status: 404});
+        }
+        return new Response(notice);
       }
       if (this.RequestData.method !== "POST") {
         throw new Result(false, "不允许此请求方式");
