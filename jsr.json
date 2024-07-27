@@ -1,0 +1,5 @@
+{
+  "name": "@xmoj-script-dev/xmoj-bbs",
+  "version": "0.1.0",
+  "exports": "./mod.ts"
+}
