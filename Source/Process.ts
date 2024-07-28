@@ -27,7 +27,6 @@ import CryptoJS from "crypto-js";
 import {D1Database, KVNamespace, AnalyticsEngineDataset} from "@cloudflare/workers-types";
 import * as nsfw from "nsfwjs";
 import * as tf from "@tensorflow/tfjs-node";
-import axios from "axios";
 
 interface Environment {
   API_TOKEN: string;
