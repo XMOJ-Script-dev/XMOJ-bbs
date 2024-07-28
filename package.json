@@ -9,11 +9,13 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20230914.0",
     "@types/crypto-js": "^4.2.1",
+    "@types/node": "^20.14.12",
     "@types/sqlstring": "^2.3.2",
     "typescript": "^5.2.2",
     "wrangler": "^3.8.0"
   },
   "dependencies": {
+    "axios": "^1.7.2",
     "cheerio": "^1.0.0-rc.12",
     "crypto-js": "^4.1.1",
     "sqlstring": "^2.3.3"
