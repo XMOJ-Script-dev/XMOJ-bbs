@@ -25,6 +25,7 @@ import * as sqlstring from 'sqlstring';
 // @ts-ignore
 import CryptoJS from "crypto-js";
 import {D1Database, KVNamespace, AnalyticsEngineDataset} from "@cloudflare/workers-types";
+import axios from "axios";
 
 interface Environment {
   API_TOKEN: string;
@@ -1203,7 +1204,6 @@ export class Process {
         })
       }).then((Response) => {
         // this example uses axios
-        const axios = require('axios');
         axios.get('https://api.sightengine.com/1.0/check-workflow.json', {
           params: {
             'url': 'https://cdn.xmoj-bbs.me/GetImage/' + ImageID, // URL of the image to be processed',
