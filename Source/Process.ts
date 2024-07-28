@@ -1203,17 +1203,15 @@ export class Process {
           content: ImageData
         })
       }).then((Response) => {
-        // this example uses axios
         axios.get('https://api.sightengine.com/1.0/check-workflow.json', {
           params: {
-            'url': 'https://cdn.xmoj-bbs.me/GetImage/' + ImageID, // URL of the image to be processed',
+            'url': 'https://cdn.xmoj-bbs.me/GetImage/' + ImageID,
             'workflow': 'wfl_gHEo52f4ZyU4smFiAbmI9',
             'api_user': '169466921',
             'api_secret': 'AehKGXKRasgKAaYdkQiZUDzU8f8uwFTb',
           }
         })
         .then(function (response) {
-          // on success: handle response
           console.log(response.data);
           try {
             const jsonObject = JSON.parse(response.data);
