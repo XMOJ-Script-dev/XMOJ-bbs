@@ -25,9 +25,6 @@ import * as sqlstring from 'sqlstring';
 // @ts-ignore
 import CryptoJS from "crypto-js";
 import {D1Database, KVNamespace, AnalyticsEngineDataset} from "@cloudflare/workers-types";
-import axios from "axios";
-import FormData from "form-data";
-import fs from 'fs';
 
 interface Environment {
   API_TOKEN: string;
@@ -49,7 +46,6 @@ export class Process {
   private DenyBadgeEditList: Array<string> = [""];
   private readonly CaptchaSecretKey: string;
   private GithubImagePAT: string;
-  private APISecret: string;
   private readonly ACCOUNT_ID: string;
   private AI: any;
   private kv: any;
@@ -1194,36 +1190,6 @@ export class Process {
         ImageID += String.fromCharCode(Math.floor(Math.random() * 26) + 97);
       }
       const ImageData = Image.replace(/^data:image\/\w+;base64,/, "");
-      data = new FormData();
-      data.append('media', ImageData);
-      data.append('workflow', 'wfl_gHEo52f4ZyU4smFiAbmI9');
-      data.append('api_user', '169466921');
-      data.append('api_secret', APISecret);
-      
-      axios({
-        method: 'post',
-        url:'https://api.sightengine.com/1.0/check-workflow.json',
-        data: data,
-        headers: data.getHeaders()
-      })
-      .then(function (response) {
-        console.log(response.data);
-        try {
-          const jsonObject = JSON.parse(response.data);
-          console.log(jsonObject.summary.action);
-          if (jsonObject.summary.action == "reject") {
-            console.log("Image rejected");
-            return new Result(false, "图片审核未通过，请上传合规图片！");
-         }
-         } catch (e) {
-           console.log("解析 JSON 字符串出错：" + e);
-         }
-       })
-       .catch(function (error) {
-         // handle error
-         if (error.response) console.log(error.response.data);
-         else console.log(error.message);
-       });
       await fetch(new URL("https://api.github.com/repos/" + GithubImageRepo + "/contents/" + ImageID), {
         method: "PUT",
         headers: {
