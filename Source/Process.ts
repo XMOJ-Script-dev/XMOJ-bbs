@@ -1202,6 +1202,35 @@ export class Process {
           content: ImageData
         })
       }).then((Response) => {
+        // this example uses axios
+        const axios = require('axios');
+        axios.get('https://api.sightengine.com/1.0/check-workflow.json', {
+          params: {
+            'url': 'https://cdn.xmoj-bbs.me/GetImage/' + ImageID, // URL of the image to be processed',
+            'workflow': 'wfl_gHEo52f4ZyU4smFiAbmI9',
+            'api_user': '169466921',
+            'api_secret': 'AehKGXKRasgKAaYdkQiZUDzU8f8uwFTb',
+          }
+        })
+        .then(function (response) {
+          // on success: handle response
+          console.log(response.data);
+          try {
+            const jsonObject = JSON.parse(response.data);
+            console.log(jsonObject.summary.action);
+            if(jsonObject.summary.action == "reject") {
+              console.log("Image rejected");
+              ThrowErrorIfFailed(new Result(false, "图片审核未通过，请上传合规图片！"));
+            }
+          } catch (e) {
+              console.log("解析 JSON 字符串出错：" + e);
+          }
+        })
+        .catch(function (error) {
+          // handle error
+          if (error.response) console.log(error.response.data);
+          else console.log(error.message);
+        });
         return Response.json();
       }).then((Response) => {
         if (Response["content"]["name"] !== ImageID) {
