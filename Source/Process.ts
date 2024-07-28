@@ -25,6 +25,9 @@ import * as sqlstring from 'sqlstring';
 // @ts-ignore
 import CryptoJS from "crypto-js";
 import {D1Database, KVNamespace, AnalyticsEngineDataset} from "@cloudflare/workers-types";
+import * as nsfw from "nsfwjs";
+import * as tf from "@tensorflow/tfjs-node";
+import axios from "axios";
 
 interface Environment {
   API_TOKEN: string;
@@ -1180,7 +1183,7 @@ export class Process {
       });
     },
     UploadImage: async (Data: object): Promise<Result> => {
-      const GithubImageRepo = "PythonSmall-Q/XMOJ-Script-Pictures";
+      const GithubImageRepo = "XMOJ-Script-dev/XMOJ-Script-Pictures";
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "Image": "string"
       }));
@@ -1190,6 +1193,33 @@ export class Process {
         ImageID += String.fromCharCode(Math.floor(Math.random() * 26) + 97);
       }
       const ImageData = Image.replace(/^data:image\/\w+;base64,/, "");
+      async function fn() {
+        const pic = ImageData;
+        const model = await nsfw.load();
+        const image = await tf.node.decodeImage(pic, 3);
+        const predictions = await model.classify(image);
+        image.dispose(); // Tensor memory must be managed explicitly (it is not sufficient to let a tf.Tensor go out of scope for its memory to be released).
+        console.log("Predictions: ", predictions);
+        try {
+           const Predictions = JSON.parse(predictions);
+           console.log(Predictions);
+           if(Predictions.Hentai >= 0.25) {
+             console.log("Image rejected");
+             return new Result(false, "图片审核未通过，请上传合规图片！");
+           }
+           else if( Predictions.Porn >= 0.25){
+             console.log("Image rejected");
+             return new Result(false, "图片审核未通过，请上传合规图片！");
+           }
+           else if( Predictions.Sexy >= 0.25){
+             console.log("Image rejected");
+             return new Result(false, "图片审核未通过，请上传合规图片！");
+           }
+        } catch (e) {
+           console.log("解析 JSON 字符串出错：" + e);
+        }
+      }
+      fn();
       await fetch(new URL("https://api.github.com/repos/" + GithubImageRepo + "/contents/" + ImageID), {
         method: "PUT",
         headers: {
