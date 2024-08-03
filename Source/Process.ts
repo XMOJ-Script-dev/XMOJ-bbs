@@ -42,7 +42,8 @@ function sleep(time: number) {
 }
 
 export class Process {
-  private AdminUserList: Array<string> = ["zhuchenrui2", "shanwenxiao", "shihongxi"];
+  private AdminUserList: Array<string> = ["zhuchenrui2", "shanwenxiao"];
+  private DenyMessageList: Array<string> = [""];
   private DenyBadgeEditList: Array<string> = [""];
   private readonly CaptchaSecretKey: string;
   private GithubImagePAT: string;
@@ -194,6 +195,9 @@ export class Process {
   }
   public IsAdmin = (): boolean => {
     return this.AdminUserList.indexOf(this.Username) !== -1;
+  }
+  public DenyMessage = (): boolean => {
+    return this.DenyMessageList.indexOf(this.Username) !== -1;
   }
   public DenyEdit = (): boolean => {
     return this.DenyBadgeEditList.indexOf(this.Username) !== -1;
@@ -882,6 +886,9 @@ export class Process {
         "ToUser": "string",
         "Content": "string"
       }));
+      if (this.DenyMessage()){
+        return new Result(false,"该用户已关闭短消息接收");
+      }
       if (Data["Content"].startsWith("您好，我是") && ThrowErrorIfFailed(await this.IfUserExistChecker(Data["ToUser"]))["Exist"] === false) {
         return new Result(false, "未找到用户");
       }
