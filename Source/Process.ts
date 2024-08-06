@@ -886,8 +886,8 @@ export class Process {
         "ToUser": "string",
         "Content": "string"
       }));
-      if (this.DenyMessage()){
-        return new Result(false,"该用户已关闭短消息接收");
+      if (this.DenyMessage()) {
+        return new Result(false, "该用户已关闭短消息接收");
       }
       if (Data["Content"].startsWith("您好，我是") && ThrowErrorIfFailed(await this.IfUserExistChecker(Data["ToUser"]))["Exist"] === false) {
         return new Result(false, "未找到用户");
@@ -1124,6 +1124,20 @@ export class Process {
       }
       if (Data["Content"].includes("管理员")) {
         return new Result(false, "请不要试图冒充管理员");
+      }
+      const forbiddenPatterns = [
+        /อััััััััั/, // Specific problematic string
+        /[\u200E\u200F]/, // Left-to-Right and Right-to-Left markers
+        /\u0E31/, // Specific Thai character "ั"
+        /[\u202A-\u202E]/, // Bidirectional text control characters
+        /[\u2066-\u2069]/, // Additional bidirectional text control characters
+        /\uFEFF/, // Zero-width no-break space
+        /[\uFFF9-\uFFFB]/ // Interlinear annotation characters
+      ];
+      for (const pattern of forbiddenPatterns) {
+        if (pattern.test(Data["Content"])) {
+          return new Result(false, "内容包含不允许的字符，导致渲染问题");
+        }
       }
       const check = await this.AI.run(
         "@cf/huggingface/distilbert-sst-2-int8",
