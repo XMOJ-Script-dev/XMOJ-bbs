@@ -1125,19 +1125,9 @@ export class Process {
       if (Data["Content"].includes("管理员")) {
         return new Result(false, "请不要试图冒充管理员");
       }
-      const forbiddenPatterns = [
-        /อััััััััั/, // Specific problematic string
-        /[\u200E\u200F]/, // Left-to-Right and Right-to-Left markers
-        /\u0E31/, // Specific Thai character "ั"
-        /[\u202A-\u202E]/, // Bidirectional text control characters
-        /[\u2066-\u2069]/, // Additional bidirectional text control characters
-        /\uFEFF/, // Zero-width no-break space
-        /[\uFFF9-\uFFFB]/ // Interlinear annotation characters
-      ];
-      for (const pattern of forbiddenPatterns) {
-        if (pattern.test(Data["Content"])) {
-          return new Result(false, "内容包含不允许的字符，导致渲染问题");
-        }
+      const allowedPattern = /^[\u0000-\u007F\u4E00-\u9FFF\u3400-\u4DBF\u2000-\u206F\u3000-\u303F\uFF00-\uFFEF\uD83C-\uDBFF\uDC00-\uDFFF]*$/;
+      if (!allowedPattern.test(Data["Content"])) {
+        return new Result(false, "内容包含不允许的字符，导致渲染问题");
       }
       const check = await this.AI.run(
         "@cf/huggingface/distilbert-sst-2-int8",
