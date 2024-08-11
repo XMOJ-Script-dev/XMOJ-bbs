@@ -1125,7 +1125,7 @@ export class Process {
       if (Data["Content"].includes("管理员") || Data["Content"].toLowerCase().includes("manager")) {
         return new Result(false, "请不要试图冒充管理员");
       }
-      const allowedPattern = /^[\u0000-\u007F\u4E00-\u9FFF\u3400-\u4DBF\u2000-\u206F\u3000-\u303F\uFF00-\uFFEF\uD83C-\uDBFF\uDC00-\uDFFF]*$/;
+        const allowedPattern = /^[\u0000-\u007F\u4E00-\u9FFF\u3400-\u4DBF\u2000-\u206F\u3000-\u303F\uFF00-\uFFEF\uD83C-\uDBFF\uDC00-\uDFFF]*$/;
       if (!allowedPattern.test(Data["Content"])) {
         return new Result(false, "内容包含不允许的字符，导致渲染问题");
       }
@@ -1303,9 +1303,9 @@ export class Process {
       if (responseJSON.data && responseJSON.data.length > 0) {
         const timestamp = responseJSON.data[0].timestamp;
         const unixTime = Date.parse(timestamp);
-        return new Result(true, "获得最近登录时间成功", {"logintime": unixTime});
+        return new Result(true, "获得最近在线时间成功", {"logintime": unixTime});
       } else {
-        return new Result(false, "获得最近登录时间失败", {});
+        return new Result(false, "获得最近在线时间失败", {});
       }
     }
   };
