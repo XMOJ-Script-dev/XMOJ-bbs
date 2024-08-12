@@ -255,7 +255,7 @@ export class Process {
           Output.Error("Get problem score failed: Cannot find table element\n" +
             "ProblemID: \"" + ProblemID + "\"\n" +
             "Username : \"" + this.Username + "\"\n");
-          ThrowErrorIfFailed(new Result(false, Response.toString()));
+          ThrowErrorIfFailed(new Result(false, "获取题目分数失败"));
         }
         let MaxScore: number = 0;
         const ResultTableBody = ResultTable.children().eq(1);
@@ -269,7 +269,7 @@ export class Process {
               Output.Error("Get problem score failed: Cannot find score span\n" +
                 "ProblemID: \"" + ProblemID + "\"\n" +
                 "Username : \"" + this.Username + "\"\n");
-              ThrowErrorIfFailed(new Result(false, Response.toString()));
+              ThrowErrorIfFailed(new Result(false, "获取题目分数失败"));
             }
             const Score: string = ScoreSpan.text().trim();
             MaxScore = Math.max(MaxScore, parseInt(Score.substring(0, Score.length - 1)));
@@ -280,7 +280,7 @@ export class Process {
         Output.Error("Get user score failed: " + Error + "\n" +
           "ProblemID: \"" + ProblemID + "\"\n" +
           "Username : \"" + this.Username + "\"\n");
-        ThrowErrorIfFailed(new Result(false, Error.toString()));
+        ThrowErrorIfFailed(new Result(false, "获取题目分数失败"));
         return 0;
       });
   }
