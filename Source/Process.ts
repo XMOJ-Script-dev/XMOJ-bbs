@@ -184,10 +184,8 @@ export class Process {
     //if failed try again
     const retryCount = 20; // Define how many times you want to retry
     for (let i = 0; i < retryCount; i++) {
-      if (!rst["Success"]) {
-        rst = this.IfUserExist(Username);
-      } else {
-        break; // If the function is successful, break the loop
+      if (rst["Success"]) {
+        return this.IfUserExist(Username);
       }
       await sleep(500);
     }
@@ -289,16 +287,13 @@ export class Process {
   public GetProblemScoreChecker = async (ProblemID: number): Promise<number> => {
     let rst = this.GetProblemScore(ProblemID);
     //if failed try again
-    const retryCount = 3; // Define how many times you want to retry
+    const retryCount = 20; // Define how many times you want to retry
     for (let i = 0; i < retryCount; i++) {
       if (rst["Success"]) {
-        rst = this.GetProblemScore(ProblemID);
-      } else {
-        break; // If the function is successful, break the loop
+        return this.GetProblemScore(ProblemID);
       }
       await sleep(500);
     }
-    return rst;
   }
   private AddBBSMention = async (ToUserID: string, PostID: number): Promise<void> => {
     if (ToUserID === this.Username) {
@@ -1128,7 +1123,7 @@ export class Process {
       if (Data["Content"].includes("管理员") || Data["Content"].toLowerCase().includes("manager")) {
         return new Result(false, "请不要试图冒充管理员");
       }
-        const allowedPattern = /^[\u0000-\u007F\u4E00-\u9FFF\u3400-\u4DBF\u2000-\u206F\u3000-\u303F\uFF00-\uFFEF\uD83C-\uDBFF\uDC00-\uDFFF]*$/;
+      const allowedPattern = /^[\u0000-\u007F\u4E00-\u9FFF\u3400-\u4DBF\u2000-\u206F\u3000-\u303F\uFF00-\uFFEF\uD83C-\uDBFF\uDC00-\uDFFF]*$/;
       if (!allowedPattern.test(Data["Content"])) {
         return new Result(false, "内容包含不允许的字符，导致渲染问题");
       }
