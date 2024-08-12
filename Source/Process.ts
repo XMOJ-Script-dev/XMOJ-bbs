@@ -271,7 +271,7 @@ export class Process {
               Output.Error("Get problem score failed: Cannot find score span\n" +
                 "ProblemID: \"" + ProblemID + "\"\n" +
                 "Username : \"" + this.Username + "\"\n");
-              ThrowErrorIfFailed(new Result(false, "获取题目分数失败"));
+              ThrowErrorIfFailed(new Result(false, Response.toString()));
             }
             const Score: string = ScoreSpan.text().trim();
             MaxScore = Math.max(MaxScore, parseInt(Score.substring(0, Score.length - 1)));
@@ -282,7 +282,7 @@ export class Process {
         Output.Error("Get user score failed: " + Error + "\n" +
           "ProblemID: \"" + ProblemID + "\"\n" +
           "Username : \"" + this.Username + "\"\n");
-        ThrowErrorIfFailed(new Result(false, "获取题目分数失败"));
+        ThrowErrorIfFailed(new Result(false, Error));
         return 0;
       });
   }
