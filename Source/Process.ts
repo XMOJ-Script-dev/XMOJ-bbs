@@ -338,6 +338,7 @@ export class Process {
   };
   private ProcessFunctions = {
     NewPost: async (Data: object): Promise<Result> => {
+      return new Result(false, "功能暂未开放");
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "ProblemID": "number",
         "Title": "string",
@@ -379,6 +380,7 @@ export class Process {
       });
     },
     NewReply: async (Data: object): Promise<Result> => {
+      return new Result(false, "功能暂未开放");
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "PostID": "number",
         "Content": "string",
