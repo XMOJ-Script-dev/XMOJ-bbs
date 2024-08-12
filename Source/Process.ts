@@ -289,7 +289,7 @@ export class Process {
   public GetProblemScoreChecker = async (ProblemID: number): Promise<number> => {
     let rst = this.GetProblemScore(ProblemID);
     //if failed try again
-    const retryCount = 20; // Define how many times you want to retry
+    const retryCount = 3; // Define how many times you want to retry
     for (let i = 0; i < retryCount; i++) {
       if (rst["Success"]) {
         rst = this.GetProblemScore(ProblemID);
