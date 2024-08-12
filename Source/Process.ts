@@ -282,7 +282,7 @@ export class Process {
         Output.Error("Get user score failed: " + Error + "\n" +
           "ProblemID: \"" + ProblemID + "\"\n" +
           "Username : \"" + this.Username + "\"\n");
-        ThrowErrorIfFailed(new Result(false, Error));
+        ThrowErrorIfFailed(new Result(false, Error.toString()));
         return 0;
       });
   }
