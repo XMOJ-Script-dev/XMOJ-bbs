@@ -436,6 +436,7 @@ export class Process {
       });
     },
     GetPosts: async (Data: object): Promise<Result> => {
+      return new Result(false, "功能暂未开放");
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "ProblemID": "number",
         "Page": "number",
