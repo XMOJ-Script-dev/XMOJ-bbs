@@ -880,6 +880,7 @@ export class Process {
       return new Result(true, "获得短消息列表成功", ResponseData);
     },
     SendMail: async (Data: object): Promise<Result> => {
+      return new Result(false, "功能暂未开放");
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "ToUser": "string",
         "Content": "string"
