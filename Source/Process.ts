@@ -338,7 +338,6 @@ export class Process {
   };
   private ProcessFunctions = {
     NewPost: async (Data: object): Promise<Result> => {
-      return new Result(false, "功能暂未开放");
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "ProblemID": "number",
         "Title": "string",
@@ -380,7 +379,6 @@ export class Process {
       });
     },
     NewReply: async (Data: object): Promise<Result> => {
-      return new Result(false, "功能暂未开放");
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "PostID": "number",
         "Content": "string",
@@ -433,7 +431,6 @@ export class Process {
       });
     },
     GetPosts: async (Data: object): Promise<Result> => {
-      return new Result(false, "功能暂未开放");
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "ProblemID": "number",
         "Page": "number",
@@ -736,7 +733,6 @@ export class Process {
       return new Result(true, "删除回复成功");
     },
     GetBBSMentionList: async (Data: object): Promise<Result> => {
-      return new Result(false, "功能暂未开放");
       ThrowErrorIfFailed(this.CheckParams(Data, {}));
       const ResponseData = {
         MentionList: new Array<Object>()
@@ -760,7 +756,6 @@ export class Process {
       return new Result(true, "获得讨论提及列表成功", ResponseData);
     },
     GetMailMentionList: async (Data: object): Promise<Result> => {
-      return new Result(false, "功能暂未开放");
       ThrowErrorIfFailed(this.CheckParams(Data, {}));
       const ResponseData = {
         MentionList: new Array<Object>()
@@ -825,7 +820,6 @@ export class Process {
       return new Result(true, "阅读短消息提及成功");
     },
     GetMailList: async (Data: object): Promise<Result> => {
-      return new Result(false, "功能暂未开放");
       ThrowErrorIfFailed(this.CheckParams(Data, {}));
       const ResponseData = {
         MailList: new Array<Object>()
@@ -883,7 +877,6 @@ export class Process {
       return new Result(true, "获得短消息列表成功", ResponseData);
     },
     SendMail: async (Data: object): Promise<Result> => {
-      return new Result(false, "功能暂未开放");
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "ToUser": "string",
         "Content": "string"
@@ -912,7 +905,6 @@ export class Process {
       });
     },
     GetMail: async (Data: object): Promise<Result> => {
-      return new Result(false, "功能暂未开放");
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "OtherUser": "string"
       }));
