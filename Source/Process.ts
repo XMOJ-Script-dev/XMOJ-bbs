@@ -908,6 +908,7 @@ export class Process {
       });
     },
     GetMail: async (Data: object): Promise<Result> => {
+      return new Result(false, "功能暂未开放");
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "OtherUser": "string"
       }));
