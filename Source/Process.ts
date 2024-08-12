@@ -825,6 +825,7 @@ export class Process {
       return new Result(true, "阅读短消息提及成功");
     },
     GetMailList: async (Data: object): Promise<Result> => {
+      return new Result(false, "功能暂未开放");
       ThrowErrorIfFailed(this.CheckParams(Data, {}));
       const ResponseData = {
         MailList: new Array<Object>()
