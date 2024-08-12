@@ -257,7 +257,7 @@ export class Process {
           Output.Error("Get problem score failed: Cannot find table element\n" +
             "ProblemID: \"" + ProblemID + "\"\n" +
             "Username : \"" + this.Username + "\"\n");
-          ThrowErrorIfFailed(new Result(false, "获取题目分数失败"));
+          ThrowErrorIfFailed(new Result(false, Response.toString()));
         }
         let MaxScore: number = 0;
         const ResultTableBody = ResultTable.children().eq(1);
