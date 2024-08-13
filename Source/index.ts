@@ -40,7 +40,7 @@ export default {
       await XMOJDatabase.Delete("short_message", {
         "send_time": {
           "Operator": "<=",
-          "Value": new Date().getTime() - 1000 * 60 * 60 * 24 * 7
+          "Value": new Date().getTime() - 1000 * 60 * 60 * 24 * 5
         },
         "is_read": {
           "Operator": "=",
@@ -50,7 +50,7 @@ export default {
       await XMOJDatabase.Delete("phpsessid", {
         "create_time": {
           "Operator": "<=",
-          "Value": new Date().getTime() - 1000 * 60 * 60 * 24 * 7
+          "Value": new Date().getTime() - 1000 * 60 * 60 * 24 * 5
         }
       });
       Resolve();
