@@ -290,7 +290,7 @@ export class Process {
     const retryCount = 20; // Define how many times you want to retry
     for (let i = 0; i < retryCount; i++) {
       if (rst["Success"]) {
-        return this.GetProblemScore(ProblemID);
+        return rst = this.GetProblemScore(ProblemID);
       }
       await sleep(500);
     }
