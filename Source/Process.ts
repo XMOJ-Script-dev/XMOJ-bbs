@@ -43,6 +43,7 @@ function sleep(time: number) {
 
 export class Process {
   private AdminUserList: Array<string> = ["zhuchenrui2", "shanwenxiao"];
+  private BadgeList: Array<string> = ["1001","admin","chenlangning","chenyiming5","leiwenda","limingze2","shanwenxiao","shihongxi","shuhaoxuan","std","xiaruicheng","xinshiyun","yangrunan","zhouyiqing","zhuchenrui2","zhuliangcheng","zhuxiwei","zhuyiyang"];
   private DenyMessageList: Array<string> = [""];
   private DenyBadgeEditList: Array<string> = [""];
   private readonly CaptchaSecretKey: string;
@@ -193,6 +194,9 @@ export class Process {
   }
   public IsAdmin = (): boolean => {
     return this.AdminUserList.indexOf(this.Username) !== -1;
+  }
+  public IsBadge = (): boolean => {
+    return this.BadgeList.indexOf(this.Username) !== -1;
   }
   public DenyMessage = (): boolean => {
     return this.DenyMessageList.indexOf(this.Username) !== -1;
@@ -1151,6 +1155,12 @@ export class Process {
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "UserID": "string"
       }));
+      if(!this.IsBadge()) 
+        return new Result(true, "获得标签成功", {
+          Content: "",
+          BackgroundColor: "",
+          Color: ""
+        });
       const BadgeData = ThrowErrorIfFailed(await this.XMOJDatabase.Select("badge", ["background_color", "color", "content"], {
         user_id: Data["UserID"]
       }));
