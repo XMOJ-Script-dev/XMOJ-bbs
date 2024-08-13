@@ -185,7 +185,7 @@ export class Process {
     const retryCount = 20; // Define how many times you want to retry
     for (let i = 0; i < retryCount; i++) {
       if (rst["Success"]) {
-        return this.IfUserExist(Username);
+        return rst = this.IfUserExist(Username);
       }
       await sleep(500);
     }
