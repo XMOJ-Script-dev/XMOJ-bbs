@@ -181,11 +181,15 @@ export class Process {
   }
   public IfUserExistChecker = async (Username: string): Promise<Result> => {
     let rst = this.IfUserExist(Username);
+    if (rst["Success"]) {
+        return rst;
+    }
     //if failed try again
     const retryCount = 20; // Define how many times you want to retry
     for (let i = 0; i < retryCount; i++) {
+      rst = this.IfUserExist(Username);
       if (rst["Success"]) {
-        return rst = this.IfUserExist(Username);
+        return rst;
       }
       await sleep(500);
     }
@@ -286,11 +290,15 @@ export class Process {
   }
   public GetProblemScoreChecker = async (ProblemID: number): Promise<number> => {
     let rst = this.GetProblemScore(ProblemID);
+    if (rst["Success"]) {
+        return rst;
+    }
     //if failed try again
     const retryCount = 20; // Define how many times you want to retry
     for (let i = 0; i < retryCount; i++) {
+      rst = this.GetProblemScore(ProblemID);
       if (rst["Success"]) {
-        return rst = this.GetProblemScore(ProblemID);
+        return rst;
       }
       await sleep(500);
     }
