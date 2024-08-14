@@ -868,7 +868,7 @@ export class Process {
         } else if (LastMessageTo.toString() === "") {
           LastMessage = LastMessageFrom;
           if (LastMessage[0]["content"].startsWith("Begin xssmseetee v1 encrypted message")) {
-            LastMessage[0]["content"] = CryptoJS.AES.decrypt(LastMessage[0]["content"].substring(34), this.shortMessageEncryptKey + Data["OtherUser"] + this.Username).toString(CryptoJS.enc.Utf8);
+            LastMessage[0]["content"] = CryptoJS.AES.decrypt(LastMessage[0]["content"].substring(37), this.shortMessageEncryptKey + Data["OtherUser"] + this.Username).toString(CryptoJS.enc.Utf8);
           } else {
             let preContent = LastMessage[0]["content"];
             LastMessage[0]["content"] = "无法解密消息, 原始数据: " + preContent;
@@ -876,7 +876,7 @@ export class Process {
         } else {
           LastMessage = LastMessageFrom[0]["send_time"] > LastMessageTo[0]["send_time"] ? LastMessageFrom : LastMessageTo;
           if (LastMessage[0]["content"].startsWith("Begin xssmseetee v1 encrypted message")) {
-            LastMessage[0]["content"] = CryptoJS.AES.decrypt(LastMessage[0]["content"].substring(34), this.shortMessageEncryptKey + this.Username + Data["OtherUser"]).toString(CryptoJS.enc.Utf8);
+            LastMessage[0]["content"] = CryptoJS.AES.decrypt(LastMessage[0]["content"].substring(37), this.shortMessageEncryptKey + this.Username + Data["OtherUser"]).toString(CryptoJS.enc.Utf8);
           } else {
             let preContent = LastMessage[0]["content"];
             LastMessage[0]["content"] = "无法解密消息, 原始数据: " + preContent;
@@ -945,7 +945,7 @@ export class Process {
       for (const i in Mails) {
         const Mail = Mails[i];
         if (Mail["content"].startsWith("Begin xssmseetee v1 encrypted message")) {
-          Mail["content"] = CryptoJS.AES.decrypt(Mail["content"].substring(34), this.shortMessageEncryptKey + Data["OtherUser"] + this.Username).toString(CryptoJS.enc.Utf8);
+          Mail["content"] = CryptoJS.AES.decrypt(Mail["content"].substring(37), this.shortMessageEncryptKey + Data["OtherUser"] + this.Username).toString(CryptoJS.enc.Utf8);
         } else {
           let preContent = Mail["content"];
           Mail["content"] = "无法解密消息, 原始数据: " + preContent;
