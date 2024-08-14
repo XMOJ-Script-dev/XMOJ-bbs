@@ -30,6 +30,7 @@ interface Environment {
   API_TOKEN: string;
   ACCOUNT_ID: string;
   GithubImagePAT: string;
+  xssmseetee_v1_key: string;
   kv: KVNamespace;
   CaptchaSecretKey: string;
   DB: D1Database;
@@ -50,6 +51,7 @@ export class Process {
   private readonly ACCOUNT_ID: string;
   private AI: any;
   private kv: any;
+  private shortMessageEncryptKey: string;
   private readonly API_TOKEN: string;
   private Username: string;
   private SessionID: string;
@@ -182,7 +184,7 @@ export class Process {
   public IfUserExistChecker = async (Username: string): Promise<Result> => {
     let rst = this.IfUserExist(Username);
     if (rst["Success"]) {
-        return rst;
+      return rst;
     }
     //if failed try again
     const retryCount = 20; // Define how many times you want to retry
@@ -291,7 +293,7 @@ export class Process {
   public GetProblemScoreChecker = async (ProblemID: number): Promise<number> => {
     let rst = this.GetProblemScore(ProblemID);
     if (rst["Success"]) {
-        return rst;
+      return rst;
     }
     //if failed try again
     const retryCount = 20; // Define how many times you want to retry
@@ -862,10 +864,23 @@ export class Process {
         let LastMessage: Object;
         if (LastMessageFrom.toString() === "") {
           LastMessage = LastMessageTo;
+
         } else if (LastMessageTo.toString() === "") {
           LastMessage = LastMessageFrom;
+          if (LastMessage[0]["content"].startsWith("Begin xssmseetee v1 encrypted message")) {
+            LastMessage[0]["content"] = CryptoJS.AES.decrypt(LastMessage[0]["content"].substring(34), this.shortMessageEncryptKey + Data["OtherUser"] + this.Username).toString(CryptoJS.enc.Utf8);
+          } else {
+            let preContent = LastMessage[0]["content"];
+            LastMessage[0]["content"] = "无法解密消息, 原始数据: " + preContent;
+          }
         } else {
           LastMessage = LastMessageFrom[0]["send_time"] > LastMessageTo[0]["send_time"] ? LastMessageFrom : LastMessageTo;
+          if (LastMessage[0]["content"].startsWith("Begin xssmseetee v1 encrypted message")) {
+            LastMessage[0]["content"] = CryptoJS.AES.decrypt(LastMessage[0]["content"].substring(34), this.shortMessageEncryptKey + this.Username + Data["OtherUser"]).toString(CryptoJS.enc.Utf8);
+          } else {
+            let preContent = LastMessage[0]["content"];
+            LastMessage[0]["content"] = "无法解密消息, 原始数据: " + preContent;
+          }
         }
         const UnreadCount = ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("short_message", {
           message_from: OtherUsernameList[i],
@@ -901,10 +916,11 @@ export class Process {
       if (Data["Content"].length > 2000) {
         return new Result(false, "短消息过长");
       }
+      let encryptedContent = "Begin xssmseetee v1 encrypted message" + CryptoJS.AES(Data["Content"], this.shortMessageEncryptKey + this.Username + Data["ToUser"]).toString(CryptoJS.enc.Utf8);
       const MessageID = ThrowErrorIfFailed(await this.XMOJDatabase.Insert("short_message", {
         message_from: this.Username,
         message_to: Data["ToUser"],
-        content: Data["Content"],
+        content: encryptedContent,
         send_time: new Date().getTime()
       }))["InsertID"];
       await this.AddMailMention(this.Username, Data["ToUser"]);
@@ -928,6 +944,12 @@ export class Process {
       }));
       for (const i in Mails) {
         const Mail = Mails[i];
+        if (Mail["content"].startsWith("Begin xssmseetee v1 encrypted message")) {
+          Mail["content"] = CryptoJS.AES.decrypt(Mail["content"].substring(34), this.shortMessageEncryptKey + Data["OtherUser"] + this.Username).toString(CryptoJS.enc.Utf8);
+        } else {
+          let preContent = Mail["content"];
+          Mail["content"] = "无法解密消息, 原始数据: " + preContent;
+        }
         ResponseData.Mail.push({
           MessageID: Mail["message_id"],
           FromUser: Mail["message_from"],
@@ -1322,6 +1344,7 @@ export class Process {
     this.GithubImagePAT = Environment.GithubImagePAT;
     this.ACCOUNT_ID = Environment.ACCOUNT_ID;
     this.API_TOKEN = Environment.API_TOKEN;
+    this.shortMessageEncryptKey = Environment.xssmseetee_v1_key;
     this.RequestData = RequestData;
     this.RemoteIP = RequestData.headers.get("CF-Connecting-IP") || "";
   }
