@@ -916,7 +916,7 @@ export class Process {
       if (Data["Content"].length > 2000) {
         return new Result(false, "短消息过长");
       }
-      let encryptedContent = "Begin xssmseetee v1 encrypted message" + CryptoJS.AES.encrypt(Data["Content"], this.shortMessageEncryptKey + this.Username + Data["ToUser"]).toString();
+      let encryptedContent = "Begin xssmseetee v1 encrypted message" + CryptoJS.AES.encrypt(Data["Content"], this.shortMessageEncryptKey).toString();
       const MessageID = ThrowErrorIfFailed(await this.XMOJDatabase.Insert("short_message", {
         message_from: this.Username,
         message_to: Data["ToUser"],
@@ -945,7 +945,7 @@ export class Process {
       for (const i in Mails) {
         const Mail = Mails[i];
         if (Mail["content"].startsWith("Begin xssmseetee v1 encrypted message")) {
-          Mail["content"] = CryptoJS.AES.decrypt(Mail["content"].substring(37), this.shortMessageEncryptKey + Data["OtherUser"] + this.Username).toString();
+          Mail["content"] = CryptoJS.AES.decrypt(Mail["content"].substring(37), this.shortMessageEncryptKey).toString();
         } else {
           let preContent = Mail["content"];
           Mail["content"] = "无法解密消息, 原始数据: " + preContent;
