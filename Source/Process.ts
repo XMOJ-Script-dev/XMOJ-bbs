@@ -51,7 +51,7 @@ export class Process {
   private readonly ACCOUNT_ID: string;
   private AI: any;
   private kv: any;
-  private shortMessageEncryptKey: string;
+  private shortMessageEncryptKey_v1: string;
   private readonly API_TOKEN: string;
   private Username: string;
   private SessionID: string;
@@ -869,7 +869,7 @@ export class Process {
           LastMessage = LastMessageFrom;
           if (LastMessage[0]["content"].startsWith("Begin xssmseetee v1 encrypted message")) {
             try {
-              const bytes = CryptoJS.AES.decrypt(LastMessage[0]["content"].substring(37), this.shortMessageEncryptKey);
+              const bytes = CryptoJS.AES.decrypt(LastMessage[0]["content"].substring(37), this.shortMessageEncryptKey_v1);
               LastMessage[0]["content"] = bytes.toString(CryptoJS.enc.Utf8);
             } catch (error) {
               LastMessage[0]["content"] = "解密失败: " + error.message;
@@ -882,7 +882,7 @@ export class Process {
           LastMessage = LastMessageFrom[0]["send_time"] > LastMessageTo[0]["send_time"] ? LastMessageFrom : LastMessageTo;
           if (LastMessage[0]["content"].startsWith("Begin xssmseetee v1 encrypted message")) {
             try {
-              const bytes = CryptoJS.AES.decrypt(LastMessage[0]["content"].substring(37), this.shortMessageEncryptKey);
+              const bytes = CryptoJS.AES.decrypt(LastMessage[0]["content"].substring(37), this.shortMessageEncryptKey_v1);
               LastMessage[0]["content"] = bytes.toString(CryptoJS.enc.Utf8);
             } catch (error) {
               LastMessage[0]["content"] = "解密失败: " + error.message;
@@ -926,7 +926,7 @@ export class Process {
       if (Data["Content"].length > 2000) {
         return new Result(false, "短消息过长");
       }
-      let encryptedContent = "Begin xssmseetee v1 encrypted message" + CryptoJS.AES.encrypt(Data["Content"], this.shortMessageEncryptKey).toString();
+      let encryptedContent = "Begin xssmseetee v1 encrypted message" + CryptoJS.AES.encrypt(Data["Content"], this.shortMessageEncryptKey_v1).toString();
       const MessageID = ThrowErrorIfFailed(await this.XMOJDatabase.Insert("short_message", {
         message_from: this.Username,
         message_to: Data["ToUser"],
@@ -956,7 +956,7 @@ export class Process {
         const Mail = Mails[i];
         if (Mail["content"].startsWith("Begin xssmseetee v1 encrypted message")) {
           try {
-            const bytes = CryptoJS.AES.decrypt(Mail["content"].substring(37), this.shortMessageEncryptKey);
+            const bytes = CryptoJS.AES.decrypt(Mail["content"].substring(37), this.shortMessageEncryptKey_v1);
             Mail["content"] = bytes.toString(CryptoJS.enc.Utf8);
           } catch (error) {
             Mail["content"] = "解密失败: " + error.message;
@@ -985,7 +985,7 @@ export class Process {
         const Mail = Mails[i];
         if (Mail["content"].startsWith("Begin xssmseetee v1 encrypted message")) {
           try {
-            const bytes = CryptoJS.AES.decrypt(Mail["content"].substring(37), this.shortMessageEncryptKey);
+            const bytes = CryptoJS.AES.decrypt(Mail["content"].substring(37), this.shortMessageEncryptKey_v1);
             Mail["content"] = bytes.toString(CryptoJS.enc.Utf8);
           } catch (error) {
             Mail["content"] = "解密失败: " + error.message;
@@ -1370,7 +1370,7 @@ export class Process {
     this.GithubImagePAT = Environment.GithubImagePAT;
     this.ACCOUNT_ID = Environment.ACCOUNT_ID;
     this.API_TOKEN = Environment.API_TOKEN;
-    this.shortMessageEncryptKey = Environment.xssmseetee_v1_key;
+    this.shortMessageEncryptKey_v1 = Environment.xssmseetee_v1_key;
     this.RequestData = RequestData;
     this.RemoteIP = RequestData.headers.get("CF-Connecting-IP") || "";
   }
