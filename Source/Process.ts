@@ -261,7 +261,7 @@ export class Process {
           Output.Error("Get problem score failed: Cannot find table element\n" +
             "ProblemID: \"" + ProblemID + "\"\n" +
             "Username : \"" + this.Username + "\"\n");
-          ThrowErrorIfFailed(new Result(false, "获取题目分数失败"));
+          return 0;
         }
         let MaxScore: number = 0;
         const ResultTableBody = ResultTable.children().eq(1);
@@ -275,7 +275,7 @@ export class Process {
               Output.Error("Get problem score failed: Cannot find score span\n" +
                 "ProblemID: \"" + ProblemID + "\"\n" +
                 "Username : \"" + this.Username + "\"\n");
-              ThrowErrorIfFailed(new Result(false, "获取题目分数失败"));
+              return 0;
             }
             const Score: string = ScoreSpan.text().trim();
             MaxScore = Math.max(MaxScore, parseInt(Score.substring(0, Score.length - 1)));
@@ -291,19 +291,20 @@ export class Process {
       });
   }
   public GetProblemScoreChecker = async (ProblemID: number): Promise<number> => {
-    let rst = this.GetProblemScore(ProblemID);
-    if (rst["Success"]) {
+    let rst = await this.GetProblemScore(ProblemID);
+    if (rst !== 0) {
       return rst;
     }
     //if failed try again
     const retryCount = 20; // Define how many times you want to retry
     for (let i = 0; i < retryCount; i++) {
-      rst = this.GetProblemScore(ProblemID);
-      if (rst["Success"]) {
+      rst = await this.GetProblemScore(ProblemID);
+      if (rst !== 0) {
         return rst;
       }
       await sleep(500);
     }
+    ThrowErrorIfFailed(new Result(false, "获取题目分数失败"));
   }
   private AddBBSMention = async (ToUserID: string, PostID: number): Promise<void> => {
     if (ToUserID === this.Username) {
