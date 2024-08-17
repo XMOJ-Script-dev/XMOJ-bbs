@@ -868,30 +868,19 @@ export class Process {
 
         } else if (LastMessageTo.toString() === "") {
           LastMessage = LastMessageFrom;
-          if (LastMessage[0]["content"].startsWith("Begin xssmseetee v1 encrypted message")) {
-            try {
-              const bytes = CryptoJS.AES.decrypt(LastMessage[0]["content"].substring(37), this.shortMessageEncryptKey_v1);
-              LastMessage[0]["content"] = bytes.toString(CryptoJS.enc.Utf8);
-            } catch (error) {
-              LastMessage[0]["content"] = "解密失败: " + error.message;
-            }
-          } else {
-            let preContent = LastMessage[0]["content"];
-            LastMessage[0]["content"] = "无法解密消息, 原始数据: " + preContent;
-          }
         } else {
           LastMessage = LastMessageFrom[0]["send_time"] > LastMessageTo[0]["send_time"] ? LastMessageFrom : LastMessageTo;
-          if (LastMessage[0]["content"].startsWith("Begin xssmseetee v1 encrypted message")) {
-            try {
-              const bytes = CryptoJS.AES.decrypt(LastMessage[0]["content"].substring(37), this.shortMessageEncryptKey_v1);
-              LastMessage[0]["content"] = bytes.toString(CryptoJS.enc.Utf8);
-            } catch (error) {
-              LastMessage[0]["content"] = "解密失败: " + error.message;
-            }
-          } else {
-            let preContent = LastMessage[0]["content"];
-            LastMessage[0]["content"] = "无法解密消息, 原始数据: " + preContent;
+        }
+        if (LastMessage[0]["content"].startsWith("Begin xssmseetee v1 encrypted message")) {
+          try {
+            const bytes = CryptoJS.AES.decrypt(LastMessage[0]["content"].substring(37), this.shortMessageEncryptKey_v1);
+            LastMessage[0]["content"] = bytes.toString(CryptoJS.enc.Utf8);
+          } catch (error) {
+            LastMessage[0]["content"] = "解密失败: " + error.message;
           }
+        } else {
+          let preContent = LastMessage[0]["content"];
+          LastMessage[0]["content"] = "无法解密消息, 原始数据: " + preContent;
         }
         const UnreadCount = ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("short_message", {
           message_from: OtherUsernameList[i],
