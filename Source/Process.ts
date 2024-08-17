@@ -878,7 +878,7 @@ export class Process {
           } catch (error) {
             LastMessage[0]["content"] = "解密失败: " + error.message;
           }
-        } else if (LastMessage[0]["content"].startsWith("Begin xssmseetee v1 encrypted message")) {
+        } else if (LastMessage[0]["content"].startsWith("Begin xssmseetee v1 encrypted message")) { //deprecated
           try {
             const bytes = CryptoJS.AES.decrypt(LastMessage[0]["content"].substring(37), this.shortMessageEncryptKey_v1);
             LastMessage[0]["content"] = bytes.toString(CryptoJS.enc.Utf8);
