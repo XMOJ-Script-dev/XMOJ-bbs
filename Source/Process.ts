@@ -846,7 +846,7 @@ export class Process {
       }
       OtherUsernameList = Array.from(new Set(OtherUsernameList));
       for (const i in OtherUsernameList) {
-        const LastMessageFrom = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message", ["content", "send_time"], {
+        const LastMessageFrom = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message", ["content", "send_time", "message_from", "message_to"], {
           message_from: OtherUsernameList[i],
           message_to: this.Username
         }, {
@@ -854,7 +854,7 @@ export class Process {
           OrderIncreasing: false,
           Limit: 1
         }));
-        const LastMessageTo = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message", ["content", "send_time"], {
+        const LastMessageTo = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message", ["content", "send_time", "message_from", "message_to"], {
           message_from: this.Username,
           message_to: OtherUsernameList[i]
         }, {
