@@ -871,7 +871,14 @@ export class Process {
         } else {
           LastMessage = LastMessageFrom[0]["send_time"] > LastMessageTo[0]["send_time"] ? LastMessageFrom : LastMessageTo;
         }
-        if (LastMessage[0]["content"].startsWith("Begin xssmseetee v1 encrypted message")) {
+        if (LastMessage[0]["content"].startsWith("Begin xssmseetee v2 encrypted message")) {
+          try {
+            const bytes = CryptoJS.AES.decrypt(LastMessage[0]["content"].substring(37), this.shortMessageEncryptKey_v1 + LastMessage[0]["message_from"] + LastMessage[0]["message_to"]);
+            LastMessage[0]["content"] = bytes.toString(CryptoJS.enc.Utf8);
+          } catch (error) {
+            LastMessage[0]["content"] = "解密失败: " + error.message;
+          }
+        } else if (LastMessage[0]["content"].startsWith("Begin xssmseetee v1 encrypted message")) {
           try {
             const bytes = CryptoJS.AES.decrypt(LastMessage[0]["content"].substring(37), this.shortMessageEncryptKey_v1);
             LastMessage[0]["content"] = bytes.toString(CryptoJS.enc.Utf8);
@@ -916,7 +923,7 @@ export class Process {
       if (Data["Content"].length > 2000) {
         return new Result(false, "短消息过长");
       }
-      let encryptedContent = "Begin xssmseetee v1 encrypted message" + CryptoJS.AES.encrypt(Data["Content"], this.shortMessageEncryptKey_v1).toString();
+      let encryptedContent = "Begin xssmseetee v2 encrypted message" + CryptoJS.AES.encrypt(Data["Content"], this.shortMessageEncryptKey_v1 + this.Username + Data["ToUser"]).toString();
       const MessageID = ThrowErrorIfFailed(await this.XMOJDatabase.Insert("short_message", {
         message_from: this.Username,
         message_to: Data["ToUser"],
@@ -944,7 +951,14 @@ export class Process {
       }));
       for (const i in Mails) {
         const Mail = Mails[i];
-        if (Mail["content"].startsWith("Begin xssmseetee v1 encrypted message")) {
+        if (Mail["content"].startsWith("Begin xssmseetee v2 encrypted message")) {
+          try {
+            const bytes = CryptoJS.AES.decrypt(Mail["content"].substring(37), this.shortMessageEncryptKey_v1 + Mail["message_from"] + Mail["message_to"]);
+            Mail["content"] = bytes.toString(CryptoJS.enc.Utf8);
+          } catch (error) {
+            Mail["content"] = "解密失败: " + error.message;
+          }
+        } else if (Mail["content"].startsWith("Begin xssmseetee v1 encrypted message")) {
           try {
             const bytes = CryptoJS.AES.decrypt(Mail["content"].substring(37), this.shortMessageEncryptKey_v1);
             Mail["content"] = bytes.toString(CryptoJS.enc.Utf8);
@@ -973,7 +987,14 @@ export class Process {
       }));
       for (const i in Mails) {
         const Mail = Mails[i];
-        if (Mail["content"].startsWith("Begin xssmseetee v1 encrypted message")) {
+        if (Mail["content"].startsWith("Begin xssmseetee v2 encrypted message")) {
+          try {
+            const bytes = CryptoJS.AES.decrypt(Mail["content"].substring(37), this.shortMessageEncryptKey_v1 + Mail["message_from"] + Mail["message_to"]);
+            Mail["content"] = bytes.toString(CryptoJS.enc.Utf8);
+          } catch (error) {
+            Mail["content"] = "解密失败: " + error.message;
+          }
+        } else if (Mail["content"].startsWith("Begin xssmseetee v1 encrypted message")) {
           try {
             const bytes = CryptoJS.AES.decrypt(Mail["content"].substring(37), this.shortMessageEncryptKey_v1);
             Mail["content"] = bytes.toString(CryptoJS.enc.Utf8);
