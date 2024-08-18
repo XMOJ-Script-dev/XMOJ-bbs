@@ -1190,7 +1190,7 @@ export class Process {
       if (Data["Color"] === Data["BackgroundColor"]) {
         return new Result(false, "背景色和字体色不能相同");
       }
-      if (Data["Content"].includes("管理员") || Data["Content"].toLowerCase().includes("manager")) {
+      if (Data["Content"].includes("管理员") || Data["Content"].toLowerCase().includes("manager") || Data["Content"].toLowerCase().includes("admin")) {
         return new Result(false, "请不要试图冒充管理员");
       }
       const allowedPattern = /^[\u0000-\u007F\u4E00-\u9FFF\u3400-\u4DBF\u2000-\u206F\u3000-\u303F\uFF00-\uFFEF\uD83C-\uDBFF\uDC00-\uDFFF]*$/;
