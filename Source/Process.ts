@@ -1181,9 +1181,6 @@ export class Process {
       if (this.DenyEdit()) {
         return new Result(false, "你被禁止修改标签");
       }
-      if (Data["Content"] === "") {
-        return new Result(false, "标签内容不能为空");
-      }
       if (Data["Content"].length > 20) {
         return new Result(false, "标签内容过长");
       }
