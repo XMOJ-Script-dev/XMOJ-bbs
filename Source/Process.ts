@@ -1232,8 +1232,8 @@ export class Process {
       }
       return new Result(true, "获得标签成功", {
         Content: BadgeData[0]["content"],
-        BackgroundColor: BadgeData[0]["background_color"],
-        Color: BadgeData[0]["color"]
+        BackgroundColor: Data["UserID"] === "zhouyiqing" ? "#000000" : BadgeData[0]["background_color"],
+        Color: Data["UserID"] === "zhouyiqing" ? "#ffffff" : BadgeData[0]["color"]
       });
     },
     DeleteBadge: async (Data: object): Promise<Result> => {
