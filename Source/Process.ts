@@ -1191,6 +1191,9 @@ export class Process {
       if (!allowedPattern.test(Data["Content"])) {
         return new Result(false, "内容包含不允许的字符，导致渲染问题");
       }
+      if (Data["Content"].trim() === "") {
+        return new Result(false, "内容不能仅包含空格");
+      }
       const check = await this.AI.run(
         "@cf/huggingface/distilbert-sst-2-int8",
         {
