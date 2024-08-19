@@ -51,7 +51,7 @@ export class Process {
   private readonly ACCOUNT_ID: string;
   private AI: any;
   private kv: any;
-  private shortMessageEncryptKey_v1: string;
+  private readonly shortMessageEncryptKey_v1: string;
   private readonly API_TOKEN: string;
   private Username: string;
   private SessionID: string;
