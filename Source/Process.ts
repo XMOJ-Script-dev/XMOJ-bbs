@@ -1184,9 +1184,6 @@ export class Process {
       if (Data["Content"].length > 20) {
         return new Result(false, "标签内容过长");
       }
-      if (Data["Color"] === Data["BackgroundColor"]) {
-        return new Result(false, "背景色和字体色不能相同");
-      }
       if (Data["Content"].includes("管理员") || Data["Content"].toLowerCase().includes("manager") || Data["Content"].toLowerCase().includes("admin")) {
         return new Result(false, "请不要试图冒充管理员");
       }
