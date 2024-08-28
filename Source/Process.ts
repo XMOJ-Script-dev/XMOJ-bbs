@@ -1178,6 +1178,11 @@ export class Process {
       if (!this.IsAdmin() && Data["UserID"] !== this.Username) {
         return new Result(false, "没有权限编辑此标签");
       }
+      if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("badge", {
+        user_id: Data["UserID"]
+      }))["TableSize"] === 0) {
+        return new Result(false, "编辑失败，该标签在数据库中不存在");
+      }
       if (this.DenyEdit()) {
         return new Result(false, "你被禁止修改标签");
       }
@@ -1202,11 +1207,6 @@ export class Process {
       );
       if (check[check[0]["label"] == "NEGATIVE" ? 0 : 1]["score"].toFixed() > 0.85) {
         return new Result(false, "您设置的标签内容含有负面词汇，请修改后重试");
-      }
-      if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("badge", {
-        user_id: Data["UserID"]
-      }))["TableSize"] === 0) {
-        return new Result(false, "编辑失败，该标签在数据库中不存在");
       }
       ThrowErrorIfFailed(await this.XMOJDatabase.Update("badge", {
         background_color: Data["BackgroundColor"],
