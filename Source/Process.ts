@@ -43,7 +43,7 @@ function sleep(time: number) {
 }
 
 export class Process {
-  private AdminUserList: Array<string> = ["chenlangning", "shanwenxiao"];
+  private AdminUserList: Array<string> = ["chenlangning", "shanwenxiao", "zhuchenrui2"];
   private DenyMessageList: Array<string> = [];
   private DenyBadgeEditList: Array<string> = [];
   private readonly CaptchaSecretKey: string;
