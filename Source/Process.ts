@@ -43,7 +43,7 @@ function sleep(time: number) {
 }
 
 export class Process {
-  private AdminUserList: Array<string> = ["chenlangning", "shanwenxiao"];
+  private AdminUserList: Array<string> = ["chenlangning", "shanwenxiao", "zhuchenrui2"];
   private DenyMessageList: Array<string> = [];
   private DenyBadgeEditList: Array<string> = [];
   private readonly CaptchaSecretKey: string;
@@ -1200,7 +1200,7 @@ export class Process {
           text: Data["Content"],
         }
       );
-      if (check[check[0]["label"] == "NEGATIVE" ? 0 : 1]["score"].toFixed() > 0.85) {
+      if (check[check[0]["label"] == "NEGATIVE" ? 0 : 1]["score"].toFixed() > 0.90) {
         return new Result(false, "您设置的标签内容含有负面词汇，请修改后重试");
       }
       ThrowErrorIfFailed(await this.XMOJDatabase.Update("badge", {
