@@ -61,15 +61,10 @@ export class Process {
   private RequestData: Request;
   private Fetch = async (RequestURL: URL): Promise<Response> => {
     Output.Log("Fetch: " + RequestURL.toString());
-    const Abort = new AbortController();
-    setTimeout(() => {
-      Abort.abort();
-    }, 5000);
     const RequestData = new Request(RequestURL, {
       headers: {
         "Cookie": "PHPSESSID=" + this.SessionID
-      },
-      signal: Abort.signal
+      }
     });
     return await fetch(RequestData);
   }
@@ -178,7 +173,7 @@ export class Process {
       }).catch((Error) => {
         Output.Error("Check user exist failed: " + Error + "\n" +
           "Username: \"" + Username + "\"\n");
-        return new Result(false, "用户检查失败");
+        return new Result(false, "用户检查失败: " + Error);
       });
   }
   public IfUserExistChecker = async (Username: string): Promise<Result> => {
@@ -189,11 +184,11 @@ export class Process {
     //if failed try again
     const retryCount = 20; // Define how many times you want to retry
     for (let i = 0; i < retryCount; i++) {
+      await sleep(500);
       rst = this.IfUserExist(Username);
       if (rst["Success"]) {
-        return rst;
+        break;
       }
-      await sleep(500);
     }
     return rst;
   }
