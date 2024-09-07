@@ -67,7 +67,7 @@ export class Process {
     const RequestData = new Request(RequestURL, {
       headers: {
         "Cookie": "PHPSESSID=" + this.SessionID,
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Safari/605.1.15"
       }
     });
     return await fetch(RequestData);
