@@ -402,7 +402,7 @@ export class Process {
         }
       }
       MentionPeople = Array.from(new Set(MentionPeople));
-      if (MentionPeople.length > 3) {
+      if (MentionPeople.length > 3 && !this.IsAdmin()) {
         return new Result(false, "一次最多@3个人");
       }
       const ReplyID = ThrowErrorIfFailed(await this.XMOJDatabase.Insert("bbs_reply", {
