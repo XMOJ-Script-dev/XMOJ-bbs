@@ -66,7 +66,8 @@ export class Process {
     Output.Log("Fetch: " + RequestURL.toString());
     const RequestData = new Request(RequestURL, {
       headers: {
-        "Cookie": "PHPSESSID=" + this.SessionID
+        "Cookie": "PHPSESSID=" + this.SessionID,
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
       }
     });
     return await fetch(RequestData);
