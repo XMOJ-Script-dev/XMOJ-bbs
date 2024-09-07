@@ -163,7 +163,6 @@ export class Process {
         "Exist": true
       });
     }
-    return new Result(false, "用户检查失败");
     return await this.Fetch(new URL("https://www.xmoj.tech/userinfo.php?user=" + Username))
       .then((Response) => {
         return Response.text();
