@@ -402,6 +402,9 @@ export class Process {
         }
       }
       MentionPeople = Array.from(new Set(MentionPeople));
+      if (MentionPeople.length > 3) {
+        return new Result(false, "一次最多@3个人");
+      }
       const ReplyID = ThrowErrorIfFailed(await this.XMOJDatabase.Insert("bbs_reply", {
         user_id: this.Username,
         post_id: Data["PostID"],
