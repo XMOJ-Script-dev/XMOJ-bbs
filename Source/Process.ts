@@ -24,7 +24,7 @@ import {CheerioAPI, load} from "cheerio";
 import * as sqlstring from 'sqlstring';
 // @ts-ignore
 import CryptoJS from "crypto-js";
-import {D1Database, KVNamespace, AnalyticsEngineDataset} from "@cloudflare/workers-types";
+import {AnalyticsEngineDataset, D1Database, KVNamespace} from "@cloudflare/workers-types";
 
 interface Environment {
   API_TOKEN: string;
@@ -158,11 +158,12 @@ export class Process {
     }
     if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("phpsessid", {
       user_id: Username
-    }))["TableSize"] !== 0) {
+    }))["TableSize"] > 0) {
       return new Result(true, "用户检查成功", {
         "Exist": true
       });
     }
+    return new Result(false, "用户检查失败");
     return await this.Fetch(new URL("https://www.xmoj.tech/userinfo.php?user=" + Username))
       .then((Response) => {
         return Response.text();
@@ -177,20 +178,7 @@ export class Process {
       });
   }
   public IfUserExistChecker = async (Username: string): Promise<Result> => {
-    let rst = this.IfUserExist(Username);
-    if (rst["Success"]) {
-      return rst;
-    }
-    //if failed try again
-    const retryCount = 20; // Define how many times you want to retry
-    for (let i = 0; i < retryCount; i++) {
-      await sleep(500);
-      rst = this.IfUserExist(Username);
-      if (rst["Success"]) {
-        break;
-      }
-    }
-    return rst;
+    return this.IfUserExist(Username);
   }
   public IsAdmin = (): boolean => {
     return this.AdminUserList.indexOf(this.Username) !== -1;
@@ -286,20 +274,7 @@ export class Process {
       });
   }
   public GetProblemScoreChecker = async (ProblemID: number): Promise<number> => {
-    let rst = await this.GetProblemScore(ProblemID);
-    if (rst !== 0) {
-      return rst;
-    }
-    //if failed try again
-    const retryCount = 20; // Define how many times you want to retry
-    for (let i = 0; i < retryCount; i++) {
-      rst = await this.GetProblemScore(ProblemID);
-      if (rst !== 0) {
-        return rst;
-      }
-      await sleep(500);
-    }
-    ThrowErrorIfFailed(new Result(false, "获取题目分数失败"));
+    return await this.GetProblemScore(ProblemID);
   }
   private AddBBSMention = async (ToUserID: string, PostID: number): Promise<void> => {
     if (ToUserID === this.Username) {
