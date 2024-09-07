@@ -76,7 +76,6 @@ export class Process {
         "sec-fetch-mode": "cors",
         "sec-fetch-site": "same-origin"
       }, "method": "GET",
-      "mode": "cors",
       "credentials": "include"
     });
     return await fetch(RequestData);
