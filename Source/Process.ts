@@ -38,13 +38,16 @@ interface Environment {
   AI: any;
 }
 
+// noinspection JSUnusedLocalSymbols
 function sleep(time: number) {
   return new Promise((resolve) => setTimeout(resolve, time));
 }
 
 export class Process {
   private AdminUserList: Array<string> = ["chenlangning", "shanwenxiao", "zhuchenrui2"];
+  // noinspection JSMismatchedCollectionQueryUpdate
   private DenyMessageList: Array<string> = [];
+  // noinspection JSMismatchedCollectionQueryUpdate
   private DenyBadgeEditList: Array<string> = [];
   private readonly CaptchaSecretKey: string;
   private GithubImagePAT: string;
