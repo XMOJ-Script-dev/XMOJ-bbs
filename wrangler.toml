@@ -22,3 +22,6 @@ binding = "logdb"
 
 [ai]
 binding = "AI"
+
+[observability]
+enabled = true
