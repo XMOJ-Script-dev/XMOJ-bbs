@@ -287,9 +287,9 @@ export class Process {
     return await this.GetProblemScore(ProblemID);
   }
   private AddBBSMention = async (ToUserID: string, PostID: number, ReplyID: number): Promise<void> => {
-    if (ToUserID === this.Username) {
-      return;
-    }
+    // if (ToUserID === this.Username) {
+    //   return;
+    // }
     if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_mention", {
       to_user_id: ToUserID,
       post_id: PostID
