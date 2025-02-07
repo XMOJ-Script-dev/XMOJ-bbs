@@ -733,7 +733,7 @@ export class Process {
       const ResponseData = {
         MentionList: new Array<Object>()
       };
-      const Mentions = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_mention", ["bbs_mention_id", "post_id", "bbs_mention_time"], {
+      const Mentions = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_mention", ["bbs_mention_id", "post_id", "bbs_mention_time", "reply_id"], {
         to_user_id: this.Username
       }));
       for (const i in Mentions) {
