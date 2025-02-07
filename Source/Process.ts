@@ -212,6 +212,9 @@ export class Process {
       "timeout-or-duplicate": "相同验证码已经校验过",
       "internal-error": "服务器错误"
     };
+    if (this.CaptchaSecretKey === undefined) {
+      return new Result(true, "验证码检测跳过");
+    }
     // return new Result(true, "验证码检测跳过");
     if (CaptchaToken === "") {
       return new Result(false, "验证码没有完成");
