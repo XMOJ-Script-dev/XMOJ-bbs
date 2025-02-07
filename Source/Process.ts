@@ -746,7 +746,8 @@ export class Process {
           MentionID: Mention["bbs_mention_id"],
           PostID: Mention["post_id"],
           PostTitle: Post[0]["title"],
-          MentionTime: Mention["bbs_mention_time"]
+          MentionTime: Mention["bbs_mention_time"],
+          ReplyID: Mention["reply_id"]
         });
       }
       return new Result(true, "获得讨论提及列表成功", ResponseData);
