@@ -286,7 +286,7 @@ export class Process {
   public GetProblemScoreChecker = async (ProblemID: number): Promise<number> => {
     return await this.GetProblemScore(ProblemID);
   }
-  private AddBBSMention = async (ToUserID: string, PostID: number): Promise<void> => {
+  private AddBBSMention = async (ToUserID: string, PostID: number, ReplyID: number): Promise<void> => {
     if (ToUserID === this.Username) {
       return;
     }
@@ -297,14 +297,16 @@ export class Process {
       ThrowErrorIfFailed(await this.XMOJDatabase.Insert("bbs_mention", {
         to_user_id: ToUserID,
         post_id: PostID,
-        bbs_mention_time: new Date().getTime()
+        bbs_mention_time: new Date().getTime(),
+        reply_id: ReplyID
       }));
     } else {
       ThrowErrorIfFailed(await this.XMOJDatabase.Update("bbs_mention", {
         bbs_mention_time: new Date().getTime()
       }, {
         to_user_id: ToUserID,
-        post_id: PostID
+        post_id: PostID,
+        reply_id: ReplyID
       }));
     }
   };
@@ -413,11 +415,11 @@ export class Process {
       }))["InsertID"];
 
       for (const i in MentionPeople) {
-        await this.AddBBSMention(MentionPeople[i], Data["PostID"]);
+        await this.AddBBSMention(MentionPeople[i], Data["PostID"], ReplyID);
       }
 
       if (Post[0]["user_id"] !== this.Username) {
-        await this.AddBBSMention(Post[0]["user_id"], Data["PostID"]);
+        await this.AddBBSMention(Post[0]["user_id"], Data["PostID"], ReplyID);
       }
 
       return new Result(true, "创建回复成功", {
@@ -669,7 +671,7 @@ export class Process {
         reply_id: Data["ReplyID"]
       });
       for (const i in MentionPeople) {
-        await this.AddBBSMention(MentionPeople[i], Reply[0]["post_id"]);
+        await this.AddBBSMention(MentionPeople[i], Reply[0]["post_id"], Data["ReplyID"]);
       }
       return new Result(true, "编辑回复成功");
     },
@@ -1318,7 +1320,14 @@ export class Process {
       }
 
       const sanitizedUsername = sqlstring.escape(Data["Username"]);
-      const query = `SELECT index1 AS username, blob1 AS IP, blob2 AS Path, blob3 AS Version, blob4 AS DebugMode, timestamp FROM logdb WHERE index1=${sanitizedUsername} ORDER BY timestamp ASC`;
+      const query = `SELECT index1 AS username,
+                            blob1  AS IP,
+                            blob2  AS Path,
+                            blob3  AS Version,
+                            blob4  AS DebugMode, timestamp
+                     FROM logdb
+                     WHERE index1=${sanitizedUsername}
+                     ORDER BY timestamp ASC`;
 
       const API = `https://api.cloudflare.com/client/v4/accounts/${this.ACCOUNT_ID}/analytics_engine/sql`;
       const response = await fetch(API, {
@@ -1337,7 +1346,10 @@ export class Process {
       }));
       const username = Data["Username"];
       const sanitizedUsername = sqlstring.escape(username);
-      const query = `SELECT timestamp FROM logdb WHERE index1=${sanitizedUsername} ORDER BY timestamp DESC LIMIT 1`;
+      const query = `SELECT timestamp
+                     FROM logdb
+                     WHERE index1=${sanitizedUsername}
+                     ORDER BY timestamp DESC LIMIT 1`;
       const API = `https://api.cloudflare.com/client/v4/accounts/${this.ACCOUNT_ID}/analytics_engine/sql`;
       const response = await fetch(API, {
         method: 'POST',
