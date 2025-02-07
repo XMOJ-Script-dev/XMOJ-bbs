@@ -54,6 +54,7 @@ export class Process {
   private readonly ACCOUNT_ID: string;
   private AI: any;
   private kv: any;
+  private RawDatabase: D1Database;
   private readonly shortMessageEncryptKey_v1: string;
   private readonly API_TOKEN: string;
   private Username: string;
@@ -287,9 +288,9 @@ export class Process {
     return await this.GetProblemScore(ProblemID);
   }
   private AddBBSMention = async (ToUserID: string, PostID: number, ReplyID: number): Promise<void> => {
-    // if (ToUserID === this.Username) {
-    //   return;
-    // }
+    if (ToUserID === this.Username) {
+      return;
+    }
     if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_mention", {
       to_user_id: ToUserID,
       post_id: PostID
@@ -743,10 +744,7 @@ export class Process {
           continue;
         }
         //Calculate the page number
-        const reply = await this.XMOJDatabase.Select("bbs_reply", ["reply_time"], {reply_id:  Mention["reply_id"]});
-        const replyTime = reply[0]["reply_time"];
-        const countReplies = await this.XMOJDatabase.GetTableSize("bbs_reply", {post_id: Mention["post_id"], reply_time: {"$lt": replyTime}});
-        const totalRepliesBefore = countReplies["TableSize"];
+        const totalRepliesBefore = (await this.RawDatabase.prepare("SELECT COUNT(*) + 1 AS position FROM bbs_reply WHERE post_id = $1 AND reply_time < (SELECT reply_time FROM bbs_reply WHERE reply_id = $2)").bind(Mention["post_id"], Mention["reply_id"]).run())['results'][0]['position'];
         const pageNumber = Math.floor(totalRepliesBefore / 15) + 1;
         ResponseData.MentionList.push({
           MentionID: Mention["bbs_mention_id"],
@@ -1389,6 +1387,7 @@ export class Process {
     this.shortMessageEncryptKey_v1 = Environment.xssmseetee_v1_key;
     this.RequestData = RequestData;
     this.RemoteIP = RequestData.headers.get("CF-Connecting-IP") || "";
+    this.RawDatabase = Environment.DB;
   }
 
   public async Process(): Promise<Response> {
