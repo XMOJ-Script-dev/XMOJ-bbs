@@ -742,12 +742,18 @@ export class Process {
         if (Post.toString() === "") {
           continue;
         }
+        //Calculate the page number
+        const reply = await this.XMOJDatabase.Select("bbs_reply", ["reply_time"], {reply_id:  Mention["reply_id"]});
+        const replyTime = reply[0]["reply_time"];
+        const countReplies = await this.XMOJDatabase.GetTableSize("bbs_reply", {post_id: Mention["post_id"], reply_time: {"$lt": replyTime}});
+        const totalRepliesBefore = countReplies["TableSize"];
+        const pageNumber = Math.floor(totalRepliesBefore / 15) + 1;
         ResponseData.MentionList.push({
           MentionID: Mention["bbs_mention_id"],
           PostID: Mention["post_id"],
           PostTitle: Post[0]["title"],
           MentionTime: Mention["bbs_mention_time"],
-          ReplyID: Mention["reply_id"]
+          PageNumber: pageNumber
         });
       }
       return new Result(true, "获得讨论提及列表成功", ResponseData);
