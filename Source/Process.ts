@@ -1,3 +1,5 @@
+// noinspection ExceptionCaughtLocallyJS,JSUnusedGlobalSymbols
+
 /*
  *     Copyright (C) 2023-2025  XMOJ-bbs contributors
  *     This file is part of XMOJ-bbs.
@@ -14,8 +16,6 @@
  *     You should have received a copy of the GNU Affero General Public License
  *     along with XMOJ-bbs.  If not, see <https://www.gnu.org/licenses/>.
  */
-
-// noinspection ExceptionCaughtLocallyJS,JSUnusedGlobalSymbols
 
 import {Result, ThrowErrorIfFailed} from "./Result";
 import {Database} from "./Database";
