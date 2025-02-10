@@ -1411,6 +1411,19 @@ export class Process {
             "content-type": "application/json;charset=UTF-8"
           }
         });
+      } else if (PathName === "GetAddOnScript") {
+        const script = await this.kv.get("addonscript");
+        let resp: Result;
+        if (script === null) {
+          resp = new Result(false, "未找到插件脚本");
+        } else {
+          resp = new Result(true, "获得插件脚本成功", {"Script": script});
+        }
+        return new Response(JSON.stringify(resp), {
+          headers: {
+            "content-type": "application/json;charset=UTF-8"
+          }
+        });
       }
       if (this.ProcessFunctions[PathName] === undefined) {
         throw new Result(false, "访问的页面不存在");
