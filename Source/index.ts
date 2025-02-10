@@ -1,5 +1,5 @@
 /*
- *     Copyright (C) 2023-2024  XMOJ-bbs contributors
+ *     Copyright (C) 2023-2025  XMOJ-bbs contributors
  *     This file is part of XMOJ-bbs.
  *     XMOJ-bbs is free software: you can redistribute it and/or modify
  *     it under the terms of the GNU Affero General Public License as published by
