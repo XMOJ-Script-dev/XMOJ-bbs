@@ -1119,6 +1119,9 @@ export class Process {
         problem_id: Data["ProblemID"],
         std_code: StdCode
       }));
+      let currentStdList = await this.kv.get("std_list");
+      currentStdList = currentStdList + Data["ProblemID"] + "\n";
+      this.kv.put("std_list", currentStdList);
       return new Result(true, "标程上传成功");
     },
     GetStdList: async (Data: object): Promise<Result> => {
@@ -1126,10 +1129,7 @@ export class Process {
       const ResponseData = {
         StdList: new Array<number>()
       };
-      let StdList = ThrowErrorIfFailed(await this.XMOJDatabase.Select("std_answer", ["problem_id"]));
-      for (const i in StdList) {
-        ResponseData.StdList.push(StdList[i]["problem_id"]);
-      }
+      ResponseData.StdList = (await this.kv.get("std_list")).split("\n").map(Number);
       return new Result(true, "获得标程列表成功", ResponseData);
     },
     GetStd: async (Data: object): Promise<Result> => {
