@@ -1390,7 +1390,7 @@ export class Process {
     this.shortMessageEncryptKey_v1 = Environment.xssmseetee_v1_key;
     this.RequestData = RequestData;
     this.RemoteIP = RequestData.headers.get("CF-Connecting-IP") || "";
-    this.RawDatabase = Environment.DB;
+    this.RawDatabase = Environment.DB.withSession();
   }
 
   public async Process(): Promise<Response> {

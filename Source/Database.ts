@@ -25,7 +25,7 @@ export class Database {
   private RawDatabase: D1Database;
 
   constructor(RawDatabase: D1Database) {
-    this.RawDatabase = RawDatabase;
+    this.RawDatabase = RawDatabase.withSession();
   }
 
   private async Query(QueryString: string, BindData: string[]): Promise<Result> {
