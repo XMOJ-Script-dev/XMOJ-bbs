@@ -14,9 +14,6 @@ database_id = "952d0135-a7b0-4eb7-9a1f-e529d6e7b479"
 [triggers]
 crons = ["0 0 * * *"]
 
-[placement]
-mode = "smart"
-
 [[analytics_engine_datasets]]
 binding = "logdb"
 
