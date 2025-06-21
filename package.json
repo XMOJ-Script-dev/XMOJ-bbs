@@ -11,7 +11,7 @@
     "@types/crypto-js": "^4.2.1",
     "@types/sqlstring": "^2.3.2",
     "typescript": "^5.2.2",
-    "wrangler": "^3.8.0"
+    "wrangler": "^4.20.5"
   },
   "dependencies": {
     "cheerio": "^1.0.0-rc.12",
