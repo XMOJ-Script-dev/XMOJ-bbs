@@ -290,6 +290,70 @@ export class Process {
   public GetProblemScoreChecker = async (ProblemID: number): Promise<number> => {
     return await this.GetProblemScore(ProblemID);
   }
+  public processCppString(inputStr: string) {
+    let result = '';
+    let i = 0;
+    const len = inputStr.length;
+
+    while (i < len) {
+      // Check for a raw string literal: R\"(
+      if (inputStr.substring(i, i + 4) === 'R\\"(') {
+        const rawStringStart = i;
+        const rawStringEnd = inputStr.indexOf(')\\"', rawStringStart + 4);
+
+        if (rawStringEnd !== -1) {
+          // Append the entire raw string literal without modification
+          result += inputStr.substring(rawStringStart, rawStringEnd + 3);
+          i = rawStringEnd + 3;
+          continue;
+        }
+      }
+
+      // Check for a regular string literal: \"
+      if (inputStr.substring(i, i + 2) === '\\"') {
+        result += '\\"'; // Append the opening quote
+        i += 2;
+
+        // Process the content inside the regular string
+        while (i < len) {
+          // Case 1: An escaped backslash. This is key for handling \\\"
+          if (inputStr.substring(i, i + 3) === '\\\\n') {
+            result += '\\\\n'; // Keep it as is
+            i += 3;
+            console.log("Escaped backslash found, keeping it as is");
+          }
+          if (inputStr.substring(i, i + 4) === '\\\\\\\"') {
+            result += '\\\\\\\"'; // Keep it as is
+            i += 4;
+            console.log("Escaped backslash found, keeping it as is");
+          }
+          // Case 2: A string-terminating quote. This is NOT preceded by another backslash.
+          else if (inputStr.substring(i, i + 2) === '\\"') {
+            result += '\\"'; // Append the closing quote
+            i += 2;
+            break; // Exit the inner string-processing loop
+          }
+          // Case 3: A newline character sequence '\n'
+          else if (inputStr.substring(i, i + 2) === '\\n') {
+            result += '\\\\n'; // Replace '\n' with '\\n'
+            i += 2;
+            console.log("AT newline character, replacing with \\\\n: "+ inputStr.substring(i- 4, i + 2));
+          }
+          // Case 4: Any other character
+          else {
+            result += inputStr[i];
+            i++;
+          }
+        }
+      } else {
+        // Append any character that is not part of a string we're processing
+        result += inputStr[i];
+        i++;
+      }
+    }
+    console.log(result);
+    return result;
+  }
   private AddBBSMention = async (ToUserID: string, PostID: number, ReplyID: number): Promise<void> => {
     if (ToUserID === this.Username) {
       return;
@@ -1476,7 +1540,8 @@ export class Process {
         Output.Error(ResponseData);
         ResponseData = new Result(false, "服务器运行错误：" + String(ResponseData).split("\n")[0]);
       }
-      return new Response(JSON.stringify(ResponseData), {
+      let pathname = new URL(this.RequestData.url).pathname;
+      return new Response(pathname == "/GetStd" ? this.processCppString(JSON.stringify(ResponseData)) : JSON.stringify(ResponseData), {
         headers: {
           "content-type": "application/json;charset=UTF-8"
         }

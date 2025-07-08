@@ -3,7 +3,7 @@ main = "Source/index.ts"
 compatibility_date = "2023-09-17"
 account_id = "89969bdf9d5ab8202f8ad8b8ae2c40b8"
 kv_namespaces = [
-    { binding = "kv", id = "05ecbc2affef4f7b99359ea88422f53e" }
+    { binding = "kv", id = "05ecbc2affef4f7b99359ea88422f53e", preview_id = "ca2f99e1c80546cab855a472147f835a"}
 ]
 
 [[d1_databases]]
