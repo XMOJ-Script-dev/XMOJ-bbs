@@ -290,6 +290,7 @@ export class Process {
   public GetProblemScoreChecker = async (ProblemID: number): Promise<number> => {
     return await this.GetProblemScore(ProblemID);
   }
+
   public processCppString(inputStr: string) {
     let result = '';
     let i = 0;
@@ -337,7 +338,7 @@ export class Process {
           else if (inputStr.substring(i, i + 2) === '\\n') {
             result += '\\\\n'; // Replace '\n' with '\\n'
             i += 2;
-            console.log("AT newline character, replacing with \\\\n: "+ inputStr.substring(i- 4, i + 2));
+            console.log("AT newline character, replacing with \\\\n: " + inputStr.substring(i - 4, i + 2));
           }
           // Case 4: Any other character
           else {
@@ -354,6 +355,7 @@ export class Process {
     console.log(result);
     return result;
   }
+
   private AddBBSMention = async (ToUserID: string, PostID: number, ReplyID: number): Promise<void> => {
     if (ToUserID === this.Username) {
       return;
@@ -1096,6 +1098,10 @@ export class Process {
       if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("std_answer", {
         problem_id: ProblemID
       }))["TableSize"] !== 0) {
+        if (currentStdList.toString().indexOf(Data["ProblemID"]) !== -1) {
+          currentStdList = currentStdList + Data["ProblemID"] + "\n";
+          this.kv.put("std_list", currentStdList);
+        }
         return new Result(true, "此题已经有人上传标程");
       }
       let StdCode: string = "";
@@ -1184,8 +1190,10 @@ export class Process {
         std_code: StdCode
       }));
       let currentStdList = await this.kv.get("std_list");
-      currentStdList = currentStdList + Data["ProblemID"] + "\n";
-      this.kv.put("std_list", currentStdList);
+      if (currentStdList.toString().indexOf(Data["ProblemID"]) !== -1) {
+        currentStdList = currentStdList + Data["ProblemID"] + "\n";
+        this.kv.put("std_list", currentStdList);
+      }
       return new Result(true, "标程上传成功");
     },
     GetStdList: async (Data: object): Promise<Result> => {
