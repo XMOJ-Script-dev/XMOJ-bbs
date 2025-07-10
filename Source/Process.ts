@@ -1098,6 +1098,7 @@ export class Process {
       if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("std_answer", {
         problem_id: ProblemID
       }))["TableSize"] !== 0) {
+        let currentStdList = await this.kv.get("std_list");
         if (currentStdList.toString().indexOf(Data["ProblemID"]) !== -1) {
           currentStdList = currentStdList + Data["ProblemID"] + "\n";
           this.kv.put("std_list", currentStdList);
