@@ -48,6 +48,8 @@ export class Process {
   // noinspection JSMismatchedCollectionQueryUpdate
   private DenyMessageList: Array<string> = [];
   // noinspection JSMismatchedCollectionQueryUpdate
+  private SilencedUser: Array<string> = [];
+  // noinspection JSMismatchedCollectionQueryUpdate
   private DenyBadgeEditList: Array<string> = [];
   private readonly CaptchaSecretKey: string;
   private GithubImagePAT: string;
@@ -196,6 +198,9 @@ export class Process {
   }
   public DenyMessage = (): boolean => {
     return this.DenyMessageList.indexOf(this.Username) !== -1;
+  }
+  public IsSilenced = (): boolean => {
+    return this.SilencedUser.indexOf(this.Username) !== -1;
   }
   public DenyEdit = (): boolean => {
     return this.DenyBadgeEditList.indexOf(this.Username) !== -1;
@@ -418,6 +423,9 @@ export class Process {
       if (!this.IsAdmin() && (Data["BoardID"] == 0 || Data["BoardID"] == 5)) {
         return new Result(false, "没有权限发表公告");
       }
+      if (this.IsSilenced()) {
+        return new Result(false, "您已被禁言，无法发表讨论");
+      }
       if (Data["BoardID"] !== 0 && ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_board", {
         board_id: Data["BoardID"]
       }))["TableSize"] === 0) {
@@ -461,6 +469,9 @@ export class Process {
         post_id: Data["PostID"]
       }))["TableSize"] === 1 && !this.IsAdmin()) {
         return new Result(false, "讨论已被锁定");
+      }
+      if (this.IsSilenced()) {
+        return new Result(false, "您已被禁言，无法回复讨论");
       }
       Data["Content"] = Data["Content"].trim();
       if (Data["Content"] === "") {
@@ -726,6 +737,9 @@ export class Process {
       if (Data["Content"] === "") {
         return new Result(false, "内容不能为空");
       }
+      if (this.IsSilenced()) {
+        return new Result(false, "您已被禁言，无法编辑回复");
+      }
       const MentionPeople = new Array<string>();
       // @ts-ignore
       for (const Match of String(Data["Content"]).matchAll(/@([a-zA-Z0-9]+)/g)) {
@@ -982,6 +996,9 @@ export class Process {
       if (Data["Content"].length > 2000) {
         return new Result(false, "短消息过长");
       }
+      if ((!(this.AdminUserList.indexOf(Data["ToUser"]) !== -1)) && this.IsSilenced()) {
+        return new Result(false, "你已被禁言, 无法向非管理员发送短消息");
+      }
       let encryptedContent = "Begin xssmseetee v2 encrypted message" + CryptoJS.AES.encrypt(Data["Content"], this.shortMessageEncryptKey_v1 + this.Username + Data["ToUser"]).toString();
       const MessageID = ThrowErrorIfFailed(await this.XMOJDatabase.Insert("short_message", {
         message_from: this.Username,
@@ -1092,18 +1109,20 @@ export class Process {
       if (ProblemID === 0) {
         return new Result(true, "ProblemID不能为0, 已忽略"); //this isn't really an error, so we return true
       }
-      if (await this.GetProblemScoreChecker(ProblemID) !== 100) {
-        return new Result(false, "没有权限上传此标程");
-      }
       if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("std_answer", {
         problem_id: ProblemID
       }))["TableSize"] !== 0) {
         let currentStdList = await this.kv.get("std_list");
-        if (currentStdList.toString().indexOf(Data["ProblemID"]) !== -1) {
+        console.log(currentStdList.toString().indexOf(Data["ProblemID"].toString()));
+        if (currentStdList.toString().indexOf(Data["ProblemID"].toString()) == -1) {
           currentStdList = currentStdList + Data["ProblemID"] + "\n";
           this.kv.put("std_list", currentStdList);
         }
+        console.log("ProblemID: " + ProblemID + " already has a std answer, skipping upload.");
         return new Result(true, "此题已经有人上传标程");
+      }
+      if (await this.GetProblemScoreChecker(ProblemID) !== 100) {
+        return new Result(false, "没有权限上传此标程");
       }
       let StdCode: string = "";
       let PageIndex: number = 0;
@@ -1191,10 +1210,8 @@ export class Process {
         std_code: StdCode
       }));
       let currentStdList = await this.kv.get("std_list");
-      if (currentStdList.toString().indexOf(Data["ProblemID"]) !== -1) {
-        currentStdList = currentStdList + Data["ProblemID"] + "\n";
-        this.kv.put("std_list", currentStdList);
-      }
+      currentStdList = currentStdList + Data["ProblemID"] + "\n";
+      this.kv.put("std_list", currentStdList);
       return new Result(true, "标程上传成功");
     },
     GetStdList: async (Data: object): Promise<Result> => {
