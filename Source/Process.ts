@@ -48,7 +48,7 @@ export class Process {
   // noinspection JSMismatchedCollectionQueryUpdate
   private DenyMessageList: Array<string> = [];
   // noinspection JSMismatchedCollectionQueryUpdate
-  private SilencedUser: Array<string> = [];
+  private SilencedUser: Array<string> = ["zhaochenyi"];
   // noinspection JSMismatchedCollectionQueryUpdate
   private DenyBadgeEditList: Array<string> = [];
   private readonly CaptchaSecretKey: string;
