@@ -46,7 +46,7 @@ function sleep(time: number) {
 export class Process {
   private AdminUserList: Array<string> = ["chenlangning", "shanwenxiao", "zhuchenrui2"];
   // noinspection JSMismatchedCollectionQueryUpdate
-  private DenyMessageList: Array<string> = [];
+  private DenyMessageList: Array<string> = ["std"];
   // noinspection JSMismatchedCollectionQueryUpdate
   private SilencedUser: Array<string> = ["zhaochenyi", "qianwenyu"];
   // noinspection JSMismatchedCollectionQueryUpdate
@@ -1114,7 +1114,7 @@ export class Process {
       }))["TableSize"] !== 0) {
         let currentStdList = await this.kv.get("std_list");
         console.log(currentStdList.toString().indexOf(Data["ProblemID"].toString()));
-        if (currentStdList.toString().indexOf(Data["ProblemID"].toString()) == -1) {
+        if (currentStdList.split('\n').some(d => d === Data["ProblemID"])) {
           currentStdList = currentStdList + Data["ProblemID"] + "\n";
           this.kv.put("std_list", currentStdList);
         }
