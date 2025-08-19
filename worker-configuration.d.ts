@@ -2,9 +2,10 @@
 // by running `wrangler types`
 
 interface Env {
-	kv: KVNamespace;
-	CaptchaSecretKey: string;
-	DB: D1Database;
-	logdb: AnalyticsEngineDataset;
-	AI: Ai;
+        kv: KVNamespace;
+        CaptchaSecretKey: string;
+        DB: D1Database;
+        logdb: AnalyticsEngineDataset;
+        AI: Ai;
+        NOTIFICATION_SERVICE: Fetcher;
 }

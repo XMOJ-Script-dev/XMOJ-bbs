@@ -17,7 +17,7 @@
 
 import {Process} from "./Process";
 import {Database} from "./Database";
-import {D1Database, KVNamespace, AnalyticsEngineDataset} from "@cloudflare/workers-types";
+import {D1Database, KVNamespace, AnalyticsEngineDataset, Fetcher} from "@cloudflare/workers-types";
 
 interface Environment {
   kv: KVNamespace;
@@ -25,6 +25,7 @@ interface Environment {
   DB: D1Database;
   logdb: AnalyticsEngineDataset;
   AI: any;
+  NOTIFICATION_SERVICE: Fetcher;
 }
 
 export default {

@@ -24,7 +24,7 @@ import {CheerioAPI, load} from "cheerio";
 import * as sqlstring from 'sqlstring';
 // @ts-ignore
 import CryptoJS from "crypto-js";
-import {AnalyticsEngineDataset, D1Database, KVNamespace} from "@cloudflare/workers-types";
+import {AnalyticsEngineDataset, D1Database, KVNamespace, Fetcher} from "@cloudflare/workers-types";
 
 interface Environment {
   API_TOKEN: string;
@@ -36,6 +36,7 @@ interface Environment {
   DB: D1Database;
   logdb: AnalyticsEngineDataset;
   AI: any;
+  NOTIFICATION_SERVICE: Fetcher;
 }
 
 // noinspection JSUnusedLocalSymbols
@@ -64,6 +65,7 @@ export class Process {
   private readonly RemoteIP: string;
   private XMOJDatabase: Database;
   private readonly logs: AnalyticsEngineDataset;
+  private NotificationService: Fetcher;
   private RequestData: Request;
   private Fetch = async (RequestURL: URL): Promise<Response> => {
     Output.Log("Fetch: " + RequestURL.toString());
@@ -384,6 +386,7 @@ export class Process {
         reply_id: ReplyID
       }));
     }
+    await this.PushNotification({type: "bbs", to: ToUserID, post_id: PostID, reply_id: ReplyID});
   };
   private AddMailMention = async (FromUserID: string, ToUserID: string): Promise<void> => {
     if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("short_message_mention", {
@@ -403,6 +406,7 @@ export class Process {
         to_user_id: ToUserID
       }));
     }
+    await this.PushNotification({type: "mail", from: FromUserID, to: ToUserID});
   };
   private ProcessFunctions = {
     NewPost: async (Data: object): Promise<Result> => {
@@ -1481,6 +1485,18 @@ export class Process {
     this.RequestData = RequestData;
     this.RemoteIP = RequestData.headers.get("CF-Connecting-IP") || "";
     this.RawDatabase = Environment.DB.withSession();
+    this.NotificationService = Environment.NOTIFICATION_SERVICE;
+  }
+
+  private async PushNotification(Message: object): Promise<void> {
+    try {
+      await this.NotificationService.fetch("https://notification/notify", {
+        method: "POST",
+        body: JSON.stringify(Message)
+      });
+    } catch (e) {
+      // ignore errors
+    }
   }
 
   public async Process(): Promise<Response> {

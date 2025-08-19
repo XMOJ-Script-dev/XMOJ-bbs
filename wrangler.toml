@@ -22,3 +22,7 @@ binding = "AI"
 
 [observability]
 enabled = true
+
+services = [
+    { binding = "NOTIFICATION_SERVICE", service = "notification-worker" }
+]
