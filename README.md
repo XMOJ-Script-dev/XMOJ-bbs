@@ -11,6 +11,20 @@ This backend originated from https://github.com/langningchen/XMOJ-Script/discuss
 It is written in typescript, and is RESTful.
 The legacy incompatible backend is written in php.
 
+## Testing
+
+Run the unit tests with:
+
+```
+npm test
+```
+
+Generate a coverage report with:
+
+```
+npm run coverage
+```
+
 ## Acknowledgements
 
 ![JetBrains logo](https://resources.jetbrains.com/storage/products/company/brand/logos/jetbrains.svg)
