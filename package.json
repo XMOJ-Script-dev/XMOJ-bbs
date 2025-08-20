@@ -4,14 +4,16 @@
   "private": false,
   "scripts": {
     "deploy": "wrangler deploy",
-    "start": "wrangler dev"
+    "start": "wrangler dev",
+    "test": "TS_NODE_TRANSPILE_ONLY=1 TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\"}' node --require ts-node/register --test"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20230914.0",
     "@types/crypto-js": "^4.2.1",
     "@types/sqlstring": "^2.3.2",
     "typescript": "^5.2.2",
-    "wrangler": "^4.24.0"
+    "wrangler": "^4.24.0",
+    "ts-node": "^10.9.1"
   },
   "dependencies": {
     "cheerio": "^1.0.0-rc.12",
