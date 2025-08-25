@@ -24,7 +24,7 @@ import {CheerioAPI, load} from "cheerio";
 import * as sqlstring from 'sqlstring';
 // @ts-ignore
 import CryptoJS from "crypto-js";
-import {AnalyticsEngineDataset, D1Database, KVNamespace} from "@cloudflare/workers-types";
+import {AnalyticsEngineDataset, D1Database, D1DatabaseSession, KVNamespace} from "@cloudflare/workers-types";
 
 interface Environment {
   API_TOKEN: string;
@@ -56,7 +56,7 @@ export class Process {
   private readonly ACCOUNT_ID: string;
   private AI: any;
   private kv: any;
-  private RawDatabase: D1Database;
+  private RawDatabase: D1DatabaseSession;
   private readonly shortMessageEncryptKey_v1: string;
   private readonly API_TOKEN: string;
   private Username: string;
@@ -828,7 +828,7 @@ export class Process {
         }
         //Calculate the page number
         const totalRepliesBefore = (await this.RawDatabase.prepare("SELECT COUNT(*) + 1 AS position FROM bbs_reply WHERE post_id = $1 AND reply_time < (SELECT reply_time FROM bbs_reply WHERE reply_id = $2)").bind(Mention["post_id"], Mention["reply_id"]).run())['results'][0]['position'];
-        const pageNumber = Math.floor(totalRepliesBefore / 15) + 1;
+        const pageNumber = Math.floor(Number(totalRepliesBefore) / 15) + 1;
         ResponseData.MentionList.push({
           MentionID: Mention["bbs_mention_id"],
           PostID: Mention["post_id"],

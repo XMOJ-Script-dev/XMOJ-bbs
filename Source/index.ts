@@ -20,6 +20,10 @@ import {Database} from "./Database";
 import {D1Database, KVNamespace, AnalyticsEngineDataset} from "@cloudflare/workers-types";
 
 interface Environment {
+  API_TOKEN: string;
+  ACCOUNT_ID: string;
+  GithubImagePAT: string;
+  xssmseetee_v1_key: string;
   kv: KVNamespace;
   CaptchaSecretKey: string;
   DB: D1Database;
