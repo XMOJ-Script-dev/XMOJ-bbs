@@ -17,12 +17,12 @@
 
 import {Result, ThrowErrorIfFailed} from "./Result";
 import {Output} from "./Output";
-import {D1Database} from "@cloudflare/workers-types";
+import {D1Database, D1DatabaseSession} from "@cloudflare/workers-types";
 
 let readonly = false; //set to true to allow maintenance
 
 export class Database {
-  private RawDatabase: D1Database;
+  private RawDatabase: D1DatabaseSession;
 
   constructor(RawDatabase: D1Database) {
     this.RawDatabase = RawDatabase.withSession();
