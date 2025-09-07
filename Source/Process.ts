@@ -18,13 +18,16 @@
  */
 
 import {Result, ThrowErrorIfFailed} from "./Result";
-import {Database} from "./Database";
 import {Output} from "./Output";
 import {CheerioAPI, load} from "cheerio";
 import * as sqlstring from 'sqlstring';
 // @ts-ignore
 import CryptoJS from "crypto-js";
-import {AnalyticsEngineDataset, D1Database, D1DatabaseSession, KVNamespace} from "@cloudflare/workers-types";
+import {AnalyticsEngineDataset, D1Database, KVNamespace} from "@cloudflare/workers-types";
+import {getDrizzle} from "./Drizzle";
+import * as schema from "./schema";
+import {and, eq, lt, desc, count, ne, or, asc} from "drizzle-orm";
+import {DrizzleD1Database} from "drizzle-orm/d1";
 
 interface Environment {
   API_TOKEN: string;
@@ -56,13 +59,12 @@ export class Process {
   private readonly ACCOUNT_ID: string;
   private AI: any;
   private kv: any;
-  private RawDatabase: D1DatabaseSession;
   private readonly shortMessageEncryptKey_v1: string;
   private readonly API_TOKEN: string;
   private Username: string;
   private SessionID: string;
   private readonly RemoteIP: string;
-  private XMOJDatabase: Database;
+  private XMOJDatabase: DrizzleD1Database<typeof schema>;
   private readonly logs: AnalyticsEngineDataset;
   private RequestData: Request;
   private Fetch = async (RequestURL: URL): Promise<Response> => {
@@ -111,55 +113,54 @@ export class Process {
     this.Username = Data["Username"];
     // return new Result(true, "令牌检测跳过");
     const HashedToken: string = CryptoJS.SHA3(this.SessionID).toString();
-    const CurrentSessionData = ThrowErrorIfFailed(await this.XMOJDatabase.Select("phpsessid", ["user_id", "create_time"], {
-      token: HashedToken
-    }));
+    const CurrentSessionData = await this.XMOJDatabase.select({
+      userId: schema.phpsessid.userId,
+      createTime: schema.phpsessid.createTime
+    }).from(schema.phpsessid).where(eq(schema.phpsessid.token, HashedToken));
+
     if (CurrentSessionData.toString() !== "") {
-      if (CurrentSessionData[0]["user_id"] === this.Username &&
-        CurrentSessionData[0]["create_time"] + 1000 * 60 * 60 * 24 * 7 > new Date().getTime()) {
+      if (CurrentSessionData[0]["userId"] === this.Username &&
+          CurrentSessionData[0]["createTime"] + 1000 * 60 * 60 * 24 * 7 > new Date().getTime()) {
         return new Result(true, "令牌匹配");
       } else {
-        ThrowErrorIfFailed(await this.XMOJDatabase.Delete("phpsessid", {
-          token: HashedToken
-        }));
+        await this.XMOJDatabase.delete(schema.phpsessid).where(eq(schema.phpsessid.token, HashedToken));
         Output.Log("Session " + this.SessionID + " expired");
       }
     }
 
     const SessionUsername: string = await this.Fetch(new URL("https://www.xmoj.tech/template/bs3/profile.php"))
-      .then((Response) => {
-        return Response.text();
-      }).then((Response) => {
-        let SessionUsername = Response.substring(Response.indexOf("user_id=") + 8);
-        SessionUsername = SessionUsername.substring(0, SessionUsername.indexOf("'"));
-        return SessionUsername;
-      }).catch((Error) => {
-        Output.Error("Check token failed: " + Error + "\n" +
-          "PHPSessionID: \"" + this.SessionID + "\"\n" +
-          "Username    : \"" + this.Username + "\"\n");
-        return "";
-      });
+        .then((Response) => {
+          return Response.text();
+        }).then((Response) => {
+          let SessionUsername = Response.substring(Response.indexOf("user_id=") + 8);
+          SessionUsername = SessionUsername.substring(0, SessionUsername.indexOf("'"));
+          return SessionUsername;
+        }).catch((Error) => {
+          Output.Error("Check token failed: " + Error + "\n" +
+              "PHPSessionID: \"" + this.SessionID + "\"\n" +
+              "Username    : \"" + this.Username + "\"\n");
+          return "";
+        });
     if (SessionUsername == "") {
       Output.Debug("Check token failed: Session invalid\n" +
-        "PHPSessionID: \"" + this.SessionID + "\"\n");
+          "PHPSessionID: \"" + this.SessionID + "\"\n");
       return new Result(false, "令牌不合法");
     }
     if (SessionUsername != this.Username) {
       Output.Debug("Check token failed: Session and username not match \n" +
-        "PHPSessionID   : \"" + this.SessionID + "\"\n" +
-        "SessionUsername: \"" + SessionUsername + "\"\n" +
-        "Username       : \"" + this.Username + "\"\n");
+          "PHPSessionID   : \"" + this.SessionID + "\"\n" +
+          "SessionUsername: \"" + SessionUsername + "\"\n" +
+          "Username       : \"" + this.Username + "\"\n");
       return new Result(false, "令牌不匹配");
     }
     //check if the item already exists in db
-    if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("phpsessid", {
-      token: HashedToken
-    }))["TableSize"] == 0) {
-      ThrowErrorIfFailed(await this.XMOJDatabase.Insert("phpsessid", {
+    const sessionCount = await this.XMOJDatabase.select({count: count()}).from(schema.phpsessid).where(eq(schema.phpsessid.token, HashedToken));
+    if (sessionCount[0].count == 0) {
+      await this.XMOJDatabase.insert(schema.phpsessid).values({
         token: HashedToken,
-        user_id: this.Username,
-        create_time: new Date().getTime()
-      }));
+        userId: this.Username,
+        createTime: new Date().getTime()
+      });
     } else {
       Output.Log("token already exists, skipping insert");
     }
@@ -170,9 +171,8 @@ export class Process {
     if (Username !== Username.toLowerCase()) {
       return new Result(false, "用户名必须为小写");
     }
-    if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("phpsessid", {
-      user_id: Username
-    }))["TableSize"] > 0) {
+    const userCount = await this.XMOJDatabase.select({count: count()}).from(schema.phpsessid).where(eq(schema.phpsessid.userId, Username));
+    if (userCount[0].count > 0) {
       return new Result(true, "用户检查成功", {
         "Exist": true
       });
@@ -365,43 +365,32 @@ export class Process {
     if (ToUserID === this.Username) {
       return;
     }
-    if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_mention", {
-      to_user_id: ToUserID,
-      post_id: PostID
-    }))["TableSize"] === 0) {
-      ThrowErrorIfFailed(await this.XMOJDatabase.Insert("bbs_mention", {
-        to_user_id: ToUserID,
-        post_id: PostID,
-        bbs_mention_time: new Date().getTime(),
-        reply_id: ReplyID
-      }));
+    const mentionCount = await this.XMOJDatabase.select({count: count()}).from(schema.bbsMention).where(and(eq(schema.bbsMention.toUserId, ToUserID), eq(schema.bbsMention.postId, PostID)));
+    if (mentionCount[0].count === 0) {
+      await this.XMOJDatabase.insert(schema.bbsMention).values({
+        toUserId: ToUserID,
+        postId: PostID,
+        bbsMentionTime: new Date().getTime(),
+        replyId: ReplyID
+      });
     } else {
-      ThrowErrorIfFailed(await this.XMOJDatabase.Update("bbs_mention", {
-        bbs_mention_time: new Date().getTime()
-      }, {
-        to_user_id: ToUserID,
-        post_id: PostID,
-        reply_id: ReplyID
-      }));
+      await this.XMOJDatabase.update(schema.bbsMention).set({
+        bbsMentionTime: new Date().getTime()
+      }).where(and(eq(schema.bbsMention.toUserId, ToUserID), eq(schema.bbsMention.postId, PostID), eq(schema.bbsMention.replyId, ReplyID)));
     }
   };
   private AddMailMention = async (FromUserID: string, ToUserID: string): Promise<void> => {
-    if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("short_message_mention", {
-      from_user_id: FromUserID,
-      to_user_id: ToUserID
-    }))["TableSize"] === 0) {
-      ThrowErrorIfFailed(await this.XMOJDatabase.Insert("short_message_mention", {
-        from_user_id: FromUserID,
-        to_user_id: ToUserID,
-        mail_mention_time: new Date().getTime()
-      }));
+    const mentionCount = await this.XMOJDatabase.select({count: count()}).from(schema.shortMessageMention).where(and(eq(schema.shortMessageMention.fromUserId, FromUserID), eq(schema.shortMessageMention.toUserId, ToUserID)));
+    if (mentionCount[0].count === 0) {
+      await this.XMOJDatabase.insert(schema.shortMessageMention).values({
+        fromUserId: FromUserID,
+        toUserId: ToUserID,
+        mailMentionTime: new Date().getTime()
+      });
     } else {
-      ThrowErrorIfFailed(await this.XMOJDatabase.Update("short_message_mention", {
-        mail_mention_time: new Date().getTime()
-      }, {
-        from_user_id: FromUserID,
-        to_user_id: ToUserID
-      }));
+      await this.XMOJDatabase.update(schema.shortMessageMention).set({
+        mailMentionTime: new Date().getTime()
+      }).where(and(eq(schema.shortMessageMention.fromUserId, FromUserID), eq(schema.shortMessageMention.toUserId, ToUserID)));
     }
   };
   private ProcessFunctions = {
@@ -426,27 +415,26 @@ export class Process {
       if (this.IsSilenced()) {
         return new Result(false, "您已被禁言，无法发表讨论");
       }
-      if (Data["BoardID"] !== 0 && ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_board", {
-        board_id: Data["BoardID"]
-      }))["TableSize"] === 0) {
+      const boardCount = await this.XMOJDatabase.select({count: count()}).from(schema.bbsBoard).where(eq(schema.bbsBoard.boardId, Data["BoardID"]));
+      if (Data["BoardID"] !== 0 && boardCount[0].count === 0) {
         return new Result(false, "该板块不存在");
       }
-      const PostID = ThrowErrorIfFailed(await this.XMOJDatabase.Insert("bbs_post", {
-        user_id: this.Username,
-        problem_id: Data["ProblemID"],
+      const post = await this.XMOJDatabase.insert(schema.bbsPost).values({
+        userId: this.Username,
+        problemId: Data["ProblemID"],
         title: Data["Title"],
-        post_time: new Date().getTime(),
-        board_id: Data["BoardID"]
-      }))["InsertID"];
-      const ReplyID = ThrowErrorIfFailed(await this.XMOJDatabase.Insert("bbs_reply", {
-        user_id: this.Username,
-        post_id: PostID,
+        postTime: new Date().getTime(),
+        boardId: Data["BoardID"]
+      }).returning({insertedId: schema.bbsPost.postId});
+      const reply = await this.XMOJDatabase.insert(schema.bbsReply).values({
+        userId: this.Username,
+        postId: post[0].insertedId,
         content: Data["Content"],
-        reply_time: new Date().getTime()
-      }))["InsertID"];
+        replyTime: new Date().getTime()
+      }).returning({insertedId: schema.bbsReply.replyId});
       return new Result(true, "创建讨论成功", {
-        PostID: PostID,
-        ReplyID: ReplyID
+        PostID: post[0].insertedId,
+        ReplyID: reply[0].insertedId
       });
     },
     NewReply: async (Data: object): Promise<Result> => {
@@ -456,18 +444,21 @@ export class Process {
         "CaptchaSecretKey": "string"
       }));
       ThrowErrorIfFailed(await this.VerifyCaptcha(Data["CaptchaSecretKey"]));
-      const Post = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_post", ["title", "user_id", "board_id"], {post_id: Data["PostID"]}));
+      const Post = await this.XMOJDatabase.select({
+        title: schema.bbsPost.title,
+        userId: schema.bbsPost.userId,
+        boardId: schema.bbsPost.boardId
+      }).from(schema.bbsPost).where(eq(schema.bbsPost.postId, Data["PostID"]));
       if (Post.toString() == "") {
         return new Result(false, "该讨论不存在");
       }
       //console.log(Post[0]["board_id"]);
-      if (Post[0]["board_id"] == 5) {
+      if (Post[0]["boardId"] == 5) {
         return new Result(false, "此讨论不允许回复");
       }
       //check if the post is locked
-      if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_lock", {
-        post_id: Data["PostID"]
-      }))["TableSize"] === 1 && !this.IsAdmin()) {
+      const lockCount = await this.XMOJDatabase.select({count: count()}).from(schema.bbsLock).where(eq(schema.bbsLock.postId, Data["PostID"]));
+      if (lockCount[0].count === 1 && !this.IsAdmin()) {
         return new Result(false, "讨论已被锁定");
       }
       if (this.IsSilenced()) {
@@ -488,23 +479,23 @@ export class Process {
       if (MentionPeople.length > 3 && !this.IsAdmin()) {
         return new Result(false, "一次最多@3个人");
       }
-      const ReplyID = ThrowErrorIfFailed(await this.XMOJDatabase.Insert("bbs_reply", {
-        user_id: this.Username,
-        post_id: Data["PostID"],
+      const reply = await this.XMOJDatabase.insert(schema.bbsReply).values({
+        userId: this.Username,
+        postId: Data["PostID"],
         content: Data["Content"],
-        reply_time: new Date().getTime()
-      }))["InsertID"];
+        replyTime: new Date().getTime()
+      }).returning({insertedId: schema.bbsReply.replyId});
 
       for (const i in MentionPeople) {
-        await this.AddBBSMention(MentionPeople[i], Data["PostID"], ReplyID);
+        await this.AddBBSMention(MentionPeople[i], Data["PostID"], reply[0].insertedId);
       }
 
-      if (Post[0]["user_id"] !== this.Username) {
-        await this.AddBBSMention(Post[0]["user_id"], Data["PostID"], ReplyID);
+      if (Post[0]["userId"] !== this.Username) {
+        await this.AddBBSMention(Post[0]["userId"], Data["PostID"], reply[0].insertedId);
       }
 
       return new Result(true, "创建回复成功", {
-        ReplyID: ReplyID
+        ReplyID: reply[0].insertedId
       });
     },
     GetPosts: async (Data: object): Promise<Result> => {
@@ -513,16 +504,21 @@ export class Process {
         "Page": "number",
         "BoardID": "number"
       }));
+
+      const searchConditions = [];
+      if (Data["BoardID"] !== -1) {
+        searchConditions.push(eq(schema.bbsPost.boardId, Data["BoardID"]));
+      }
+      if (Data["ProblemID"] !== 0) {
+        searchConditions.push(eq(schema.bbsPost.problemId, Data["ProblemID"]));
+      }
+
+      const postCountResult = await this.XMOJDatabase.select({count: count()}).from(schema.bbsPost).where(and(...searchConditions));
+      const pageCount = Math.ceil(postCountResult[0].count / 15);
+
       let ResponseData = {
         Posts: new Array<Object>,
-        PageCount: Data["BoardID"] !== -1 ? (Data["ProblemID"] !== 0 ? Math.ceil(ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_post", {
-          board_id: Data["BoardID"],
-          problem_id: Data["ProblemID"]
-        }))["TableSize"] / 15) : Math.ceil(ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_post", {
-          board_id: Data["BoardID"]
-        }))["TableSize"] / 15)) : (Data["ProblemID"] !== 0 ? Math.ceil(ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_post", {
-          problem_id: Data["ProblemID"]
-        }))["TableSize"] / 15) : Math.ceil(ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_post"))["TableSize"] / 15))
+        PageCount: pageCount
       };
       if (ResponseData.PageCount === 0) {
         return new Result(true, "获得讨论列表成功", ResponseData);
@@ -530,62 +526,47 @@ export class Process {
       if (Data["Page"] < 1 || Data["Page"] > ResponseData.PageCount) {
         return new Result(false, "参数页数不在范围1~" + ResponseData.PageCount + "内");
       }
-      const SearchCondition = {};
-      if (Data["ProblemID"] !== 0) {
-        SearchCondition["problem_id"] = Data["ProblemID"];
-      }
-      if (Data["BoardID"] !== -1) {
-        SearchCondition["board_id"] = Data["BoardID"];
-      }
-      const Posts = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_post", [], SearchCondition, {
-        Order: "post_id",
-        OrderIncreasing: false,
-        Limit: 15,
-        Offset: (Data["Page"] - 1) * 15
-      }));
+
+      const Posts = await this.XMOJDatabase.select().from(schema.bbsPost).where(and(...searchConditions)).orderBy(desc(schema.bbsPost.postTime)).limit(15).offset((Data["Page"] - 1) * 15);
       for (const i in Posts) {
         const Post = Posts[i];
 
-        const ReplyCount: number = ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_reply", {post_id: Post["post_id"]}))["TableSize"];
-        const LastReply = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_reply", ["user_id", "reply_time"], {post_id: Post["post_id"]}, {
-          Order: "reply_time",
-          OrderIncreasing: false,
-          Limit: 1
-        }));
+        const replyCountResult = await this.XMOJDatabase.select({count: count()}).from(schema.bbsReply).where(eq(schema.bbsReply.postId, Post.postId));
+        const ReplyCount = replyCountResult[0].count;
+
+        const LastReply = await this.XMOJDatabase.select({
+          userId: schema.bbsReply.userId,
+          replyTime: schema.bbsReply.replyTime
+        }).from(schema.bbsReply).where(eq(schema.bbsReply.postId, Post.postId)).orderBy(desc(schema.bbsReply.replyTime)).limit(1);
+
         if (ReplyCount === 0) {
-          await this.XMOJDatabase.Delete("bbs_post", {
-            post_id: Post["post_id"]
-          });
+          await this.XMOJDatabase.delete(schema.bbsPost).where(eq(schema.bbsPost.postId, Post.postId));
           continue;
         }
-
         const LockData = {
           Locked: false,
           LockPerson: "",
           LockTime: 0
         };
-        const Locked = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_lock", [], {
-          post_id: Post["post_id"]
-        }));
+        const Locked = await this.XMOJDatabase.select().from(schema.bbsLock).where(eq(schema.bbsLock.postId, Post.postId));
         if (Locked.toString() !== "") {
           LockData.Locked = true;
-          LockData.LockPerson = Locked[0]["lock_person"];
-          LockData.LockTime = Locked[0]["lock_time"];
+          LockData.LockPerson = Locked[0]["lockPerson"];
+          LockData.LockTime = Locked[0]["lockTime"];
         }
 
+        const boardNameResult = await this.XMOJDatabase.select({boardName: schema.bbsBoard.boardName}).from(schema.bbsBoard).where(eq(schema.bbsBoard.boardId, Post.boardId));
         ResponseData.Posts.push({
-          PostID: Post["post_id"],
-          UserID: Post["user_id"],
-          ProblemID: Post["problem_id"],
-          Title: Post["title"],
-          PostTime: Post["post_time"],
-          BoardID: Post["board_id"],
-          BoardName: ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_board", ["board_name"], {
-            board_id: Post["board_id"]
-          }))[0]["board_name"],
+          PostID: Post.postId,
+          UserID: Post.userId,
+          ProblemID: Post.problemId,
+          Title: Post.title,
+          PostTime: Post.postTime,
+          BoardID: Post.boardId,
+          BoardName: boardNameResult[0].boardName,
           ReplyCount: ReplyCount,
-          LastReplyUserID: LastReply[0]["user_id"],
-          LastReplyTime: LastReply[0]["reply_time"],
+          LastReplyUserID: LastReply[0].userId,
+          LastReplyTime: LastReply[0].replyTime,
           Lock: LockData
         });
       }
@@ -611,52 +592,47 @@ export class Process {
           LockTime: 0
         }
       };
-      const Post = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_post", [], {
-        post_id: Data["PostID"]
-      }));
+      const Post = await this.XMOJDatabase.select().from(schema.bbsPost).where(eq(schema.bbsPost.postId, Data["PostID"]));
+
       if (Post.toString() == "") {
         return new Result(false, "该讨论不存在");
       }
-      ResponseData.PageCount = Math.ceil(ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_reply", {post_id: Data["PostID"]}))["TableSize"] / 15);
+      const replyCountResult = await this.XMOJDatabase.select({count: count()}).from(schema.bbsReply).where(eq(schema.bbsReply.postId, Data["PostID"]));
+      ResponseData.PageCount = Math.ceil(replyCountResult[0].count / 15);
+
       if (ResponseData.PageCount === 0) {
         return new Result(true, "获得讨论成功", ResponseData);
       }
       if (Data["Page"] < 1 || Data["Page"] > ResponseData.PageCount) {
         return new Result(false, "参数页数不在范围1~" + ResponseData.PageCount + "内");
       }
-      ResponseData.UserID = Post[0]["user_id"];
-      ResponseData.ProblemID = Post[0]["problem_id"];
-      ResponseData.Title = Post[0]["title"];
-      ResponseData.PostTime = Post[0]["post_time"];
-      ResponseData.BoardID = Post[0]["board_id"];
-      ResponseData.BoardName = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_board", ["board_name"], {board_id: Post[0]["board_id"]}))[0]["board_name"];
+      ResponseData.UserID = Post[0].userId;
+      ResponseData.ProblemID = Post[0].problemId;
+      ResponseData.Title = Post[0].title;
+      ResponseData.PostTime = Post[0].postTime;
+      ResponseData.BoardID = Post[0].boardId;
+      const boardNameResult = await this.XMOJDatabase.select({boardName: schema.bbsBoard.boardName}).from(schema.bbsBoard).where(eq(schema.bbsBoard.boardId, Post[0].boardId));
+      ResponseData.BoardName = boardNameResult[0].boardName;
 
-      const Locked = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_lock", [], {
-        post_id: Data["PostID"]
-      }));
+      const Locked = await this.XMOJDatabase.select().from(schema.bbsLock).where(eq(schema.bbsLock.postId, Data["PostID"]));
       if (Locked.toString() !== "") {
         ResponseData.Lock.Locked = true;
-        ResponseData.Lock.LockPerson = Locked[0]["lock_person"];
-        ResponseData.Lock.LockTime = Locked[0]["lock_time"];
+        ResponseData.Lock.LockPerson = Locked[0]["lockPerson"];
+        ResponseData.Lock.LockTime = Locked[0]["lockTime"];
       }
 
-      const Reply = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_reply", [], {post_id: Data["PostID"]}, {
-        Order: "reply_time",
-        OrderIncreasing: true,
-        Limit: 15,
-        Offset: (Data["Page"] - 1) * 15
-      }));
+      const Reply = await this.XMOJDatabase.select().from(schema.bbsReply).where(eq(schema.bbsReply.postId, Data["PostID"])).orderBy(asc(schema.bbsReply.replyTime)).limit(15).offset((Data["Page"] - 1) * 15);
       for (const i in Reply) {
         let ReplyItem = Reply[i];
-        let processedContent: string = ReplyItem["content"];
+        let processedContent: string = ReplyItem.content;
         processedContent = processedContent.replace(/xmoj-bbs\.tech/g, "xmoj-bbs.me");
         ResponseData.Reply.push({
-          ReplyID: ReplyItem["reply_id"],
-          UserID: ReplyItem["user_id"],
+          ReplyID: ReplyItem.replyId,
+          UserID: ReplyItem.userId,
           Content: processedContent,
-          ReplyTime: ReplyItem["reply_time"],
-          EditTime: ReplyItem["edit_time"],
-          EditPerson: ReplyItem["edit_person"]
+          ReplyTime: ReplyItem.replyTime,
+          EditTime: ReplyItem.editTime,
+          EditPerson: ReplyItem.editPerson
         });
       }
       return new Result(true, "获得讨论成功", ResponseData);
@@ -665,46 +641,40 @@ export class Process {
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "PostID": "number"
       }));
-      if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_post", {
-        post_id: Data["PostID"]
-      }))["TableSize"] === 0) {
+      const postCount = await this.XMOJDatabase.select({count: count()}).from(schema.bbsPost).where(eq(schema.bbsPost.postId, Data["PostID"]));
+      if (postCount[0].count === 0) {
         return new Result(false, "该讨论不存在");
       }
       if (!this.IsAdmin()) {
         return new Result(false, "没有权限锁定此讨论");
       }
-      if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_lock", {
-        post_id: Data["PostID"]
-      }))["TableSize"] === 1) {
+      const lockCount = await this.XMOJDatabase.select({count: count()}).from(schema.bbsLock).where(eq(schema.bbsLock.postId, Data["PostID"]));
+      if (lockCount[0].count === 1) {
         return new Result(false, "讨论已经被锁定");
       }
-      ThrowErrorIfFailed(await this.XMOJDatabase.Insert("bbs_lock", {
-        post_id: Data["PostID"],
-        lock_person: this.Username,
-        lock_time: new Date().getTime()
-      }));
+      await this.XMOJDatabase.insert(schema.bbsLock).values({
+        postId: Data["PostID"],
+        lockPerson: this.Username,
+        lockTime: new Date().getTime()
+      });
       return new Result(true, "讨论锁定成功");
     },
     UnlockPost: async (Data: object): Promise<Result> => {
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "PostID": "number"
       }));
-      if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_post", {
-        post_id: Data["PostID"]
-      }))["TableSize"] === 0) {
+      const postCount = await this.XMOJDatabase.select({count: count()}).from(schema.bbsPost).where(eq(schema.bbsPost.postId, Data["PostID"]));
+      if (postCount[0].count === 0) {
         return new Result(false, "解锁失败，该讨论不存在");
       }
       if (!this.IsAdmin()) {
         return new Result(false, "没有权限解锁此讨论");
       }
-      if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_lock", {
-        post_id: Data["PostID"]
-      }))["TableSize"] === 0) {
+      const lockCount = await this.XMOJDatabase.select({count: count()}).from(schema.bbsLock).where(eq(schema.bbsLock.postId, Data["PostID"]));
+      if (lockCount[0].count === 0) {
         return new Result(false, "讨论已经被解锁");
       }
-      ThrowErrorIfFailed(await this.XMOJDatabase.Delete("bbs_lock", {
-        post_id: Data["PostID"]
-      }));
+      await this.XMOJDatabase.delete(schema.bbsLock).where(eq(schema.bbsLock.postId, Data["PostID"]));
       return new Result(true, "讨论解锁成功");
     },
     EditReply: async (Data: object): Promise<Result> => {
@@ -712,24 +682,22 @@ export class Process {
         "ReplyID": "number",
         "Content": "string"
       }));
-      const Reply = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_reply", ["post_id", "user_id"], {
-        reply_id: Data["ReplyID"]
-      }));
+      const Reply = await this.XMOJDatabase.select({
+        postId: schema.bbsReply.postId,
+        userId: schema.bbsReply.userId
+      }).from(schema.bbsReply).where(eq(schema.bbsReply.replyId, Data["ReplyID"]));
       if (Reply.toString() === "") {
         return new Result(false, "编辑失败，未找到此回复");
       }
-      if (!this.IsAdmin() && Reply[0]["user_id"] !== this.Username) {
+      if (!this.IsAdmin() && Reply[0].userId !== this.Username) {
         return new Result(false, "没有权限编辑此回复");
       }
-      if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_post", {
-        post_id: Reply[0]["post_id"]
-      }))["TableSize"] === 0) {
+      const postCount = await this.XMOJDatabase.select({count: count()}).from(schema.bbsPost).where(eq(schema.bbsPost.postId, Reply[0].postId));
+      if (postCount[0].count === 0) {
         return new Result(false, "编辑失败，该回复所属的讨论不存在");
       }
-
-      if (!this.IsAdmin() && ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_lock", {
-        post_id: Reply[0]["post_id"]
-      }))["TableSize"] === 1) {
+      const lockCount = await this.XMOJDatabase.select({count: count()}).from(schema.bbsLock).where(eq(schema.bbsLock.postId, Reply[0].postId));
+      if (!this.IsAdmin() && lockCount[0].count === 1) {
         return new Result(false, "讨论已被锁定");
       }
 
@@ -747,15 +715,13 @@ export class Process {
           MentionPeople.push(Match[1]);
         }
       }
-      await this.XMOJDatabase.Update("bbs_reply", {
+      await this.XMOJDatabase.update(schema.bbsReply).set({
         content: Data["Content"],
-        edit_time: new Date().getTime(),
-        edit_person: this.Username
-      }, {
-        reply_id: Data["ReplyID"]
-      });
+        editTime: new Date().getTime(),
+        editPerson: this.Username
+      }).where(eq(schema.bbsReply.replyId, Data["ReplyID"]));
       for (const i in MentionPeople) {
-        await this.AddBBSMention(MentionPeople[i], Reply[0]["post_id"], Data["ReplyID"]);
+        await this.AddBBSMention(MentionPeople[i], Reply[0].postId, Data["ReplyID"]);
       }
       return new Result(true, "编辑回复成功");
     },
@@ -763,53 +729,44 @@ export class Process {
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "PostID": "number"
       }));
-      const Post = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_post", ["user_id"], {
-        post_id: Data["PostID"]
-      }));
+      const Post = await this.XMOJDatabase.select({userId: schema.bbsPost.userId}).from(schema.bbsPost).where(eq(schema.bbsPost.postId, Data["PostID"]));
       if (Post.toString() === "") {
         return new Result(false, "删除失败，该讨论不存在");
       }
-      if (!this.IsAdmin() && ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_lock", {
-        post_id: Data["PostID"]
-      }))["TableSize"] === 1) {
+      const lockCount = await this.XMOJDatabase.select({count: count()}).from(schema.bbsLock).where(eq(schema.bbsLock.postId, Data["PostID"]));
+      if (!this.IsAdmin() && lockCount[0].count === 1) {
         return new Result(false, "讨论已被锁定");
       }
-      if (!this.IsAdmin() && CheckUserID && Post[0]["user_id"] !== this.Username) {
+      if (!this.IsAdmin() && CheckUserID && Post[0].userId !== this.Username) {
         return new Result(false, "没有权限删除此讨论");
       }
-      const Replies = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_reply", ["reply_id"], {
-        post_id: Data["PostID"]
-      }));
-      for (const i in Replies) {
-        await this.XMOJDatabase.Delete("bbs_reply", {
-          reply_id: Replies[i]["reply_id"]
-        });
-      }
-      await this.XMOJDatabase.Delete("bbs_post", {post_id: Data["PostID"]});
+      await this.XMOJDatabase.delete(schema.bbsReply).where(eq(schema.bbsReply.postId, Data["PostID"]));
+      await this.XMOJDatabase.delete(schema.bbsPost).where(eq(schema.bbsPost.postId, Data["PostID"]));
       return new Result(true, "删除讨论成功");
     },
     DeleteReply: async (Data: object): Promise<Result> => {
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "ReplyID": "number"
       }));
-      const Reply = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_reply", ["user_id", "post_id"], {reply_id: Data["ReplyID"]}));
+      const Reply = await this.XMOJDatabase.select({
+        userId: schema.bbsReply.userId,
+        postId: schema.bbsReply.postId
+      }).from(schema.bbsReply).where(eq(schema.bbsReply.replyId, Data["ReplyID"]));
       if (Reply.toString() === "") {
         return new Result(false, "删除失败，该讨论不存在");
       }
-      if (!this.IsAdmin() && ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_lock", {
-        post_id: Reply[0]["post_id"]
-      }))["TableSize"] === 1) {
+      const lockCount = await this.XMOJDatabase.select({count: count()}).from(schema.bbsLock).where(eq(schema.bbsLock.postId, Reply[0].postId));
+      if (!this.IsAdmin() && lockCount[0].count === 1) {
         return new Result(false, "讨论已被锁定");
       }
-      if (!this.IsAdmin() && Reply[0]["user_id"] !== this.Username) {
+      if (!this.IsAdmin() && Reply[0].userId !== this.Username) {
         return new Result(false, "没有权限删除此回复");
       }
-      if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_reply", {
-        post_id: Reply[0]["post_id"]
-      }))["TableSize"] === 1) {
-        await this.ProcessFunctions.DeletePost({PostID: Reply[0]["post_id"]}, false);
+      const replyCount = await this.XMOJDatabase.select({count: count()}).from(schema.bbsReply).where(eq(schema.bbsReply.postId, Reply[0].postId));
+      if (replyCount[0].count === 1) {
+        await this.ProcessFunctions.DeletePost({PostID: Reply[0].postId}, false);
       }
-      await this.XMOJDatabase.Delete("bbs_reply", {reply_id: Data["ReplyID"]});
+      await this.XMOJDatabase.delete(schema.bbsReply).where(eq(schema.bbsReply.replyId, Data["ReplyID"]));
       return new Result(true, "删除回复成功");
     },
     GetBBSMentionList: async (Data: object): Promise<Result> => {
@@ -817,23 +774,33 @@ export class Process {
       const ResponseData = {
         MentionList: new Array<Object>()
       };
-      const Mentions = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_mention", ["bbs_mention_id", "post_id", "bbs_mention_time", "reply_id"], {
-        to_user_id: this.Username
-      }));
+      const Mentions = await this.XMOJDatabase.select({
+        bbsMentionId: schema.bbsMention.bbsMentionId,
+        postId: schema.bbsMention.postId,
+        bbsMentionTime: schema.bbsMention.bbsMentionTime,
+        replyId: schema.bbsMention.replyId
+      }).from(schema.bbsMention).where(eq(schema.bbsMention.toUserId, this.Username));
       for (const i in Mentions) {
         const Mention = Mentions[i];
-        const Post = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_post", ["user_id", "title"], {post_id: Mention["post_id"]}));
+        const Post = await this.XMOJDatabase.select({
+          userId: schema.bbsPost.userId,
+          title: schema.bbsPost.title
+        }).from(schema.bbsPost).where(eq(schema.bbsPost.postId, Mention.postId));
         if (Post.toString() === "") {
           continue;
         }
         //Calculate the page number
-        const totalRepliesBefore = (await this.RawDatabase.prepare("SELECT COUNT(*) + 1 AS position FROM bbs_reply WHERE post_id = $1 AND reply_time < (SELECT reply_time FROM bbs_reply WHERE reply_id = $2)").bind(Mention["post_id"], Mention["reply_id"]).run())['results'][0]['position'];
+        const totalRepliesBeforeResult = await this.XMOJDatabase.select({ count: count() }).from(schema.bbsReply).where(and(
+            eq(schema.bbsReply.postId, Mention.postId),
+            lt(schema.bbsReply.replyTime, this.XMOJDatabase.select({replyTime: schema.bbsReply.replyTime}).from(schema.bbsReply).where(eq(schema.bbsReply.replyId, Mention.replyId)))
+        ));
+        const totalRepliesBefore = totalRepliesBeforeResult[0].count + 1;
         const pageNumber = Math.floor(Number(totalRepliesBefore) / 15) + 1;
         ResponseData.MentionList.push({
-          MentionID: Mention["bbs_mention_id"],
-          PostID: Mention["post_id"],
-          PostTitle: Post[0]["title"],
-          MentionTime: Mention["bbs_mention_time"],
+          MentionID: Mention.bbsMentionId,
+          PostID: Mention.postId,
+          PostTitle: Post[0].title,
+          MentionTime: Mention.bbsMentionTime,
           PageNumber: pageNumber
         });
       }
@@ -844,15 +811,17 @@ export class Process {
       const ResponseData = {
         MentionList: new Array<Object>()
       };
-      const Mentions = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message_mention", ["mail_mention_id", "from_user_id", "mail_mention_time"], {
-        to_user_id: this.Username
-      }));
+      const Mentions = await this.XMOJDatabase.select({
+        mailMentionId: schema.shortMessageMention.mailMentionId,
+        fromUserId: schema.shortMessageMention.fromUserId,
+        mailMentionTime: schema.shortMessageMention.mailMentionTime
+      }).from(schema.shortMessageMention).where(eq(schema.shortMessageMention.toUserId, this.Username));
       for (const i in Mentions) {
         const Mention = Mentions[i];
         ResponseData.MentionList.push({
-          MentionID: Mention["mail_mention_id"],
-          FromUserID: Mention["from_user_id"],
-          MentionTime: Mention["mail_mention_time"]
+          MentionID: Mention.mailMentionId,
+          FromUserID: Mention.fromUserId,
+          MentionTime: Mention.mailMentionTime
         });
       }
       return new Result(true, "获得短消息提及列表成功", ResponseData);
@@ -861,46 +830,35 @@ export class Process {
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "MentionID": "number"
       }));
-      const MentionData = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_mention", ["to_user_id"], {
-        bbs_mention_id: Data["MentionID"]
-      }));
+      const MentionData = await this.XMOJDatabase.select({toUserId: schema.bbsMention.toUserId}).from(schema.bbsMention).where(eq(schema.bbsMention.bbsMentionId, Data["MentionID"]));
       if (MentionData.toString() === "") {
         return new Result(false, "未找到提及");
       }
-      if (MentionData[0]["to_user_id"] !== this.Username) {
+      if (MentionData[0].toUserId !== this.Username) {
         return new Result(false, "没有权限阅读此提及");
       }
-      ThrowErrorIfFailed(await this.XMOJDatabase.Delete("bbs_mention", {
-        bbs_mention_id: Data["MentionID"]
-      }));
+      await this.XMOJDatabase.delete(schema.bbsMention).where(eq(schema.bbsMention.bbsMentionId, Data["MentionID"]));
       return new Result(true, "阅读讨论提及成功");
     },
     ReadMailMention: async (Data: object): Promise<Result> => {
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "MentionID": "number"
       }));
-      const MentionData = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message_mention", ["to_user_id"], {
-        mail_mention_id: Data["MentionID"]
-      }));
+      const MentionData = await this.XMOJDatabase.select({toUserId: schema.shortMessageMention.toUserId}).from(schema.shortMessageMention).where(eq(schema.shortMessageMention.mailMentionId, Data["MentionID"]));
       if (MentionData.toString() === "") {
         return new Result(false, "未找到提及");
       }
-      if (MentionData[0]["to_user_id"] !== this.Username) {
+      if (MentionData[0].toUserId !== this.Username) {
         return new Result(false, "没有权限阅读此提及");
       }
-      ThrowErrorIfFailed(await this.XMOJDatabase.Delete("short_message_mention", {
-        mail_mention_id: Data["MentionID"]
-      }));
+      await this.XMOJDatabase.delete(schema.shortMessageMention).where(eq(schema.shortMessageMention.mailMentionId, Data["MentionID"]));
       return new Result(true, "阅读短消息提及成功");
     },
     ReadUserMailMention: async (Data: object): Promise<Result> => {
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "UserID": "string"
       }));
-      ThrowErrorIfFailed(await this.XMOJDatabase.Delete("short_message_mention", {
-        from_user_id: Data["UserID"],
-        to_user_id: this.Username
-      }));
+      await this.XMOJDatabase.delete(schema.shortMessageMention).where(and(eq(schema.shortMessageMention.fromUserId, Data["UserID"]), eq(schema.shortMessageMention.toUserId, this.Username)));
       return new Result(true, "阅读短消息提及成功");
     },
     GetMailList: async (Data: object): Promise<Result> => {
@@ -908,71 +866,55 @@ export class Process {
       const ResponseData = {
         MailList: new Array<Object>()
       };
-      let OtherUsernameList = new Array<string>();
-      let Mails = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message", ["message_from"], {message_to: this.Username}, {}, true));
-      for (const i in Mails) {
-        OtherUsernameList.push(Mails[i]["message_from"]);
-      }
-      Mails = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message", ["message_to"], {message_from: this.Username}, {}, true));
-      for (const i in Mails) {
-        OtherUsernameList.push(Mails[i]["message_to"]);
-      }
+      const fromMails = await this.XMOJDatabase.selectDistinct({messageFrom: schema.shortMessage.messageFrom}).from(schema.shortMessage).where(eq(schema.shortMessage.messageTo, this.Username));
+      const toMails = await this.XMOJDatabase.selectDistinct({messageTo: schema.shortMessage.messageTo}).from(schema.shortMessage).where(eq(schema.shortMessage.messageFrom, this.Username));
+      let OtherUsernameList = [...fromMails.map(m => m.messageFrom), ...toMails.map(m => m.messageTo)];
       OtherUsernameList = Array.from(new Set(OtherUsernameList));
-      for (const i in OtherUsernameList) {
-        const LastMessageFrom = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message", ["content", "send_time", "message_from", "message_to"], {
-          message_from: OtherUsernameList[i],
-          message_to: this.Username
-        }, {
-          Order: "send_time",
-          OrderIncreasing: false,
-          Limit: 1
-        }));
-        const LastMessageTo = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message", ["content", "send_time", "message_from", "message_to"], {
-          message_from: this.Username,
-          message_to: OtherUsernameList[i]
-        }, {
-          Order: "send_time",
-          OrderIncreasing: false,
-          Limit: 1
-        }));
-        let LastMessage: Object;
-        if (LastMessageFrom.toString() === "") {
-          LastMessage = LastMessageTo;
 
-        } else if (LastMessageTo.toString() === "") {
-          LastMessage = LastMessageFrom;
-        } else {
-          LastMessage = LastMessageFrom[0]["send_time"] > LastMessageTo[0]["send_time"] ? LastMessageFrom : LastMessageTo;
-        }
-        if (LastMessage[0]["content"].startsWith("Begin xssmseetee v2 encrypted message")) {
-          try {
-            const bytes = CryptoJS.AES.decrypt(LastMessage[0]["content"].substring(37), this.shortMessageEncryptKey_v1 + LastMessage[0]["message_from"] + LastMessage[0]["message_to"]);
-            LastMessage[0]["content"] = bytes.toString(CryptoJS.enc.Utf8);
-          } catch (error) {
-            LastMessage[0]["content"] = "解密失败: " + error.message;
+      for (const i in OtherUsernameList) {
+        const otherUser = OtherUsernameList[i];
+        const lastMessage = await this.XMOJDatabase.select({
+          content: schema.shortMessage.content,
+          sendTime: schema.shortMessage.sendTime,
+          messageFrom: schema.shortMessage.messageFrom,
+          messageTo: schema.shortMessage.messageTo
+        }).from(schema.shortMessage).where(or(
+            and(eq(schema.shortMessage.messageFrom, otherUser), eq(schema.shortMessage.messageTo, this.Username)),
+            and(eq(schema.shortMessage.messageFrom, this.Username), eq(schema.shortMessage.messageTo, otherUser))
+        )).orderBy(desc(schema.shortMessage.sendTime)).limit(1);
+
+        if (lastMessage.length > 0) {
+          let content = lastMessage[0].content;
+          if (content.startsWith("Begin xssmseetee v2 encrypted message")) {
+            try {
+              const bytes = CryptoJS.AES.decrypt(content.substring(37), this.shortMessageEncryptKey_v1 + lastMessage[0].messageFrom + lastMessage[0].messageTo);
+              content = bytes.toString(CryptoJS.enc.Utf8);
+            } catch (error) {
+              content = "解密失败: " + error.message;
+            }
+          } else if (content.startsWith("Begin xssmseetee v1 encrypted message")) { //deprecated
+            try {
+              const bytes = CryptoJS.AES.decrypt(content.substring(37), this.shortMessageEncryptKey_v1);
+              content = bytes.toString(CryptoJS.enc.Utf8);
+            } catch (error) {
+              content = "解密失败: " + error.message;
+            }
+          } else {
+            content = "无法解密消息, 原始数据: " + content;
           }
-        } else if (LastMessage[0]["content"].startsWith("Begin xssmseetee v1 encrypted message")) { //deprecated
-          try {
-            const bytes = CryptoJS.AES.decrypt(LastMessage[0]["content"].substring(37), this.shortMessageEncryptKey_v1);
-            LastMessage[0]["content"] = bytes.toString(CryptoJS.enc.Utf8);
-          } catch (error) {
-            LastMessage[0]["content"] = "解密失败: " + error.message;
-          }
-        } else {
-          let preContent = LastMessage[0]["content"];
-          LastMessage[0]["content"] = "无法解密消息, 原始数据: " + preContent;
+          const unreadCountResult = await this.XMOJDatabase.select({count: count()}).from(schema.shortMessage).where(and(
+              eq(schema.shortMessage.messageFrom, otherUser),
+              eq(schema.shortMessage.messageTo, this.Username),
+              eq(schema.shortMessage.isRead, 0)
+          ));
+
+          ResponseData.MailList.push({
+            OtherUser: otherUser,
+            LastsMessage: content,
+            SendTime: lastMessage[0].sendTime,
+            UnreadCount: unreadCountResult[0].count
+          });
         }
-        const UnreadCount = ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("short_message", {
-          message_from: OtherUsernameList[i],
-          message_to: this.Username,
-          is_read: 0
-        }));
-        ResponseData.MailList.push({
-          OtherUser: OtherUsernameList[i],
-          LastsMessage: LastMessage[0]["content"],
-          SendTime: LastMessage[0]["send_time"],
-          UnreadCount: UnreadCount["TableSize"]
-        });
       }
       ResponseData.MailList.sort((a, b) => {
         return a["SendTime"] < b["SendTime"] ? 1 : -1;
@@ -1000,15 +942,15 @@ export class Process {
         return new Result(false, "你已被禁言, 无法向非管理员发送短消息");
       }
       let encryptedContent = "Begin xssmseetee v2 encrypted message" + CryptoJS.AES.encrypt(Data["Content"], this.shortMessageEncryptKey_v1 + this.Username + Data["ToUser"]).toString();
-      const MessageID = ThrowErrorIfFailed(await this.XMOJDatabase.Insert("short_message", {
-        message_from: this.Username,
-        message_to: Data["ToUser"],
+      const message = await this.XMOJDatabase.insert(schema.shortMessage).values({
+        messageFrom: this.Username,
+        messageTo: Data["ToUser"],
         content: encryptedContent,
-        send_time: new Date().getTime()
-      }))["InsertID"];
+        sendTime: new Date().getTime()
+      }).returning({insertedId: schema.shortMessage.messageId});
       await this.AddMailMention(this.Username, Data["ToUser"]);
       return new Result(true, "发送短消息成功", {
-        MessageID: MessageID
+        MessageID: message[0].insertedId
       });
     },
     GetMail: async (Data: object): Promise<Result> => {
@@ -1018,87 +960,45 @@ export class Process {
       const ResponseData = {
         Mail: new Array<Object>()
       };
-      let Mails = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message", [], {
-        message_from: Data["OtherUser"],
-        message_to: this.Username
-      }, {
-        Order: "send_time",
-        OrderIncreasing: false
-      }));
+
+      const Mails = await this.XMOJDatabase.select().from(schema.shortMessage).where(or(
+          and(eq(schema.shortMessage.messageFrom, Data["OtherUser"]), eq(schema.shortMessage.messageTo, this.Username)),
+          and(eq(schema.shortMessage.messageFrom, this.Username), eq(schema.shortMessage.messageTo, Data["OtherUser"]))
+      )).orderBy(desc(schema.shortMessage.sendTime));
+
       for (const i in Mails) {
         const Mail = Mails[i];
-        if (Mail["content"].startsWith("Begin xssmseetee v2 encrypted message")) {
+        let content = Mail.content;
+        if (content.startsWith("Begin xssmseetee v2 encrypted message")) {
           try {
-            const bytes = CryptoJS.AES.decrypt(Mail["content"].substring(37), this.shortMessageEncryptKey_v1 + Mail["message_from"] + Mail["message_to"]);
-            Mail["content"] = bytes.toString(CryptoJS.enc.Utf8);
+            const bytes = CryptoJS.AES.decrypt(content.substring(37), this.shortMessageEncryptKey_v1 + Mail.messageFrom + Mail.messageTo);
+            content = bytes.toString(CryptoJS.enc.Utf8);
           } catch (error) {
-            Mail["content"] = "解密失败: " + error.message;
+            content = "解密失败: " + error.message;
           }
-        } else if (Mail["content"].startsWith("Begin xssmseetee v1 encrypted message")) {
+        } else if (content.startsWith("Begin xssmseetee v1 encrypted message")) {
           try {
-            const bytes = CryptoJS.AES.decrypt(Mail["content"].substring(37), this.shortMessageEncryptKey_v1);
-            Mail["content"] = bytes.toString(CryptoJS.enc.Utf8);
+            const bytes = CryptoJS.AES.decrypt(content.substring(37), this.shortMessageEncryptKey_v1);
+            content = bytes.toString(CryptoJS.enc.Utf8);
           } catch (error) {
-            Mail["content"] = "解密失败: " + error.message;
-          }
-        } else {
-          let preContent = Mail["content"];
-          Mail["content"] = "无法解密消息, 原始数据: " + preContent;
-        }
-        ResponseData.Mail.push({
-          MessageID: Mail["message_id"],
-          FromUser: Mail["message_from"],
-          ToUser: Mail["message_to"],
-          Content: Mail["content"],
-          SendTime: Mail["send_time"],
-          IsRead: Mail["is_read"]
-        });
-      }
-      Mails = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message", [], {
-        message_from: this.Username,
-        message_to: Data["OtherUser"]
-      }, {
-        Order: "send_time",
-        OrderIncreasing: false
-      }));
-      for (const i in Mails) {
-        const Mail = Mails[i];
-        if (Mail["content"].startsWith("Begin xssmseetee v2 encrypted message")) {
-          try {
-            const bytes = CryptoJS.AES.decrypt(Mail["content"].substring(37), this.shortMessageEncryptKey_v1 + Mail["message_from"] + Mail["message_to"]);
-            Mail["content"] = bytes.toString(CryptoJS.enc.Utf8);
-          } catch (error) {
-            Mail["content"] = "解密失败: " + error.message;
-          }
-        } else if (Mail["content"].startsWith("Begin xssmseetee v1 encrypted message")) {
-          try {
-            const bytes = CryptoJS.AES.decrypt(Mail["content"].substring(37), this.shortMessageEncryptKey_v1);
-            Mail["content"] = bytes.toString(CryptoJS.enc.Utf8);
-          } catch (error) {
-            Mail["content"] = "解密失败: " + error.message;
+            content = "解密失败: " + error.message;
           }
         } else {
-          let preContent = Mail["content"];
-          Mail["content"] = "无法解密消息, 原始数据: " + preContent;
+          content = "无法解密消息, 原始数据: " + content;
         }
         ResponseData.Mail.push({
-          MessageID: Mail["message_id"],
-          FromUser: Mail["message_from"],
-          ToUser: Mail["message_to"],
-          Content: Mail["content"],
-          SendTime: Mail["send_time"],
-          IsRead: Mail["is_read"]
+          MessageID: Mail.messageId,
+          FromUser: Mail.messageFrom,
+          ToUser: Mail.messageTo,
+          Content: content,
+          SendTime: Mail.sendTime,
+          IsRead: Mail.isRead
         });
       }
-      ResponseData.Mail.sort((a, b) => {
-        return a["SendTime"] < b["SendTime"] ? 1 : -1;
-      });
-      await this.XMOJDatabase.Update("short_message", {
-        is_read: 1
-      }, {
-        message_from: Data["OtherUser"],
-        message_to: this.Username
-      });
+      await this.XMOJDatabase.update(schema.shortMessage).set({isRead: 1}).where(and(
+          eq(schema.shortMessage.messageFrom, Data["OtherUser"]),
+          eq(schema.shortMessage.messageTo, this.Username)
+      ));
       return new Result(true, "获得短消息成功", ResponseData);
     },
     UploadStd: async (Data: object): Promise<Result> => {
@@ -1109,9 +1009,8 @@ export class Process {
       if (ProblemID === 0) {
         return new Result(true, "ProblemID不能为0, 已忽略"); //this isn't really an error, so we return true
       }
-      if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("std_answer", {
-        problem_id: ProblemID
-      }))["TableSize"] !== 0) {
+      const stdCount = await this.XMOJDatabase.select({count: count()}).from(schema.stdAnswer).where(eq(schema.stdAnswer.problemId, ProblemID));
+      if (stdCount[0].count !== 0) {
         let currentStdList = await this.kv.get("std_list");
         console.log(currentStdList.toString().indexOf(Data["ProblemID"].toString()));
         if (currentStdList.split('\n').some(d => d === Data["ProblemID"])) {
@@ -1205,10 +1104,10 @@ export class Process {
           });
         StdCode = '//Code by ' + this.Username + '\n' + StdCode;
       }
-      ThrowErrorIfFailed(await this.XMOJDatabase.Insert("std_answer", {
-        problem_id: Data["ProblemID"],
-        std_code: StdCode
-      }));
+      await this.XMOJDatabase.insert(schema.stdAnswer).values({
+        problemId: Data["ProblemID"],
+        stdCode: StdCode
+      });
       let currentStdList = await this.kv.get("std_list");
       currentStdList = currentStdList + Data["ProblemID"] + "\n";
       this.kv.put("std_list", currentStdList);
@@ -1229,14 +1128,12 @@ export class Process {
       if (await this.GetProblemScoreChecker(Data["ProblemID"]) < 50) {
         return new Result(false, "没有权限获取此标程");
       }
-      const Std = ThrowErrorIfFailed(await this.XMOJDatabase.Select("std_answer", ["std_code"], {
-        problem_id: Data["ProblemID"]
-      }));
+      const Std = await this.XMOJDatabase.select({stdCode: schema.stdAnswer.stdCode}).from(schema.stdAnswer).where(eq(schema.stdAnswer.problemId, Data["ProblemID"]));
       if (Std.toString() === "") {
         return new Result(false, "此题还没有人上传标程");
       }
       return new Result(true, "获得标程成功", {
-        "StdCode": Std[0]["std_code"]
+        "StdCode": Std[0].stdCode
       });
     },
     NewBadge: async (Data: object): Promise<Result> => {
@@ -1246,9 +1143,9 @@ export class Process {
       if (!this.IsAdmin()) {
         return new Result(false, "没有权限创建此标签");
       }
-      ThrowErrorIfFailed(await this.XMOJDatabase.Insert("badge", {
-        user_id: Data["UserID"]
-      }));
+      await this.XMOJDatabase.insert(schema.badge).values({
+        userId: Data["UserID"]
+      });
       return new Result(true, "创建标签成功");
     },
     EditBadge: async (Data: object): Promise<Result> => {
@@ -1261,9 +1158,8 @@ export class Process {
       if (!this.IsAdmin() && Data["UserID"] !== this.Username) {
         return new Result(false, "没有权限编辑此标签");
       }
-      if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("badge", {
-        user_id: Data["UserID"]
-      }))["TableSize"] === 0) {
+      const badgeCount = await this.XMOJDatabase.select({count: count()}).from(schema.badge).where(eq(schema.badge.userId, Data["UserID"]));
+      if (badgeCount[0].count === 0) {
         return new Result(false, "编辑失败，该标签在数据库中不存在");
       }
       if (this.DenyEdit()) {
@@ -1291,29 +1187,29 @@ export class Process {
       if (check[check[0]["label"] == "NEGATIVE" ? 0 : 1]["score"].toFixed() > 0.90) {
         return new Result(false, "您设置的标签内容含有负面词汇，请修改后重试");
       }
-      ThrowErrorIfFailed(await this.XMOJDatabase.Update("badge", {
-        background_color: Data["BackgroundColor"],
+      await this.XMOJDatabase.update(schema.badge).set({
+        backgroundColor: Data["BackgroundColor"],
         color: Data["Color"],
         content: Data["Content"]
-      }, {
-        user_id: Data["UserID"]
-      }));
+      }).where(eq(schema.badge.userId, Data["UserID"]));
       return new Result(true, "编辑标签成功");
     },
     GetBadge: async (Data: object): Promise<Result> => {
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "UserID": "string"
       }));
-      const BadgeData = ThrowErrorIfFailed(await this.XMOJDatabase.Select("badge", ["background_color", "color", "content"], {
-        user_id: Data["UserID"]
-      }));
+      const BadgeData = await this.XMOJDatabase.select({
+        backgroundColor: schema.badge.backgroundColor,
+        color: schema.badge.color,
+        content: schema.badge.content
+      }).from(schema.badge).where(eq(schema.badge.userId, Data["UserID"]));
       if (BadgeData.toString() == "") {
         return new Result(false, "获取标签失败，该标签在数据库中不存在");
       }
       return new Result(true, "获得标签成功", {
-        Content: BadgeData[0]["content"],
-        BackgroundColor: Data["UserID"] === "zhouyiqing" ? "#000000" : BadgeData[0]["background_color"],
-        Color: Data["UserID"] === "zhouyiqing" ? "#ffffff" : BadgeData[0]["color"]
+        Content: BadgeData[0].content,
+        BackgroundColor: Data["UserID"] === "zhouyiqing" ? "#000000" : BadgeData[0].backgroundColor,
+        Color: Data["UserID"] === "zhouyiqing" ? "#ffffff" : BadgeData[0].color
       });
     },
     DeleteBadge: async (Data: object): Promise<Result> => {
@@ -1323,22 +1219,16 @@ export class Process {
       if (!this.IsAdmin()) {
         return new Result(false, "没有权限删除此标签");
       }
-      ThrowErrorIfFailed(await this.XMOJDatabase.Delete("badge", {
-        user_id: Data["UserID"]
-      }));
+      await this.XMOJDatabase.delete(schema.badge).where(eq(schema.badge.userId, Data["UserID"]));
       return new Result(true, "删除标签成功");
     },
     GetBoards: async (Data: object): Promise<Result> => {
       ThrowErrorIfFailed(this.CheckParams(Data, {}));
-      const Boards: Array<Object> = new Array<Object>();
-      const BoardsData = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_board", []));
-      for (const i in BoardsData) {
-        const Board = BoardsData[i];
-        Boards.push({
-          BoardID: Board["board_id"],
-          BoardName: Board["board_name"]
-        });
-      }
+      const BoardsData = await this.XMOJDatabase.select().from(schema.bbsBoard);
+      const Boards = BoardsData.map(Board => ({
+        BoardID: Board.boardId,
+        BoardName: Board.boardName
+      }));
       return new Result(true, "获得板块列表成功", {
         "Boards": Boards
       });
@@ -1469,7 +1359,7 @@ export class Process {
   };
 
   constructor(RequestData: Request, Environment: Environment) {
-    this.XMOJDatabase = new Database(Environment.DB);
+    this.XMOJDatabase = getDrizzle(Environment.DB);
     this.AI = Environment.AI;
     this.kv = Environment.kv;
     this.logs = Environment.logdb;
@@ -1480,7 +1370,6 @@ export class Process {
     this.shortMessageEncryptKey_v1 = Environment.xssmseetee_v1_key;
     this.RequestData = RequestData;
     this.RemoteIP = RequestData.headers.get("CF-Connecting-IP") || "";
-    this.RawDatabase = Environment.DB.withSession();
   }
 
   public async Process(): Promise<Response> {
