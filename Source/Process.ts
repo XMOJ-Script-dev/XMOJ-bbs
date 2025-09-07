@@ -866,8 +866,8 @@ export class Process {
       const ResponseData = {
         MailList: new Array<Object>()
       };
-      const fromMails = await this.XMOJDatabase.selectDistinct({messageFrom: schema.shortMessage.messageFrom}).from(schema.shortMessage).where(eq(schema.shortMessage.messageTo, this.Username));
-      const toMails = await this.XMOJDatabase.selectDistinct({messageTo: schema.shortMessage.messageTo}).from(schema.shortMessage).where(eq(schema.shortMessage.messageFrom, this.Username));
+      const fromMails = await this.XMOJDatabase.select({messageFrom: schema.shortMessage.messageFrom}).from(schema.shortMessage).where(eq(schema.shortMessage.messageTo, this.Username));
+      const toMails = await this.XMOJDatabase.select({messageTo: schema.shortMessage.messageTo}).from(schema.shortMessage).where(eq(schema.shortMessage.messageFrom, this.Username));
       let OtherUsernameList = [...fromMails.map(m => m.messageFrom), ...toMails.map(m => m.messageTo)];
       OtherUsernameList = Array.from(new Set(OtherUsernameList));
 
