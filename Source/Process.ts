@@ -26,7 +26,7 @@ import CryptoJS from "crypto-js";
 import {AnalyticsEngineDataset, D1Database, KVNamespace} from "@cloudflare/workers-types";
 import {getDrizzle} from "./Drizzle";
 import * as schema from "./schema";
-import {and, eq, lt, desc, count, ne, or} from "drizzle-orm";
+import {and, eq, lt, desc, count, ne, or, asc} from "drizzle-orm";
 import {DrizzleD1Database} from "drizzle-orm/d1";
 
 interface Environment {
@@ -622,7 +622,7 @@ export class Process {
         ResponseData.Lock.LockTime = Locked[0]["lockTime"];
       }
 
-      const Reply = await this.XMOJDatabase.select().from(schema.bbsReply).where(eq(schema.bbsReply.postId, Data["PostID"])).orderBy(desc(schema.bbsReply.replyTime)).limit(15).offset((Data["Page"] - 1) * 15);
+      const Reply = await this.XMOJDatabase.select().from(schema.bbsReply).where(eq(schema.bbsReply.postId, Data["PostID"])).orderBy(asc(schema.bbsReply.replyTime)).limit(15).offset((Data["Page"] - 1) * 15);
       for (const i in Reply) {
         let ReplyItem = Reply[i];
         let processedContent: string = ReplyItem.content;
