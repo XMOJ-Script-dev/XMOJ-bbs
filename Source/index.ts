@@ -16,8 +16,10 @@
  */
 
 import {Process} from "./Process";
-import {Database} from "./Database";
 import {D1Database, KVNamespace, AnalyticsEngineDataset} from "@cloudflare/workers-types";
+import {getDrizzle} from "./Drizzle";
+import {shortMessage, phpsessid} from "./schema";
+import {and, eq, lt} from "drizzle-orm";
 
 interface Environment {
   API_TOKEN: string;
@@ -39,24 +41,15 @@ export default {
   async scheduled(Event: any, Environment: { DB: D1Database; }, Context: {
     waitUntil: (arg0: Promise<void>) => void;
   }) {
-    let XMOJDatabase = new Database(Environment.DB);
+    const db = getDrizzle(Environment.DB);
     Context.waitUntil(new Promise<void>(async (Resolve) => {
-      await XMOJDatabase.Delete("short_message", {
-        "send_time": {
-          "Operator": "<=",
-          "Value": new Date().getTime() - 1000 * 60 * 60 * 24 * 5
-        },
-        "is_read": {
-          "Operator": "=",
-          "Value": 1
-        }
-      });
-      await XMOJDatabase.Delete("phpsessid", {
-        "create_time": {
-          "Operator": "<=",
-          "Value": new Date().getTime() - 1000 * 60 * 60 * 24 * 5
-        }
-      });
+      await db.delete(shortMessage).where(and(
+          lt(shortMessage.sendTime, new Date().getTime() - 1000 * 60 * 60 * 24 * 5),
+          eq(shortMessage.isRead, 1)
+      ));
+      await db.delete(phpsessid).where(
+          lt(phpsessid.createTime, new Date().getTime() - 1000 * 60 * 60 * 24 * 5)
+      );
       Resolve();
     }));
   },

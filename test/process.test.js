@@ -52,13 +52,36 @@ function createProcess(mocks = {}) {
     });
     const proc = new Process(req, env);
 
-    // Mock Database methods
+    // Mock Drizzle client
     proc.XMOJDatabase = {
-        GetTableSize: test.mock.fn(db_mocks.GetTableSize || (async () => new Result(true, "", { TableSize: 0 }))),
-        Select: test.mock.fn(db_mocks.Select || (async () => new Result(true, "", []))),
-        Insert: test.mock.fn(db_mocks.Insert || (async () => new Result(true, "", { InsertID: 1 }))),
-        Update: test.mock.fn(db_mocks.Update || (async () => new Result(true, ""))),
-        Delete: test.mock.fn(db_mocks.Delete || (async () => new Result(true, ""))),
+        select: test.mock.fn((...args) => ({
+            from: test.mock.fn(() => ({
+                where: test.mock.fn(() => (db_mocks.select ? db_mocks.select() : [])),
+                orderBy: test.mock.fn(() => ({
+                    limit: test.mock.fn(() => ({
+                        offset: test.mock.fn(() => (db_mocks.select ? db_mocks.select() : []))
+                    }))
+                }))
+            }))
+        })),
+        selectDistinct: test.mock.fn((...args) => ({
+            from: test.mock.fn(() => ({
+                where: test.mock.fn(() => (db_mocks.selectDistinct ? db_mocks.selectDistinct() : []))
+            }))
+        })),
+        insert: test.mock.fn(() => ({
+            values: test.mock.fn(() => ({
+                returning: test.mock.fn(() => (db_mocks.insert ? db_mocks.insert() : [{ "insertedId": 1 }]))
+            }))
+        })),
+        update: test.mock.fn(() => ({
+            set: test.mock.fn(() => ({
+                where: test.mock.fn(() => (db_mocks.update ? db_mocks.update() : {}))
+            }))
+        })),
+        delete: test.mock.fn(() => ({
+            where: test.mock.fn(() => (db_mocks.delete ? db_mocks.delete() : {}))
+        })),
     };
 
     // Mock internal Fetch property
@@ -148,10 +171,10 @@ test('DenyEdit returns false for allowed users', () => {
 test('CheckToken succeeds with valid session from DB', async () => {
     const proc = createProcess({
         db: {
-            Select: async () => new Result(true, '', [{
-                user_id: 'testuser',
-                create_time: new Date().getTime()
-            }])
+            select: () => [{
+                userId: 'testuser',
+                createTime: new Date().getTime()
+            }]
         }
     });
     const result = await proc.CheckToken({ SessionID: 'testsession', Username: 'testuser' });
@@ -162,11 +185,11 @@ test('CheckToken succeeds with valid session from DB', async () => {
 test('CheckToken fails for expired session from DB', async () => {
     const proc = createProcess({
         db: {
-            Select: async () => new Result(true, '', [{
-                user_id: 'testuser',
-                create_time: new Date().getTime() - 1000 * 60 * 60 * 24 * 8
-            }]),
-            Delete: async () => new Result(true, '')
+            select: () => [{
+                userId: 'testuser',
+                createTime: new Date().getTime() - 1000 * 60 * 60 * 24 * 8
+            }],
+            delete: () => {}
         }
     });
     // This will fail because the token is expired and it will try to fetch from the network
@@ -175,11 +198,18 @@ test('CheckToken fails for expired session from DB', async () => {
 });
 
 test('CheckToken succeeds with valid session from fetch', async () => {
+    let selectCallCount = 0;
+    const selectMock = () => {
+        if (selectCallCount === 0) {
+            selectCallCount++;
+            return [];
+        }
+        return [{count: 0}];
+    };
     const proc = createProcess({
         db: {
-            Select: async () => new Result(true, '', []),
-            GetTableSize: async () => new Result(true, '', { TableSize: 0 }),
-            Insert: async () => new Result(true, '', { InsertID: 1 })
+            select: selectMock,
+            insert: () => [{ "insertedId": 1 }]
         },
         fetch: async () => new Response("user_id=testuser'")
     });
@@ -191,7 +221,7 @@ test('CheckToken succeeds with valid session from fetch', async () => {
 test('CheckToken fails when fetch fails', async () => {
     const proc = createProcess({
         db: {
-            Select: async () => new Result(true, '', [])
+            select: () => []
         },
         fetch: async () => { throw new Error('Network error') }
     });
@@ -203,7 +233,7 @@ test('CheckToken fails when fetch fails', async () => {
 test('CheckToken fails when session and username do not match', async () => {
     const proc = createProcess({
         db: {
-            Select: async () => new Result(true, '', [])
+            select: () => []
         },
         fetch: async () => new Response("user_id=anotheruser'")
     });
@@ -215,7 +245,7 @@ test('CheckToken fails when session and username do not match', async () => {
 test('IfUserExist returns true if user in DB', async () => {
     const proc = createProcess({
         db: {
-            GetTableSize: async () => new Result(true, '', { TableSize: 1 })
+            select: () => [{count: 1}]
         }
     });
     const result = await proc.IfUserExist('testuser');
@@ -226,7 +256,7 @@ test('IfUserExist returns true if user in DB', async () => {
 test('IfUserExist returns true if user found via fetch', async () => {
     const proc = createProcess({
         db: {
-            GetTableSize: async () => new Result(true, '', { TableSize: 0 })
+            select: () => [{count: 0}]
         },
         fetch: async () => new Response('some content')
     });
@@ -238,7 +268,7 @@ test('IfUserExist returns true if user found via fetch', async () => {
 test('IfUserExist returns false if user not found', async () => {
     const proc = createProcess({
         db: {
-            GetTableSize: async () => new Result(true, '', { TableSize: 0 })
+            select: () => [{count: 0}]
         },
         fetch: async () => new Response('No such User!')
     });
@@ -250,7 +280,7 @@ test('IfUserExist returns false if user not found', async () => {
 test('IfUserExist returns false on fetch error', async () => {
     const proc = createProcess({
         db: {
-            GetTableSize: async () => new Result(true, '', { TableSize: 0 })
+            select: () => [{count: 0}]
         },
         fetch: async () => { throw new Error('Network error') }
     });
