@@ -17,7 +17,8 @@
 
 import {Process} from "./Process";
 import {Database} from "./Database";
-import {D1Database, KVNamespace, AnalyticsEngineDataset} from "@cloudflare/workers-types";
+import {NotificationManager} from "./NotificationManager";
+import {D1Database, KVNamespace, AnalyticsEngineDataset, DurableObjectNamespace} from "@cloudflare/workers-types";
 
 interface Environment {
   API_TOKEN: string;
@@ -29,10 +30,65 @@ interface Environment {
   DB: D1Database;
   logdb: AnalyticsEngineDataset;
   AI: any;
+  NOTIFICATIONS: DurableObjectNamespace;
 }
+
+const ParseUsernameFromProfile = (profilePage: string): string => {
+  let username = profilePage.substring(profilePage.indexOf("user_id=") + 8);
+  username = username.substring(0, username.indexOf("'"));
+  return username;
+};
+
+const ValidateSession = async (sessionID: string): Promise<string> => {
+  const responseText = await fetch(new Request("https://www.xmoj.tech/template/bs3/profile.php", {
+    headers: {
+      "Cookie": "PHPSESSID=" + sessionID,
+      "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Safari/605.1.15",
+      "accept": "*/*",
+      "accept-language": "en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7",
+      "permissions-policy": "browsing-topics=()",
+      "sec-ch-ua-platform": "\"macOS\"",
+      "sec-fetch-dest": "empty",
+      "sec-fetch-mode": "cors",
+      "sec-fetch-site": "same-origin"
+    },
+    method: "GET"
+  })).then((response) => {
+    return response.text();
+  }).catch(() => {
+    return "";
+  });
+
+  if (responseText.indexOf("user_id=") === -1) {
+    return "";
+  }
+  return ParseUsernameFromProfile(responseText);
+};
+
+export {NotificationManager};
 
 export default {
   async fetch(RequestData: Request, Environment: Environment, Context: any) {
+    const url = new URL(RequestData.url);
+    if (url.pathname === "/ws/notifications") {
+      const sessionID = url.searchParams.get("SessionID") || "";
+      if (sessionID === "") {
+        return new Response("Missing SessionID", {status: 401});
+      }
+
+      const userId = await ValidateSession(sessionID);
+      if (userId === "") {
+        return new Response("Unauthorized", {status: 401});
+      }
+
+      const notificationObjectID = Environment.NOTIFICATIONS.idFromName(userId);
+      const notificationStub = Environment.NOTIFICATIONS.get(notificationObjectID);
+      const forwardURL = new URL(RequestData.url);
+      forwardURL.searchParams.set("userId", userId);
+      forwardURL.searchParams.delete("SessionID");
+      return await notificationStub.fetch(new Request(forwardURL.toString(), RequestData));
+    }
+
     let Processor = new Process(RequestData, Environment);
     return await Processor.Process();
   },

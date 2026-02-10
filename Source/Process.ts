@@ -24,7 +24,7 @@ import {CheerioAPI, load} from "cheerio";
 import * as sqlstring from 'sqlstring';
 // @ts-ignore
 import CryptoJS from "crypto-js";
-import {AnalyticsEngineDataset, D1Database, D1DatabaseSession, KVNamespace} from "@cloudflare/workers-types";
+import {AnalyticsEngineDataset, D1Database, D1DatabaseSession, DurableObjectNamespace, KVNamespace} from "@cloudflare/workers-types";
 
 interface Environment {
   API_TOKEN: string;
@@ -36,6 +36,7 @@ interface Environment {
   DB: D1Database;
   logdb: AnalyticsEngineDataset;
   AI: any;
+  NOTIFICATIONS: DurableObjectNamespace;
 }
 
 // noinspection JSUnusedLocalSymbols
@@ -64,6 +65,7 @@ export class Process {
   private readonly RemoteIP: string;
   private XMOJDatabase: Database;
   private readonly logs: AnalyticsEngineDataset;
+  private readonly notifications: DurableObjectNamespace;
   private RequestData: Request;
   private Fetch = async (RequestURL: URL): Promise<Response> => {
     Output.Log("Fetch: " + RequestURL.toString());
@@ -361,10 +363,29 @@ export class Process {
     return result;
   }
 
+
+  /**
+   * Push a non-critical realtime notification to the websocket Durable Object.
+   * Failures are intentionally swallowed to avoid affecting main request flow.
+   */
+  private pushNotification = async (userId: string, notification: object): Promise<void> => {
+    try {
+      const id = this.notifications.idFromName(userId);
+      const stub = this.notifications.get(id);
+      await stub.fetch(new Request("https://dummy/notify", {
+        method: "POST",
+        body: JSON.stringify({userId, notification})
+      }));
+    } catch (_) {
+      // Non-critical path: mention persistence already succeeded.
+    }
+  };
+
   private AddBBSMention = async (ToUserID: string, PostID: number, ReplyID: number): Promise<void> => {
     if (ToUserID === this.Username) {
       return;
     }
+    const mentionTime = new Date().getTime();
     if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_mention", {
       to_user_id: ToUserID,
       post_id: PostID
@@ -372,20 +393,26 @@ export class Process {
       ThrowErrorIfFailed(await this.XMOJDatabase.Insert("bbs_mention", {
         to_user_id: ToUserID,
         post_id: PostID,
-        bbs_mention_time: new Date().getTime(),
+        bbs_mention_time: mentionTime,
         reply_id: ReplyID
       }));
     } else {
       ThrowErrorIfFailed(await this.XMOJDatabase.Update("bbs_mention", {
-        bbs_mention_time: new Date().getTime()
+        bbs_mention_time: mentionTime
       }, {
         to_user_id: ToUserID,
         post_id: PostID,
         reply_id: ReplyID
       }));
     }
+
+    await this.pushNotification(ToUserID, {
+      type: "bbs_mention",
+      data: {PostID, ReplyID, MentionTime: mentionTime}
+    });
   };
   private AddMailMention = async (FromUserID: string, ToUserID: string): Promise<void> => {
+    const mentionTime = new Date().getTime();
     if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("short_message_mention", {
       from_user_id: FromUserID,
       to_user_id: ToUserID
@@ -393,16 +420,21 @@ export class Process {
       ThrowErrorIfFailed(await this.XMOJDatabase.Insert("short_message_mention", {
         from_user_id: FromUserID,
         to_user_id: ToUserID,
-        mail_mention_time: new Date().getTime()
+        mail_mention_time: mentionTime
       }));
     } else {
       ThrowErrorIfFailed(await this.XMOJDatabase.Update("short_message_mention", {
-        mail_mention_time: new Date().getTime()
+        mail_mention_time: mentionTime
       }, {
         from_user_id: FromUserID,
         to_user_id: ToUserID
       }));
     }
+
+    await this.pushNotification(ToUserID, {
+      type: "mail_mention",
+      data: {FromUserID, MentionTime: mentionTime}
+    });
   };
   private ProcessFunctions = {
     NewPost: async (Data: object): Promise<Result> => {
@@ -1473,6 +1505,7 @@ export class Process {
     this.AI = Environment.AI;
     this.kv = Environment.kv;
     this.logs = Environment.logdb;
+    this.notifications = Environment.NOTIFICATIONS;
     this.CaptchaSecretKey = Environment.CaptchaSecretKey;
     this.GithubImagePAT = Environment.GithubImagePAT;
     this.ACCOUNT_ID = Environment.ACCOUNT_ID;

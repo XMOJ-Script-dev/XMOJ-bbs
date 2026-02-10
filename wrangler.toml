@@ -22,3 +22,12 @@ binding = "AI"
 
 [observability]
 enabled = true
+
+
+[[durable_objects.bindings]]
+name = "NOTIFICATIONS"
+class_name = "NotificationManager"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["NotificationManager"]

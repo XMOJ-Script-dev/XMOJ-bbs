@@ -7,4 +7,5 @@ interface Env {
 	DB: D1Database;
 	logdb: AnalyticsEngineDataset;
 	AI: Ai;
+	NOTIFICATIONS: DurableObjectNamespace;
 }
