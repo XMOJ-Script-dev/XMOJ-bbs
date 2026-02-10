@@ -23,11 +23,11 @@
  */
 export class NotificationManager {
   private readonly state: DurableObjectState;
-  private readonly sessions: Map<string, WebSocket>;
+  private readonly sessions: Map<string, Set<WebSocket>>;
 
   constructor(state: DurableObjectState, _env: unknown) {
     this.state = state;
-    this.sessions = new Map<string, WebSocket>();
+    this.sessions = new Map<string, Set<WebSocket>>();
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -36,9 +36,14 @@ export class NotificationManager {
     // Internal push channel from Process.ts.
     if (url.pathname === "/notify") {
       const body = await request.json() as { userId: string; notification: object };
-      const websocket = this.sessions.get(body.userId);
-      if (websocket && websocket.readyState === 1) {
-        websocket.send(JSON.stringify(body.notification));
+      const userSessions = this.sessions.get(body.userId);
+      if (userSessions) {
+        const payload = JSON.stringify(body.notification);
+        for (const websocket of userSessions) {
+          if (websocket.readyState === 1) {
+            websocket.send(payload);
+          }
+        }
       }
       return new Response("OK");
     }
@@ -62,18 +67,34 @@ export class NotificationManager {
 
   private handleSession(websocket: WebSocket, userId: string): void {
     websocket.accept();
-    this.sessions.set(userId, websocket);
+    let userSessions = this.sessions.get(userId);
+    if (!userSessions) {
+      userSessions = new Set<WebSocket>();
+      this.sessions.set(userId, userSessions);
+    }
+    userSessions.add(websocket);
 
     websocket.send(JSON.stringify({
       type: "connected",
       timestamp: Date.now()
     }));
 
+    const removeSession = () => {
+      const sessions = this.sessions.get(userId);
+      if (!sessions) {
+        return;
+      }
+      sessions.delete(websocket);
+      if (sessions.size === 0) {
+        this.sessions.delete(userId);
+      }
+    };
+
     websocket.addEventListener("close", () => {
-      this.sessions.delete(userId);
+      removeSession();
     });
     websocket.addEventListener("error", () => {
-      this.sessions.delete(userId);
+      removeSession();
     });
     websocket.addEventListener("message", (event: MessageEvent) => {
       try {
