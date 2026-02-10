@@ -39,6 +39,10 @@ const ParseUsernameFromProfile = (profilePage: string): string => {
   return username;
 };
 
+const IsValidSessionID = (sessionID: string): boolean => {
+  return /^[A-Za-z0-9,-]+$/.test(sessionID);
+};
+
 const ValidateSession = async (sessionID: string): Promise<string> => {
   const responseText = await fetch(new Request("https://www.xmoj.tech/template/bs3/profile.php", {
     headers: {
@@ -74,6 +78,9 @@ export default {
       const sessionID = url.searchParams.get("SessionID") || "";
       if (sessionID === "") {
         return new Response("Missing SessionID", {status: 401});
+      }
+      if (!IsValidSessionID(sessionID)) {
+        return new Response("Invalid SessionID", {status: 401});
       }
 
       const userId = await ValidateSession(sessionID);

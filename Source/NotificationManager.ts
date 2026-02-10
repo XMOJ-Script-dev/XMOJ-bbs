@@ -18,8 +18,9 @@
 /**
  * Durable Object used to manage notification WebSocket sessions per user.
  *
- * A single object instance can keep multiple active sockets in memory and also
- * receive internal push events via `stub.fetch("https://dummy/notify")`.
+ * This implementation uses the WebSocket Hibernation API via
+ * `state.acceptWebSocket(...)` so idle websocket connections do not keep the DO
+ * actively running.
  */
 export class NotificationManager {
   private readonly state: DurableObjectState;
@@ -28,6 +29,65 @@ export class NotificationManager {
   constructor(state: DurableObjectState, _env: unknown) {
     this.state = state;
     this.sessions = new Map<string, Set<WebSocket>>();
+    this.rebuildSessionIndex();
+  }
+
+  /**
+   * Rebuild in-memory session index from hibernated sockets on cold start.
+   */
+  private rebuildSessionIndex(): void {
+    for (const websocket of this.state.getWebSockets()) {
+      const userId = this.getSocketUserId(websocket);
+      if (!userId) {
+        continue;
+      }
+      this.addSession(userId, websocket);
+    }
+  }
+
+  /**
+   * Store a socket in the per-user set (supports multi-tab / multi-device).
+   */
+  private addSession(userId: string, websocket: WebSocket): void {
+    let userSessions = this.sessions.get(userId);
+    if (!userSessions) {
+      userSessions = new Set<WebSocket>();
+      this.sessions.set(userId, userSessions);
+    }
+    userSessions.add(websocket);
+  }
+
+  /**
+   * Remove a socket from the in-memory index and cleanup empty user entries.
+   */
+  private removeSession(userId: string, websocket: WebSocket): void {
+    const userSessions = this.sessions.get(userId);
+    if (!userSessions) {
+      return;
+    }
+
+    userSessions.delete(websocket);
+    if (userSessions.size === 0) {
+      this.sessions.delete(userId);
+    }
+  }
+
+  /**
+   * Read the socket's bound user ID from hibernation attachment metadata.
+   */
+  private getSocketUserId(websocket: WebSocket): string {
+    try {
+      const attachment = (websocket as unknown as { deserializeAttachment: () => unknown }).deserializeAttachment();
+      if (attachment && typeof attachment === "object" && "userId" in (attachment as object)) {
+        const userId = (attachment as { userId?: unknown }).userId;
+        if (typeof userId === "string" && userId !== "") {
+          return userId;
+        }
+      }
+    } catch (_) {
+      // Ignore attachment parse failures and treat socket as anonymous.
+    }
+    return "";
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -60,52 +120,42 @@ export class NotificationManager {
 
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
-    this.handleSession(server, userId);
 
-    return new Response(null, {status: 101, webSocket: client});
-  }
+    // Hibernation API: allow DO to sleep while websocket is idle.
+    this.state.acceptWebSocket(server);
+    (server as unknown as { serializeAttachment: (value: unknown) => void }).serializeAttachment({userId});
+    this.addSession(userId, server);
 
-  private handleSession(websocket: WebSocket, userId: string): void {
-    websocket.accept();
-    let userSessions = this.sessions.get(userId);
-    if (!userSessions) {
-      userSessions = new Set<WebSocket>();
-      this.sessions.set(userId, userSessions);
-    }
-    userSessions.add(websocket);
-
-    websocket.send(JSON.stringify({
+    server.send(JSON.stringify({
       type: "connected",
       timestamp: Date.now()
     }));
 
-    const removeSession = () => {
-      const sessions = this.sessions.get(userId);
-      if (!sessions) {
-        return;
-      }
-      sessions.delete(websocket);
-      if (sessions.size === 0) {
-        this.sessions.delete(userId);
-      }
-    };
+    return new Response(null, {status: 101, webSocket: client});
+  }
 
-    websocket.addEventListener("close", () => {
-      removeSession();
-    });
-    websocket.addEventListener("error", () => {
-      removeSession();
-    });
-    websocket.addEventListener("message", (event: MessageEvent) => {
-      try {
-        const message = JSON.parse(event.data as string);
-        if (message.type === "ping") {
-          websocket.send(JSON.stringify({type: "pong"}));
-        }
-      } catch (_) {
-        // Ignore malformed client messages to keep the connection alive.
+  webSocketMessage(websocket: WebSocket, message: string | ArrayBuffer): void {
+    try {
+      const parsedMessage = JSON.parse(typeof message === "string" ? message : new TextDecoder().decode(message));
+      if (parsedMessage.type === "ping") {
+        websocket.send(JSON.stringify({type: "pong"}));
       }
-    });
+    } catch (_) {
+      // Ignore malformed client messages to keep the connection alive.
+    }
+  }
+
+  webSocketClose(websocket: WebSocket): void {
+    const userId = this.getSocketUserId(websocket);
+    if (userId !== "") {
+      this.removeSession(userId, websocket);
+    }
+  }
+
+  webSocketError(websocket: WebSocket): void {
+    const userId = this.getSocketUserId(websocket);
+    if (userId !== "") {
+      this.removeSession(userId, websocket);
+    }
   }
 }
-
