@@ -22,13 +22,31 @@
  * `state.acceptWebSocket(...)` so idle websocket connections do not keep the DO
  * actively running.
  */
+interface NotificationAttachment {
+  userId: string;
+  connectedAt: number;
+}
+
+interface HibernationWebSocket extends WebSocket {
+  serializeAttachment: (value: NotificationAttachment) => void;
+  deserializeAttachment: () => NotificationAttachment | null;
+}
+
+interface NotificationEnvironment {
+  NOTIFICATION_PUSH_TOKEN?: string;
+}
+
 export class NotificationManager {
   private readonly state: DurableObjectState;
   private readonly sessions: Map<string, Set<WebSocket>>;
+  private readonly pushToken: string;
+  private static readonly MAX_SESSIONS_PER_USER = 20;
 
-  constructor(state: DurableObjectState, _env: unknown) {
+  constructor(state: DurableObjectState, env: NotificationEnvironment) {
     this.state = state;
     this.sessions = new Map<string, Set<WebSocket>>();
+    this.pushToken = env.NOTIFICATION_PUSH_TOKEN || "";
+    // `state.getWebSockets()` is synchronous in the current Cloudflare runtime.
     this.rebuildSessionIndex();
   }
 
@@ -47,6 +65,9 @@ export class NotificationManager {
 
   /**
    * Store a socket in the per-user set (supports multi-tab / multi-device).
+   *
+   * To avoid abuse, each user is capped at MAX_SESSIONS_PER_USER sockets. When
+   * exceeded, the oldest socket is closed and removed.
    */
   private addSession(userId: string, websocket: WebSocket): void {
     let userSessions = this.sessions.get(userId);
@@ -54,7 +75,20 @@ export class NotificationManager {
       userSessions = new Set<WebSocket>();
       this.sessions.set(userId, userSessions);
     }
+
     userSessions.add(websocket);
+    while (userSessions.size > NotificationManager.MAX_SESSIONS_PER_USER) {
+      const oldestSession = userSessions.values().next().value as WebSocket | undefined;
+      if (!oldestSession) {
+        break;
+      }
+      this.removeSession(userId, oldestSession);
+      try {
+        oldestSession.close(1008, "Too many websocket sessions");
+      } catch (_) {
+        // Best effort close.
+      }
+    }
   }
 
   /**
@@ -77,12 +111,9 @@ export class NotificationManager {
    */
   private getSocketUserId(websocket: WebSocket): string {
     try {
-      const attachment = (websocket as unknown as { deserializeAttachment: () => unknown }).deserializeAttachment();
-      if (attachment && typeof attachment === "object" && "userId" in (attachment as object)) {
-        const userId = (attachment as { userId?: unknown }).userId;
-        if (typeof userId === "string" && userId !== "") {
-          return userId;
-        }
+      const attachment = (websocket as HibernationWebSocket).deserializeAttachment();
+      if (attachment && attachment.userId !== "") {
+        return attachment.userId;
       }
     } catch (_) {
       // Ignore attachment parse failures and treat socket as anonymous.
@@ -95,6 +126,10 @@ export class NotificationManager {
 
     // Internal push channel from Process.ts.
     if (url.pathname === "/notify") {
+      if (this.pushToken === "" || request.headers.get("X-Notification-Token") !== this.pushToken) {
+        return new Response("Unauthorized", {status: 401});
+      }
+
       const body = await request.json() as { userId: string; notification: object };
       const userSessions = this.sessions.get(body.userId);
       if (userSessions) {
@@ -123,7 +158,10 @@ export class NotificationManager {
 
     // Hibernation API: allow DO to sleep while websocket is idle.
     this.state.acceptWebSocket(server);
-    (server as unknown as { serializeAttachment: (value: unknown) => void }).serializeAttachment({userId});
+    (server as HibernationWebSocket).serializeAttachment({
+      userId,
+      connectedAt: Date.now()
+    });
     this.addSession(userId, server);
 
     server.send(JSON.stringify({
@@ -156,6 +194,12 @@ export class NotificationManager {
     const userId = this.getSocketUserId(websocket);
     if (userId !== "") {
       this.removeSession(userId, websocket);
+    }
+
+    try {
+      websocket.close(1011, "Socket error");
+    } catch (_) {
+      // Socket may already be closed by runtime/client.
     }
   }
 }

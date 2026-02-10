@@ -37,6 +37,7 @@ interface Environment {
   logdb: AnalyticsEngineDataset;
   AI: any;
   NOTIFICATIONS: DurableObjectNamespace;
+  NOTIFICATION_PUSH_TOKEN: string;
 }
 
 // noinspection JSUnusedLocalSymbols
@@ -66,6 +67,7 @@ export class Process {
   private XMOJDatabase: Database;
   private readonly logs: AnalyticsEngineDataset;
   private readonly notifications: DurableObjectNamespace;
+  private readonly notificationPushToken: string;
   private RequestData: Request;
   private Fetch = async (RequestURL: URL): Promise<Response> => {
     Output.Log("Fetch: " + RequestURL.toString());
@@ -374,6 +376,9 @@ export class Process {
       const stub = this.notifications.get(id);
       await stub.fetch(new Request("https://dummy/notify", {
         method: "POST",
+        headers: {
+          "X-Notification-Token": this.notificationPushToken
+        },
         body: JSON.stringify({userId, notification})
       }));
     } catch (_) {
@@ -1506,6 +1511,7 @@ export class Process {
     this.kv = Environment.kv;
     this.logs = Environment.logdb;
     this.notifications = Environment.NOTIFICATIONS;
+    this.notificationPushToken = Environment.NOTIFICATION_PUSH_TOKEN;
     this.CaptchaSecretKey = Environment.CaptchaSecretKey;
     this.GithubImagePAT = Environment.GithubImagePAT;
     this.ACCOUNT_ID = Environment.ACCOUNT_ID;

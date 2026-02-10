@@ -31,3 +31,7 @@ class_name = "NotificationManager"
 [[migrations]]
 tag = "v1"
 new_classes = ["NotificationManager"]
+
+
+[vars]
+NOTIFICATION_PUSH_TOKEN = "development-notification-token"

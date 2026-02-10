@@ -31,6 +31,7 @@ interface Environment {
   logdb: AnalyticsEngineDataset;
   AI: any;
   NOTIFICATIONS: DurableObjectNamespace;
+  NOTIFICATION_PUSH_TOKEN: string;
 }
 
 const ParseUsernameFromProfile = (profilePage: string): string => {
@@ -39,7 +40,7 @@ const ParseUsernameFromProfile = (profilePage: string): string => {
   return username;
 };
 
-const IsValidSessionID = (sessionID: string): boolean => {
+const isValidSessionID = (sessionID: string): boolean => {
   return /^[A-Za-z0-9,-]+$/.test(sessionID);
 };
 
@@ -79,7 +80,7 @@ export default {
       if (sessionID === "") {
         return new Response("Missing SessionID", {status: 401});
       }
-      if (!IsValidSessionID(sessionID)) {
+      if (!isValidSessionID(sessionID)) {
         return new Response("Invalid SessionID", {status: 401});
       }
 

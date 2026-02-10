@@ -8,4 +8,5 @@ interface Env {
 	logdb: AnalyticsEngineDataset;
 	AI: Ai;
 	NOTIFICATIONS: DurableObjectNamespace;
+	NOTIFICATION_PUSH_TOKEN: string;
 }

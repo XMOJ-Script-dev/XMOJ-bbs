@@ -45,6 +45,7 @@ function createProcess(mocks = {}) {
         AI: {
             run: test.mock.fn(ai_mocks.run || (async () => ({})))
         },
+        NOTIFICATION_PUSH_TOKEN: 'test-notification-token',
     };
 
     const req = req_mock || new Request('https://example.com', {
