@@ -391,16 +391,18 @@ export class Process {
       return;
     }
     const mentionTime = new Date().getTime();
+    let mentionID = 0;
     if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_mention", {
       to_user_id: ToUserID,
       post_id: PostID
     }))["TableSize"] === 0) {
-      ThrowErrorIfFailed(await this.XMOJDatabase.Insert("bbs_mention", {
+      const insertResult = ThrowErrorIfFailed(await this.XMOJDatabase.Insert("bbs_mention", {
         to_user_id: ToUserID,
         post_id: PostID,
         bbs_mention_time: mentionTime,
         reply_id: ReplyID
       }));
+      mentionID = insertResult["InsertID"];
     } else {
       ThrowErrorIfFailed(await this.XMOJDatabase.Update("bbs_mention", {
         bbs_mention_time: mentionTime
@@ -409,24 +411,46 @@ export class Process {
         post_id: PostID,
         reply_id: ReplyID
       }));
+      const mentionData = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_mention", ["bbs_mention_id"], {
+        to_user_id: ToUserID,
+        post_id: PostID,
+        reply_id: ReplyID
+      }));
+      if (mentionData.toString() !== "") {
+        mentionID = mentionData[0]["bbs_mention_id"];
+      }
     }
+
+    const postData = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_post", ["title"], {post_id: PostID}));
+    const postTitle = postData.toString() === "" ? "" : postData[0]["title"];
+    const totalRepliesBefore = (await this.RawDatabase.prepare("SELECT COUNT(*) + 1 AS position FROM bbs_reply WHERE post_id = $1 AND reply_time < (SELECT reply_time FROM bbs_reply WHERE reply_id = $2)").bind(PostID, ReplyID).run())["results"][0]["position"];
+    const pageNumber = Math.floor(Number(totalRepliesBefore) / 15) + 1;
 
     await this.pushNotification(ToUserID, {
       type: "bbs_mention",
-      data: {PostID, ReplyID, MentionTime: mentionTime}
+      data: {
+        MentionID: mentionID,
+        PostID,
+        ReplyID,
+        PostTitle: postTitle,
+        MentionTime: mentionTime,
+        PageNumber: pageNumber
+      }
     });
   };
   private AddMailMention = async (FromUserID: string, ToUserID: string): Promise<void> => {
     const mentionTime = new Date().getTime();
+    let mentionID = 0;
     if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("short_message_mention", {
       from_user_id: FromUserID,
       to_user_id: ToUserID
     }))["TableSize"] === 0) {
-      ThrowErrorIfFailed(await this.XMOJDatabase.Insert("short_message_mention", {
+      const insertResult = ThrowErrorIfFailed(await this.XMOJDatabase.Insert("short_message_mention", {
         from_user_id: FromUserID,
         to_user_id: ToUserID,
         mail_mention_time: mentionTime
       }));
+      mentionID = insertResult["InsertID"];
     } else {
       ThrowErrorIfFailed(await this.XMOJDatabase.Update("short_message_mention", {
         mail_mention_time: mentionTime
@@ -434,11 +458,22 @@ export class Process {
         from_user_id: FromUserID,
         to_user_id: ToUserID
       }));
+      const mentionData = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message_mention", ["mail_mention_id"], {
+        from_user_id: FromUserID,
+        to_user_id: ToUserID
+      }));
+      if (mentionData.toString() !== "") {
+        mentionID = mentionData[0]["mail_mention_id"];
+      }
     }
 
     await this.pushNotification(ToUserID, {
       type: "mail_mention",
-      data: {FromUserID, MentionTime: mentionTime}
+      data: {
+        MentionID: mentionID,
+        FromUserID,
+        MentionTime: mentionTime
+      }
     });
   };
   private ProcessFunctions = {
