@@ -7,11 +7,14 @@ function createProcess(mocks = {}) {
     const {
         db: db_mocks = {},
         fetch: fetch_mock,
+        notifications: notification_mocks = {},
         kv: kv_mocks = {},
         ai: ai_mocks = {},
         logdb: logdb_mocks = {},
         req: req_mock,
     } = mocks;
+
+    const notifyFetch = test.mock.fn(notification_mocks.fetch || (async () => new Response('OK')));
 
     const env = {
         API_TOKEN: 'test-api-token',
@@ -45,6 +48,13 @@ function createProcess(mocks = {}) {
         AI: {
             run: test.mock.fn(ai_mocks.run || (async () => ({})))
         },
+        NOTIFICATIONS: {
+            idFromName: test.mock.fn(notification_mocks.idFromName || ((id) => id)),
+            get: test.mock.fn(notification_mocks.get || (() => ({
+                fetch: notifyFetch,
+            }))),
+        },
+        NOTIFICATION_PUSH_TOKEN: 'test-notification-token',
     };
 
     const req = req_mock || new Request('https://example.com', {
@@ -72,6 +82,7 @@ function createProcess(mocks = {}) {
     // Mock username and sessionID for tests that need it
     proc.Username = "testuser";
     proc.SessionID = "testsession";
+    proc._notifyFetch = notifyFetch;
 
     return proc;
 }
@@ -307,4 +318,90 @@ test('VerifyCaptcha handles multiple error codes', async () => {
     assert.strictEqual(result.Success, false);
     assert.match(result.Message, /密钥不正确/);
     assert.match(result.Message, /验证码令牌为空/);
+});
+
+
+test('AddMailMention pushes enough realtime data for direct client rendering', async () => {
+    const proc = createProcess({
+        db: {
+            GetTableSize: async (table) => {
+                if (table === 'short_message_mention') {
+                    return new Result(true, '', { TableSize: 0 });
+                }
+                return new Result(true, '', { TableSize: 0 });
+            },
+            Insert: async (table) => {
+                if (table === 'short_message_mention') {
+                    return new Result(true, '', { InsertID: 42 });
+                }
+                return new Result(true, '', { InsertID: 1 });
+            },
+        }
+    });
+
+    await proc['AddMailMention']('alice', 'testuser');
+
+    assert.strictEqual(proc._notifyFetch.mock.calls.length, 1);
+    const notificationRequest = proc._notifyFetch.mock.calls[0].arguments[0];
+    const pushedBody = await notificationRequest.json();
+    assert.deepStrictEqual(pushedBody.notification, {
+        type: 'mail_mention',
+        data: {
+            MentionID: 42,
+            FromUserID: 'alice',
+            MentionTime: pushedBody.notification.data.MentionTime,
+        }
+    });
+    assert.strictEqual(typeof pushedBody.notification.data.MentionTime, 'number');
+});
+
+test('AddBBSMention pushes full mention payload for websocket clients', async () => {
+    const proc = createProcess({
+        db: {
+            GetTableSize: async (table) => {
+                if (table === 'bbs_mention') {
+                    return new Result(true, '', { TableSize: 0 });
+                }
+                return new Result(true, '', { TableSize: 0 });
+            },
+            Insert: async (table) => {
+                if (table === 'bbs_mention') {
+                    return new Result(true, '', { InsertID: 99 });
+                }
+                return new Result(true, '', { InsertID: 1 });
+            },
+            Select: async (table) => {
+                if (table === 'bbs_post') {
+                    return new Result(true, '', [{ title: 'Hello world' }]);
+                }
+                return new Result(true, '', []);
+            }
+        }
+    });
+
+    proc.RawDatabase = {
+        prepare: () => ({
+            bind: () => ({
+                run: async () => ({ results: [{ position: 30 }] })
+            })
+        })
+    };
+
+    await proc['AddBBSMention']('targetUser', 123, 456);
+
+    assert.strictEqual(proc._notifyFetch.mock.calls.length, 1);
+    const notificationRequest = proc._notifyFetch.mock.calls[0].arguments[0];
+    const pushedBody = await notificationRequest.json();
+    assert.deepStrictEqual(pushedBody.notification, {
+        type: 'bbs_mention',
+        data: {
+            MentionID: 99,
+            PostID: 123,
+            ReplyID: 456,
+            PostTitle: 'Hello world',
+            MentionTime: pushedBody.notification.data.MentionTime,
+            PageNumber: 3,
+        }
+    });
+    assert.strictEqual(typeof pushedBody.notification.data.MentionTime, 'number');
 });

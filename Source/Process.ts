@@ -24,7 +24,7 @@ import {CheerioAPI, load} from "cheerio";
 import * as sqlstring from 'sqlstring';
 // @ts-ignore
 import CryptoJS from "crypto-js";
-import {AnalyticsEngineDataset, D1Database, D1DatabaseSession, KVNamespace} from "@cloudflare/workers-types";
+import {AnalyticsEngineDataset, D1Database, D1DatabaseSession, DurableObjectNamespace, KVNamespace} from "@cloudflare/workers-types";
 
 interface Environment {
   API_TOKEN: string;
@@ -36,6 +36,8 @@ interface Environment {
   DB: D1Database;
   logdb: AnalyticsEngineDataset;
   AI: any;
+  NOTIFICATIONS: DurableObjectNamespace;
+  NOTIFICATION_PUSH_TOKEN: string;
 }
 
 // noinspection JSUnusedLocalSymbols
@@ -64,6 +66,8 @@ export class Process {
   private readonly RemoteIP: string;
   private XMOJDatabase: Database;
   private readonly logs: AnalyticsEngineDataset;
+  private readonly notifications: DurableObjectNamespace;
+  private readonly notificationPushToken: string;
   private RequestData: Request;
   private Fetch = async (RequestURL: URL): Promise<Response> => {
     Output.Log("Fetch: " + RequestURL.toString());
@@ -361,48 +365,116 @@ export class Process {
     return result;
   }
 
+
+  /**
+   * Push a non-critical realtime notification to the websocket Durable Object.
+   * Failures are intentionally swallowed to avoid affecting main request flow.
+   */
+  private pushNotification = async (userId: string, notification: object): Promise<void> => {
+    try {
+      const id = this.notifications.idFromName(userId);
+      const stub = this.notifications.get(id);
+      await stub.fetch(new Request("https://dummy/notify", {
+        method: "POST",
+        headers: {
+          "X-Notification-Token": this.notificationPushToken
+        },
+        body: JSON.stringify({userId, notification})
+      }));
+    } catch (_) {
+      // Non-critical path: mention persistence already succeeded.
+    }
+  };
+
   private AddBBSMention = async (ToUserID: string, PostID: number, ReplyID: number): Promise<void> => {
     if (ToUserID === this.Username) {
       return;
     }
+    const mentionTime = new Date().getTime();
+    let mentionID = 0;
     if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_mention", {
       to_user_id: ToUserID,
       post_id: PostID
     }))["TableSize"] === 0) {
-      ThrowErrorIfFailed(await this.XMOJDatabase.Insert("bbs_mention", {
+      const insertResult = ThrowErrorIfFailed(await this.XMOJDatabase.Insert("bbs_mention", {
         to_user_id: ToUserID,
         post_id: PostID,
-        bbs_mention_time: new Date().getTime(),
+        bbs_mention_time: mentionTime,
         reply_id: ReplyID
       }));
+      mentionID = insertResult["InsertID"];
     } else {
       ThrowErrorIfFailed(await this.XMOJDatabase.Update("bbs_mention", {
-        bbs_mention_time: new Date().getTime()
+        bbs_mention_time: mentionTime
       }, {
         to_user_id: ToUserID,
         post_id: PostID,
         reply_id: ReplyID
       }));
+      const mentionData = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_mention", ["bbs_mention_id"], {
+        to_user_id: ToUserID,
+        post_id: PostID,
+        reply_id: ReplyID
+      }));
+      if (mentionData.toString() !== "") {
+        mentionID = mentionData[0]["bbs_mention_id"];
+      }
     }
+
+    const postData = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_post", ["title"], {post_id: PostID}));
+    const postTitle = postData.toString() === "" ? "" : postData[0]["title"];
+    const totalRepliesBefore = (await this.RawDatabase.prepare("SELECT COUNT(*) + 1 AS position FROM bbs_reply WHERE post_id = $1 AND reply_time < (SELECT reply_time FROM bbs_reply WHERE reply_id = $2)").bind(PostID, ReplyID).run())["results"][0]["position"];
+    const pageNumber = Math.floor(Number(totalRepliesBefore) / 15) + 1;
+
+    await this.pushNotification(ToUserID, {
+      type: "bbs_mention",
+      data: {
+        MentionID: mentionID,
+        PostID,
+        ReplyID,
+        PostTitle: postTitle,
+        MentionTime: mentionTime,
+        PageNumber: pageNumber
+      }
+    });
   };
   private AddMailMention = async (FromUserID: string, ToUserID: string): Promise<void> => {
+    const mentionTime = new Date().getTime();
+    let mentionID = 0;
     if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("short_message_mention", {
       from_user_id: FromUserID,
       to_user_id: ToUserID
     }))["TableSize"] === 0) {
-      ThrowErrorIfFailed(await this.XMOJDatabase.Insert("short_message_mention", {
+      const insertResult = ThrowErrorIfFailed(await this.XMOJDatabase.Insert("short_message_mention", {
         from_user_id: FromUserID,
         to_user_id: ToUserID,
-        mail_mention_time: new Date().getTime()
+        mail_mention_time: mentionTime
       }));
+      mentionID = insertResult["InsertID"];
     } else {
       ThrowErrorIfFailed(await this.XMOJDatabase.Update("short_message_mention", {
-        mail_mention_time: new Date().getTime()
+        mail_mention_time: mentionTime
       }, {
         from_user_id: FromUserID,
         to_user_id: ToUserID
       }));
+      const mentionData = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message_mention", ["mail_mention_id"], {
+        from_user_id: FromUserID,
+        to_user_id: ToUserID
+      }));
+      if (mentionData.toString() !== "") {
+        mentionID = mentionData[0]["mail_mention_id"];
+      }
     }
+
+    await this.pushNotification(ToUserID, {
+      type: "mail_mention",
+      data: {
+        MentionID: mentionID,
+        FromUserID,
+        MentionTime: mentionTime
+      }
+    });
   };
   private ProcessFunctions = {
     NewPost: async (Data: object): Promise<Result> => {
@@ -1473,6 +1545,8 @@ export class Process {
     this.AI = Environment.AI;
     this.kv = Environment.kv;
     this.logs = Environment.logdb;
+    this.notifications = Environment.NOTIFICATIONS;
+    this.notificationPushToken = Environment.NOTIFICATION_PUSH_TOKEN;
     this.CaptchaSecretKey = Environment.CaptchaSecretKey;
     this.GithubImagePAT = Environment.GithubImagePAT;
     this.ACCOUNT_ID = Environment.ACCOUNT_ID;

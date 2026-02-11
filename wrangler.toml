@@ -22,3 +22,16 @@ binding = "AI"
 
 [observability]
 enabled = true
+
+
+[[durable_objects.bindings]]
+name = "NOTIFICATIONS"
+class_name = "NotificationManager"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["NotificationManager"]
+
+
+[vars]
+NOTIFICATION_PUSH_TOKEN = "development-notification-token"
