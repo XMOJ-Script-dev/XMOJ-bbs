@@ -696,6 +696,10 @@ export class Process {
       if (Data["Page"] < 1 || Data["Page"] > ResponseData.PageCount) {
         return new Result(false, "参数页数不在范围1~" + ResponseData.PageCount + "内");
       }
+      this.XMOJDatabase.Delete("bbs_mention", {
+        post_id: Data["PostID"],
+        to_user_id: this.Username
+      });
       ResponseData.UserID = Post[0]["user_id"];
       ResponseData.ProblemID = Post[0]["problem_id"];
       ResponseData.Title = Post[0]["title"];
@@ -1170,6 +1174,10 @@ export class Process {
       }, {
         message_from: Data["OtherUser"],
         message_to: this.Username
+      });
+      this.XMOJDatabase.Delete("short_message_mention", {
+        from_user_id: Data["OtherUser"],
+        to_user_id: this.Username
       });
       return new Result(true, "获得短消息成功", ResponseData);
     },
