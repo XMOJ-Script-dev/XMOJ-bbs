@@ -548,8 +548,8 @@ export class Process {
         reply_time: new Date().getTime()
       }))["InsertID"];
 
-      for (const i in MentionPeople) {
-        await this.AddBBSMention(MentionPeople[i], Data["PostID"], ReplyID);
+      for (const Person of MentionPeople) {
+        await this.AddBBSMention(Person, Data["PostID"], ReplyID);
       }
 
       if (Post[0]["user_id"] !== this.Username) {
@@ -596,8 +596,7 @@ export class Process {
         Limit: 15,
         Offset: (Data["Page"] - 1) * 15
       }));
-      for (const i in Posts) {
-        const Post = Posts[i];
+      for (const Post of Posts) {
 
         const ReplyCount: number = ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_reply", {post_id: Post["post_id"]}))["TableSize"];
         const LastReply = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_reply", ["user_id", "reply_time"], {post_id: Post["post_id"]}, {
@@ -703,8 +702,7 @@ export class Process {
         Limit: 15,
         Offset: (Data["Page"] - 1) * 15
       }));
-      for (const i in Reply) {
-        let ReplyItem = Reply[i];
+      for (const ReplyItem of Reply) {
         let processedContent: string = ReplyItem["content"];
         processedContent = processedContent.replace(/xmoj-bbs\.tech/g, "xmoj-bbs.me");
         ResponseData.Reply.push({
@@ -811,8 +809,8 @@ export class Process {
       }, {
         reply_id: Data["ReplyID"]
       });
-      for (const i in MentionPeople) {
-        await this.AddBBSMention(MentionPeople[i], Reply[0]["post_id"], Data["ReplyID"]);
+      for (const Person of MentionPeople) {
+        await this.AddBBSMention(Person, Reply[0]["post_id"], Data["ReplyID"]);
       }
       return new Result(true, "编辑回复成功");
     },
@@ -837,9 +835,9 @@ export class Process {
       const Replies = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_reply", ["reply_id"], {
         post_id: Data["PostID"]
       }));
-      for (const i in Replies) {
+      for (const Reply of Replies) {
         await this.XMOJDatabase.Delete("bbs_reply", {
-          reply_id: Replies[i]["reply_id"]
+          reply_id: Reply["reply_id"]
         });
       }
       await this.XMOJDatabase.Delete("bbs_post", {post_id: Data["PostID"]});
@@ -877,8 +875,7 @@ export class Process {
       const Mentions = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_mention", ["bbs_mention_id", "post_id", "bbs_mention_time", "reply_id"], {
         to_user_id: this.Username
       }));
-      for (const i in Mentions) {
-        const Mention = Mentions[i];
+      for (const Mention of Mentions) {
         const Post = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_post", ["user_id", "title"], {post_id: Mention["post_id"]}));
         if (Post.toString() === "") {
           continue;
@@ -904,8 +901,7 @@ export class Process {
       const Mentions = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message_mention", ["mail_mention_id", "from_user_id", "mail_mention_time"], {
         to_user_id: this.Username
       }));
-      for (const i in Mentions) {
-        const Mention = Mentions[i];
+      for (const Mention of Mentions) {
         ResponseData.MentionList.push({
           MentionID: Mention["mail_mention_id"],
           FromUserID: Mention["from_user_id"],
@@ -967,17 +963,17 @@ export class Process {
       };
       let OtherUsernameList = new Array<string>();
       let Mails = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message", ["message_from"], {message_to: this.Username}, {}, true));
-      for (const i in Mails) {
-        OtherUsernameList.push(Mails[i]["message_from"]);
+      for (const Mail of Mails) {
+        OtherUsernameList.push(Mail["message_from"]);
       }
       Mails = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message", ["message_to"], {message_from: this.Username}, {}, true));
-      for (const i in Mails) {
-        OtherUsernameList.push(Mails[i]["message_to"]);
+      for (const Mail of Mails) {
+        OtherUsernameList.push(Mail["message_to"]);
       }
       OtherUsernameList = Array.from(new Set(OtherUsernameList));
-      for (const i in OtherUsernameList) {
+      for (const OtherUsername of OtherUsernameList) {
         const LastMessageFrom = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message", ["content", "send_time", "message_from", "message_to"], {
-          message_from: OtherUsernameList[i],
+          message_from: OtherUsername,
           message_to: this.Username
         }, {
           Order: "send_time",
@@ -986,7 +982,7 @@ export class Process {
         }));
         const LastMessageTo = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message", ["content", "send_time", "message_from", "message_to"], {
           message_from: this.Username,
-          message_to: OtherUsernameList[i]
+          message_to: OtherUsername
         }, {
           Order: "send_time",
           OrderIncreasing: false,
@@ -1020,12 +1016,12 @@ export class Process {
           LastMessage[0]["content"] = "无法解密消息, 原始数据: " + preContent;
         }
         const UnreadCount = ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("short_message", {
-          message_from: OtherUsernameList[i],
+          message_from: OtherUsername,
           message_to: this.Username,
           is_read: 0
         }));
         ResponseData.MailList.push({
-          OtherUser: OtherUsernameList[i],
+          OtherUser: OtherUsername,
           LastsMessage: LastMessage[0]["content"],
           SendTime: LastMessage[0]["send_time"],
           UnreadCount: UnreadCount["TableSize"]
@@ -1082,8 +1078,7 @@ export class Process {
         Order: "send_time",
         OrderIncreasing: false
       }));
-      for (const i in Mails) {
-        const Mail = Mails[i];
+      for (const Mail of Mails) {
         if (Mail["content"].startsWith("Begin xssmseetee v2 encrypted message")) {
           try {
             const bytes = CryptoJS.AES.decrypt(Mail["content"].substring(37), this.shortMessageEncryptKey_v1 + Mail["message_from"] + Mail["message_to"]);
@@ -1118,8 +1113,7 @@ export class Process {
         Order: "send_time",
         OrderIncreasing: false
       }));
-      for (const i in Mails) {
-        const Mail = Mails[i];
+      for (const Mail of Mails) {
         if (Mail["content"].startsWith("Begin xssmseetee v2 encrypted message")) {
           try {
             const bytes = CryptoJS.AES.decrypt(Mail["content"].substring(37), this.shortMessageEncryptKey_v1 + Mail["message_from"] + Mail["message_to"]);
@@ -1393,8 +1387,7 @@ export class Process {
       ThrowErrorIfFailed(this.CheckParams(Data, {}));
       const Boards: Array<Object> = new Array<Object>();
       const BoardsData = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_board", []));
-      for (const i in BoardsData) {
-        const Board = BoardsData[i];
+      for (const Board of BoardsData) {
         Boards.push({
           BoardID: Board["board_id"],
           BoardName: Board["board_name"]
