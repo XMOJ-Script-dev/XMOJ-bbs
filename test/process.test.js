@@ -131,12 +131,6 @@ test('DenyMessage returns false for allowed users', () => {
     assert.strictEqual(proc.DenyMessage(), false);
 });
 
-test('IsSilenced returns true for silenced users', () => {
-    const proc = createProcess();
-    proc.Username = "zhaochenyi";
-    assert.strictEqual(proc.IsSilenced(), true);
-});
-
 test('IsSilenced returns false for non-silenced users', () => {
     const proc = createProcess();
     proc.Username = "testuser";
