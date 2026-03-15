@@ -44,6 +44,26 @@ const isValidSessionID = (sessionID: string): boolean => {
   return /^[A-Za-z0-9,-]+$/.test(sessionID);
 };
 
+const getAllowedOrigin = (origin: string): string | null => {
+  if (/^https:\/\/[a-z0-9-]+\.xmoj-script[a-z0-9-]*\.pages\.dev$/.test(origin)) {
+    return origin;
+  }
+  if (/^https:\/\/(www\.)?xmoj-bbs\.me$/.test(origin)) {
+    return origin;
+  }
+  return null;
+};
+
+const addCorsHeaders = (response: Response, origin: string): Response => {
+  const allowedOrigin = getAllowedOrigin(origin);
+  if (allowedOrigin === null) return response;
+  const newHeaders = new Headers(response.headers);
+  newHeaders.set("Access-Control-Allow-Origin", allowedOrigin);
+  newHeaders.set("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+  newHeaders.set("Access-Control-Allow-Headers", "Content-Type");
+  return new Response(response.body, { status: response.status, headers: newHeaders });
+};
+
 const ValidateSession = async (sessionID: string): Promise<string> => {
   const responseText = await fetch(new Request("https://www.xmoj.tech/template/bs3/profile.php", {
     headers: {
@@ -74,6 +94,23 @@ export {NotificationManager};
 
 export default {
   async fetch(RequestData: Request, Environment: Environment, Context: any) {
+    const origin = RequestData.headers.get("Origin") || "";
+    if (RequestData.method === "OPTIONS") {
+      const allowedOrigin = getAllowedOrigin(origin);
+      if (allowedOrigin === null) {
+        return new Response(null, { status: 403 });
+      }
+      return new Response(null, {
+        status: 204,
+        headers: {
+          "Access-Control-Allow-Origin": allowedOrigin,
+          "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type",
+          "Access-Control-Max-Age": "86400",
+        }
+      });
+    }
+
     const url = new URL(RequestData.url);
     if (url.pathname === "/ws/notifications") {
       const sessionID = url.searchParams.get("SessionID") || "";
@@ -98,7 +135,7 @@ export default {
     }
 
     let Processor = new Process(RequestData, Environment);
-    return await Processor.Process();
+    return addCorsHeaders(await Processor.Process(), origin);
   },
   async scheduled(Event: any, Environment: { DB: D1Database; }, Context: {
     waitUntil: (arg0: Promise<void>) => void;
