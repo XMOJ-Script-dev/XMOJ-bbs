@@ -48,7 +48,7 @@ const getAllowedOrigin = (origin: string): string | null => {
   if (/^https:\/\/[a-z0-9-]+\.xmoj-script[a-z0-9-]*\.pages\.dev$/.test(origin)) {
     return origin;
   }
-  if (/^https:\/\/(www\.)?xmoj-bbs\.me$/.test(origin)) {
+  if (/^https:\/\/(www\.|dev\.)?xmoj-bbs\.me$/.test(origin)) {
     return origin;
   }
   return null;
