@@ -51,6 +51,9 @@ const getAllowedOrigin = (origin: string): string | null => {
   if (/^https:\/\/(www\.|dev\.)?xmoj-bbs\.me$/.test(origin)) {
     return origin;
   }
+  if (origin === "https://www.xmoj.tech") {
+    return origin;
+  }
   return null;
 };
 
