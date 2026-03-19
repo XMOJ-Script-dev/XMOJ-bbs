@@ -64,6 +64,7 @@ const addCorsHeaders = (response: Response, origin: string): Response => {
   newHeaders.set("Access-Control-Allow-Origin", allowedOrigin);
   newHeaders.set("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
   newHeaders.set("Access-Control-Allow-Headers", "Content-Type");
+  newHeaders.set("Access-Control-Allow-Credentials", "true");
   return new Response(response.body, { status: response.status, headers: newHeaders });
 };
 
@@ -109,6 +110,7 @@ export default {
           "Access-Control-Allow-Origin": allowedOrigin,
           "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
           "Access-Control-Allow-Headers": "Content-Type",
+          "Access-Control-Allow-Credentials": "true",
           "Access-Control-Max-Age": "86400",
         }
       });
