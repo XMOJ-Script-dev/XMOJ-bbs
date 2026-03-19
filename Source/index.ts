@@ -35,9 +35,17 @@ interface Environment {
 }
 
 const ParseUsernameFromProfile = (profilePage: string): string => {
-  let username = profilePage.substring(profilePage.indexOf("user_id=") + 8);
-  username = username.substring(0, username.indexOf("'"));
-  return username;
+  const userIdIndex = profilePage.indexOf("user_id=");
+  if (userIdIndex === -1) {
+    return "";
+  }
+  const usernameStart = userIdIndex + "user_id=".length;
+  const remainder = profilePage.substring(usernameStart);
+  const closingQuoteIndex = remainder.indexOf("'");
+  if (closingQuoteIndex === -1) {
+    return "";
+  }
+  return remainder.substring(0, closingQuoteIndex);
 };
 
 const isValidSessionID = (sessionID: string): boolean => {
