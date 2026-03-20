@@ -40,12 +40,11 @@ const ParseUsernameFromProfile = (profilePage: string): string => {
     return "";
   }
   const usernameStart = userIdIndex + "user_id=".length;
-  const remainder = profilePage.substring(usernameStart);
-  const closingQuoteIndex = remainder.indexOf("'");
+  const closingQuoteIndex = profilePage.indexOf("'", usernameStart);
   if (closingQuoteIndex === -1) {
     return "";
   }
-  return remainder.substring(0, closingQuoteIndex);
+  return profilePage.substring(usernameStart, closingQuoteIndex);
 };
 
 const isValidSessionID = (sessionID: string): boolean => {
