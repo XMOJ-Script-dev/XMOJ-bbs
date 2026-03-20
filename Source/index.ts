@@ -18,7 +18,7 @@
 import {Process} from "./Process";
 import {Database} from "./Database";
 import {NotificationManager} from "./NotificationManager";
-import {D1Database, KVNamespace, AnalyticsEngineDataset, DurableObjectNamespace} from "@cloudflare/workers-types";
+import type {D1Database, KVNamespace, AnalyticsEngineDataset, DurableObjectNamespace, Ai} from "@cloudflare/workers-types";
 
 interface Environment {
   API_TOKEN: string;
@@ -29,15 +29,22 @@ interface Environment {
   CaptchaSecretKey: string;
   DB: D1Database;
   logdb: AnalyticsEngineDataset;
-  AI: any;
+  AI: Ai;
   NOTIFICATIONS: DurableObjectNamespace;
   NOTIFICATION_PUSH_TOKEN: string;
 }
 
 const ParseUsernameFromProfile = (profilePage: string): string => {
-  let username = profilePage.substring(profilePage.indexOf("user_id=") + 8);
-  username = username.substring(0, username.indexOf("'"));
-  return username;
+  const userIdIndex = profilePage.indexOf("user_id=");
+  if (userIdIndex === -1) {
+    return "";
+  }
+  const usernameStart = userIdIndex + "user_id=".length;
+  const closingQuoteIndex = profilePage.indexOf("'", usernameStart);
+  if (closingQuoteIndex === -1) {
+    return "";
+  }
+  return profilePage.substring(usernameStart, closingQuoteIndex);
 };
 
 const isValidSessionID = (sessionID: string): boolean => {
