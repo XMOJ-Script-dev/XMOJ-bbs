@@ -18,7 +18,7 @@
 import {Process} from "./Process";
 import {Database} from "./Database";
 import {NotificationManager} from "./NotificationManager";
-import {D1Database, KVNamespace, AnalyticsEngineDataset, DurableObjectNamespace, Ai} from "@cloudflare/workers-types";
+import type {D1Database, KVNamespace, AnalyticsEngineDataset, DurableObjectNamespace, Ai} from "@cloudflare/workers-types";
 
 interface Environment {
   API_TOKEN: string;
