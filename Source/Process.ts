@@ -46,7 +46,7 @@ function sleep(time: number) {
 }
 
 export class Process {
-  private AdminUserList: Array<string> = ["chenlangning", "shanwenxiao", "zhuchenrui2"];
+  private AdminUserList: Array<string> = ["chenlangning", "shanwenxiao", "zhuchenrui2","liushangchen"];
   // noinspection JSMismatchedCollectionQueryUpdate
   private DenyMessageList: Array<string> = ["std"];
   // noinspection JSMismatchedCollectionQueryUpdate
