@@ -1492,6 +1492,56 @@ export class Process {
       const responseJSON = await response.json();
       return new Result(true, "获得统计数据成功", responseJSON);
     },
+    SetUserSettings: async (Data: object): Promise<Result> => {
+      ThrowErrorIfFailed(this.CheckParams(Data, {
+        "Settings": "string"
+      }));
+      let SettingsObject: object;
+      try {
+        SettingsObject = JSON.parse(Data["Settings"]);
+      } catch (_) {
+        return new Result(false, "设置格式有误");
+      }
+      if (typeof SettingsObject !== "object" || Array.isArray(SettingsObject) || SettingsObject === null) {
+        return new Result(false, "设置格式有误");
+      }
+      const SettingsString = Data["Settings"];
+      if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("user_settings", {
+        user_id: this.Username
+      }))["TableSize"] === 0) {
+        ThrowErrorIfFailed(await this.XMOJDatabase.Insert("user_settings", {
+          user_id: this.Username,
+          settings: SettingsString
+        }));
+      } else {
+        ThrowErrorIfFailed(await this.XMOJDatabase.Update("user_settings", {
+          settings: SettingsString
+        }, {
+          user_id: this.Username
+        }));
+      }
+      return new Result(true, "保存设置成功");
+    },
+    GetUserSettings: async (Data: object): Promise<Result> => {
+      ThrowErrorIfFailed(this.CheckParams(Data, {}));
+      const SettingsData = ThrowErrorIfFailed(await this.XMOJDatabase.Select("user_settings", ["settings"], {
+        user_id: this.Username
+      }));
+      if (SettingsData.length === 0) {
+        return new Result(true, "获得设置成功", {
+          "Settings": {}
+        });
+      }
+      let SettingsObject: object;
+      try {
+        SettingsObject = JSON.parse(SettingsData[0]["settings"]);
+      } catch (_) {
+        return new Result(false, "设置数据损坏");
+      }
+      return new Result(true, "获得设置成功", {
+        "Settings": SettingsObject
+      });
+    },
     LastOnline: async (Data: object): Promise<Result> => {
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "Username": "string"
