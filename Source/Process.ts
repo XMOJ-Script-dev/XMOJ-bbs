@@ -1506,19 +1506,25 @@ export class Process {
         return new Result(false, "设置格式有误");
       }
       const SettingsString = Data["Settings"];
-      if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("user_settings", {
-        user_id: this.Username
-      }))["TableSize"] === 0) {
+      try {
+        // Try to insert first. If a unique/primary key constraint is hit (row already exists),
+        // fall back to updating the existing row. This avoids a non-atomic check-then-insert flow.
         ThrowErrorIfFailed(await this.XMOJDatabase.Insert("user_settings", {
           user_id: this.Username,
           settings: SettingsString
         }));
-      } else {
-        ThrowErrorIfFailed(await this.XMOJDatabase.Update("user_settings", {
-          settings: SettingsString
-        }, {
-          user_id: this.Username
-        }));
+      } catch (e) {
+        if (e instanceof Error && /UNIQUE|constraint|duplicate/i.test(e.message)) {
+          // Row for this user_id already exists, perform an update instead.
+          ThrowErrorIfFailed(await this.XMOJDatabase.Update("user_settings", {
+            settings: SettingsString
+          }, {
+            user_id: this.Username
+          }));
+        } else {
+          // Propagate non-uniqueness errors.
+          throw e;
+        }
       }
       return new Result(true, "保存设置成功");
     },
