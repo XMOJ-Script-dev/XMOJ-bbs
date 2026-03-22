@@ -1493,19 +1493,31 @@ export class Process {
       return new Result(true, "获得统计数据成功", responseJSON);
     },
     SetUserSettings: async (Data: object): Promise<Result> => {
+      // Enforce a maximum allowed size for the settings payload to avoid
+      // excessively large entries being written to D1.
+      const MAX_SETTINGS_LENGTH = 10000;
+
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "Settings": "string"
       }));
+
+      const SettingsString = Data["Settings"];
+      if (typeof SettingsString !== "string") {
+        return new Result(false, "设置格式有误");
+      }
+      if (SettingsString.length > MAX_SETTINGS_LENGTH) {
+        return new Result(false, "设置内容过大");
+      }
+
       let SettingsObject: object;
       try {
-        SettingsObject = JSON.parse(Data["Settings"]);
+        SettingsObject = JSON.parse(SettingsString);
       } catch (_) {
         return new Result(false, "设置格式有误");
       }
       if (typeof SettingsObject !== "object" || Array.isArray(SettingsObject) || SettingsObject === null) {
         return new Result(false, "设置格式有误");
       }
-      const SettingsString = Data["Settings"];
       try {
         // Try to insert first. If a unique/primary key constraint is hit (row already exists),
         // fall back to updating the existing row. This avoids a non-atomic check-then-insert flow.
