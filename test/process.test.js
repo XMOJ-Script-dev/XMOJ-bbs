@@ -489,3 +489,14 @@ test('GetUserSettings fails when stored settings JSON is corrupted', async () =>
     assert.strictEqual(result.Message, '设置数据损坏');
 });
 
+test('GetUserSettings fails when stored settings JSON is valid but not an object', async () => {
+    const proc = createProcess({
+        db: {
+            // settings is valid JSON (an array) but not an object
+            Select: async () => new Result(true, '', [{ settings: '["a","b"]' }])
+        }
+    });
+    const result = await proc.ProcessFunctions['GetUserSettings']({});
+    assert.strictEqual(result.Success, false);
+    assert.strictEqual(result.Message, '设置数据损坏');
+});
