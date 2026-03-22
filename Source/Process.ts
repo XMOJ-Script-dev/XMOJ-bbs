@@ -1556,6 +1556,9 @@ export class Process {
       } catch (_) {
         return new Result(false, "设置数据损坏");
       }
+      if (typeof SettingsObject !== "object" || Array.isArray(SettingsObject) || SettingsObject === null) {
+        return new Result(false, "设置数据损坏");
+      }
       return new Result(true, "获得设置成功", {
         "Settings": SettingsObject
       });
