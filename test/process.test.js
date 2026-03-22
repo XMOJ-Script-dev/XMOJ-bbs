@@ -424,7 +424,10 @@ test('SetUserSettings updates existing settings row', async () => {
     const updatedRows = [];
     const proc = createProcess({
         db: {
-            GetTableSize: async () => new Result(true, '', { TableSize: 1 }),
+            Insert: async () => {
+                // Simulate a primary key conflict (row already exists)
+                throw new Error('UNIQUE constraint failed: user_settings.user_id');
+            },
             Update: async (table, data, where) => {
                 updatedRows.push({ table, data, where });
                 return new Result(true, '');
