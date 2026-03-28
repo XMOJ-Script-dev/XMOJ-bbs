@@ -1526,7 +1526,8 @@ export class Process {
           settings: SettingsString
         }));
       } catch (e) {
-        if (e instanceof Error && /UNIQUE|constraint|duplicate/i.test(e.message)) {
+        const errorMessage = e instanceof Error ? e.message : (typeof e === "object" && e !== null && "Message" in e ? String((e as { Message?: unknown }).Message) : String(e));
+        if (/UNIQUE|constraint|duplicate/i.test(errorMessage)) {
           // Row for this user_id already exists, perform an update instead.
           ThrowErrorIfFailed(await this.XMOJDatabase.Update("user_settings", {
             settings: SettingsString
