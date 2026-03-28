@@ -399,3 +399,107 @@ test('AddBBSMention pushes full mention payload for websocket clients', async ()
     });
     assert.strictEqual(typeof pushedBody.notification.data.MentionTime, 'number');
 });
+
+test('SetUserSettings creates new settings row when none exists', async () => {
+    const insertedRows = [];
+    const proc = createProcess({
+        db: {
+            GetTableSize: async () => new Result(true, '', { TableSize: 0 }),
+            Insert: async (table, data) => {
+                insertedRows.push({ table, data });
+                return new Result(true, '', { InsertID: 1 });
+            }
+        }
+    });
+    const result = await proc.ProcessFunctions['SetUserSettings']({ Settings: '{"Discussion":"true","Theme":"dark"}' });
+    assert.ok(result.Success);
+    assert.strictEqual(result.Message, '保存设置成功');
+    assert.strictEqual(insertedRows.length, 1);
+    assert.strictEqual(insertedRows[0].table, 'user_settings');
+    assert.strictEqual(insertedRows[0].data.user_id, 'testuser');
+    assert.strictEqual(insertedRows[0].data.settings, '{"Discussion":"true","Theme":"dark"}');
+});
+
+test('SetUserSettings updates existing settings row', async () => {
+    const updatedRows = [];
+    const proc = createProcess({
+        db: {
+            Insert: async () => {
+                // Simulate a primary key conflict (row already exists)
+                throw new Error('UNIQUE constraint failed: user_settings.user_id');
+            },
+            Update: async (table, data, where) => {
+                updatedRows.push({ table, data, where });
+                return new Result(true, '');
+            }
+        }
+    });
+    const result = await proc.ProcessFunctions['SetUserSettings']({ Settings: '{"Discussion":"false"}' });
+    assert.ok(result.Success);
+    assert.strictEqual(result.Message, '保存设置成功');
+    assert.strictEqual(updatedRows.length, 1);
+    assert.strictEqual(updatedRows[0].table, 'user_settings');
+    assert.strictEqual(updatedRows[0].data.settings, '{"Discussion":"false"}');
+    assert.deepStrictEqual(updatedRows[0].where, { user_id: 'testuser' });
+});
+
+test('SetUserSettings fails with invalid JSON', async () => {
+    const proc = createProcess();
+    const result = await proc.ProcessFunctions['SetUserSettings']({ Settings: 'not-json' });
+    assert.strictEqual(result.Success, false);
+    assert.strictEqual(result.Message, '设置格式有误');
+});
+
+test('SetUserSettings fails when Settings is an array', async () => {
+    const proc = createProcess();
+    const result = await proc.ProcessFunctions['SetUserSettings']({ Settings: '["a","b"]' });
+    assert.strictEqual(result.Success, false);
+    assert.strictEqual(result.Message, '设置格式有误');
+});
+
+test('GetUserSettings returns empty object when no settings stored', async () => {
+    const proc = createProcess({
+        db: {
+            Select: async () => new Result(true, '', [])
+        }
+    });
+    const result = await proc.ProcessFunctions['GetUserSettings']({});
+    assert.ok(result.Success);
+    assert.strictEqual(result.Message, '获得设置成功');
+    assert.deepStrictEqual(result.Data.Settings, {});
+});
+
+test('GetUserSettings returns stored settings', async () => {
+    const proc = createProcess({
+        db: {
+            Select: async () => new Result(true, '', [{ settings: '{"Discussion":"true","Theme":"dark"}' }])
+        }
+    });
+    const result = await proc.ProcessFunctions['GetUserSettings']({});
+    assert.ok(result.Success);
+    assert.strictEqual(result.Message, '获得设置成功');
+    assert.deepStrictEqual(result.Data.Settings, { Discussion: 'true', Theme: 'dark' });
+});
+
+test('GetUserSettings fails when stored settings JSON is corrupted', async () => {
+    const proc = createProcess({
+        db: {
+            Select: async () => new Result(true, '', [{ settings: 'corrupted{json' }])
+        }
+    });
+    const result = await proc.ProcessFunctions['GetUserSettings']({});
+    assert.strictEqual(result.Success, false);
+    assert.strictEqual(result.Message, '设置数据损坏');
+});
+
+test('GetUserSettings fails when stored settings JSON is valid but not an object', async () => {
+    const proc = createProcess({
+        db: {
+            // settings is valid JSON (an array) but not an object
+            Select: async () => new Result(true, '', [{ settings: '["a","b"]' }])
+        }
+    });
+    const result = await proc.ProcessFunctions['GetUserSettings']({});
+    assert.strictEqual(result.Success, false);
+    assert.strictEqual(result.Message, '设置数据损坏');
+});
