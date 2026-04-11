@@ -87,6 +87,83 @@ function createProcess(mocks = {}) {
     return proc;
 }
 
+test('Process serves notice on legacy /GetNotice endpoint', async () => {
+    const proc = createProcess({
+        req: new Request('https://example.com/GetNotice', {
+            method: 'GET',
+            headers: { "CF-Connecting-IP": "127.0.0.1" }
+        }),
+        kv: {
+            get: async () => 'test notice'
+        }
+    });
+
+    const response = await proc.Process();
+    const payload = await response.json();
+    assert.strictEqual(payload.Success, true);
+    assert.strictEqual(payload.Data.Notice, 'test notice');
+});
+
+test('Process serves notice on versioned /v1/GetNotice endpoint', async () => {
+    const proc = createProcess({
+        req: new Request('https://example.com/v1/GetNotice', {
+            method: 'GET',
+            headers: { "CF-Connecting-IP": "127.0.0.1" }
+        }),
+        kv: {
+            get: async () => 'test notice'
+        }
+    });
+
+    const response = await proc.Process();
+    const payload = await response.json();
+    assert.strictEqual(payload.Success, true);
+    assert.strictEqual(payload.Data.Notice, 'test notice');
+});
+
+test('Process maps /v1 to GetNotice for versioned default endpoint', async () => {
+    const proc = createProcess({
+        req: new Request('https://example.com/v1', {
+            method: 'GET',
+            headers: { "CF-Connecting-IP": "127.0.0.1" }
+        }),
+        kv: {
+            get: async () => 'test notice'
+        }
+    });
+
+    const response = await proc.Process();
+    const payload = await response.json();
+    assert.strictEqual(payload.Success, true);
+    assert.strictEqual(payload.Data.Notice, 'test notice');
+});
+
+test('Process uses GetStd C++ string processing on /v1/GetStd', async () => {
+    const req = new Request('https://example.com/v1/GetStd', {
+        method: 'POST',
+        headers: {
+            "CF-Connecting-IP": "127.0.0.1",
+            "content-type": "application/json"
+        },
+        body: JSON.stringify({
+            Authentication: { SessionID: 'testsession', Username: 'testuser' },
+            Data: {},
+            Version: 'test',
+            DebugMode: false
+        })
+    });
+    const proc = createProcess({ req });
+
+    proc.CheckToken = test.mock.fn(async () => new Result(true, '', { Success: true }));
+    proc.ProcessFunctions.GetStd = test.mock.fn(async () => new Result(true, 'ok', { Code: 'line1\nline2' }));
+
+    const response = await proc.Process();
+    const responseText = await response.text();
+    const expectedText = proc.processCppString(JSON.stringify(new Result(true, 'ok', { Code: 'line1\nline2' })));
+
+    assert.strictEqual(responseText, expectedText);
+});
+
 test('CheckParams passes with valid data', () => {
   const proc = createProcess();
   const result = proc.CheckParams({ a: 1, b: 'x' }, { a: 'number', b: 'string' });

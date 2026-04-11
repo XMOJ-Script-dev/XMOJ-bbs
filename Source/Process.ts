@@ -1611,10 +1611,19 @@ export class Process {
     this.RawDatabase = Environment.DB.withSession();
   }
 
+  private NormalizePathName(pathname: string): string {
+    if (pathname === "/" || pathname === "/v1" || pathname === "/v1/") {
+      return "/GetNotice";
+    }
+    if (pathname.startsWith("/v1/")) {
+      return pathname.substring(3);
+    }
+    return pathname;
+  }
+
   public async Process(): Promise<Response> {
     try {
-      let PathName = new URL(this.RequestData.url).pathname;
-      PathName = PathName === "/" ? "/GetNotice" : PathName;
+      let PathName = this.NormalizePathName(new URL(this.RequestData.url).pathname);
       PathName = PathName.substring(1);
       if (PathName === "GetNotice") {
         const notice = await this.kv.get("noticeboard");
@@ -1694,7 +1703,7 @@ export class Process {
         Output.Error(ResponseData);
         ResponseData = new Result(false, "服务器运行错误：" + String(ResponseData).split("\n")[0]);
       }
-      let pathname = new URL(this.RequestData.url).pathname;
+      const pathname = this.NormalizePathName(new URL(this.RequestData.url).pathname);
       return new Response(pathname == "/GetStd" ? this.processCppString(JSON.stringify(ResponseData)) : JSON.stringify(ResponseData), {
         headers: {
           "content-type": "application/json;charset=UTF-8"

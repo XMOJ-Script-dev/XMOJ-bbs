@@ -124,7 +124,7 @@ export default {
     }
 
     const url = new URL(RequestData.url);
-    if (url.pathname === "/ws/notifications") {
+    if (url.pathname === "/ws/notifications" || url.pathname === "/v1/ws/notifications") {
       const sessionID = url.searchParams.get("SessionID") || "";
       if (sessionID === "") {
         return new Response("Missing SessionID", {status: 401});
