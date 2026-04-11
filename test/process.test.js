@@ -191,6 +191,134 @@ test('Process routes a generic versioned endpoint to its legacy handler', async 
     assert.deepStrictEqual(payload.Data.Settings, { Discussion: 'true' });
 });
 
+test('Process maps root / to GetNotice', async () => {
+    const proc = createProcess({
+        req: new Request('https://example.com/', {
+            method: 'GET',
+            headers: { "CF-Connecting-IP": "127.0.0.1" }
+        }),
+        kv: {
+            get: async () => 'root notice'
+        }
+    });
+
+    const response = await proc.Process();
+    const payload = await response.json();
+    assert.strictEqual(payload.Success, true);
+    assert.strictEqual(payload.Data.Notice, 'root notice');
+});
+
+test('Process maps /v1/ trailing slash to GetNotice', async () => {
+    const proc = createProcess({
+        req: new Request('https://example.com/v1/', {
+            method: 'GET',
+            headers: { "CF-Connecting-IP": "127.0.0.1" }
+        }),
+        kv: {
+            get: async () => 'v1 slash notice'
+        }
+    });
+
+    const response = await proc.Process();
+    const payload = await response.json();
+    assert.strictEqual(payload.Success, true);
+    assert.strictEqual(payload.Data.Notice, 'v1 slash notice');
+});
+
+test('Process serves addon script on legacy /GetAddOnScript endpoint', async () => {
+    const proc = createProcess({
+        req: new Request('https://example.com/GetAddOnScript', {
+            method: 'GET',
+            headers: { "CF-Connecting-IP": "127.0.0.1" }
+        }),
+        kv: {
+            get: async () => 'console.log("addon");'
+        }
+    });
+
+    const response = await proc.Process();
+    const payload = await response.json();
+    assert.strictEqual(payload.Success, true);
+    assert.strictEqual(payload.Data.Script, 'console.log("addon");');
+});
+
+test('Process serves addon script on versioned /v1/GetAddOnScript endpoint', async () => {
+    const proc = createProcess({
+        req: new Request('https://example.com/v1/GetAddOnScript', {
+            method: 'GET',
+            headers: { "CF-Connecting-IP": "127.0.0.1" }
+        }),
+        kv: {
+            get: async () => 'console.log("addon v1");'
+        }
+    });
+
+    const response = await proc.Process();
+    const payload = await response.json();
+    assert.strictEqual(payload.Success, true);
+    assert.strictEqual(payload.Data.Script, 'console.log("addon v1");');
+});
+
+test('Process serves image on legacy GET /GetImage endpoint', async () => {
+    const imageData = new Uint8Array([137, 80, 78, 71]).buffer;
+    const proc = createProcess({
+        req: new Request('https://example.com/GetImage?ImageID=test.png', {
+            method: 'GET',
+            headers: { "CF-Connecting-IP": "127.0.0.1" }
+        })
+    });
+
+    proc.ProcessFunctions.GetImage = test.mock.fn(async () => new Blob([imageData], { type: 'image/png' }));
+
+    const response = await proc.Process();
+    assert.strictEqual(response.headers.get('content-type'), 'image/png');
+    assert.strictEqual(proc.ProcessFunctions.GetImage.mock.calls.length, 1);
+    assert.deepStrictEqual(proc.ProcessFunctions.GetImage.mock.calls[0].arguments[0], { ImageID: 'test.png' });
+});
+
+test('Process serves image on versioned GET /v1/GetImage endpoint', async () => {
+    const imageData = new Uint8Array([137, 80, 78, 71]).buffer;
+    const proc = createProcess({
+        req: new Request('https://example.com/v1/GetImage?ImageID=v1-test.png', {
+            method: 'GET',
+            headers: { "CF-Connecting-IP": "127.0.0.1" }
+        })
+    });
+
+    proc.ProcessFunctions.GetImage = test.mock.fn(async () => new Blob([imageData], { type: 'image/png' }));
+
+    const response = await proc.Process();
+    assert.strictEqual(response.headers.get('content-type'), 'image/png');
+    assert.strictEqual(proc.ProcessFunctions.GetImage.mock.calls.length, 1);
+    assert.deepStrictEqual(proc.ProcessFunctions.GetImage.mock.calls[0].arguments[0], { ImageID: 'v1-test.png' });
+});
+
+test('Process uses GetStd C++ string processing on legacy /GetStd', async () => {
+    const req = new Request('https://example.com/GetStd', {
+        method: 'POST',
+        headers: {
+            "CF-Connecting-IP": "127.0.0.1",
+            "content-type": "application/json"
+        },
+        body: JSON.stringify({
+            Authentication: { SessionID: 'testsession', Username: 'testuser' },
+            Data: {},
+            Version: 'test',
+            DebugMode: false
+        })
+    });
+    const proc = createProcess({ req });
+
+    proc.CheckToken = test.mock.fn(async () => new Result(true, '', { Success: true }));
+    proc.ProcessFunctions.GetStd = test.mock.fn(async () => new Result(true, 'ok', { Code: 'int main() {\n\treturn 0;\n}' }));
+
+    const response = await proc.Process();
+    const responseText = await response.text();
+    const expectedText = proc.processCppString(JSON.stringify(new Result(true, 'ok', { Code: 'int main() {\n\treturn 0;\n}' })));
+
+    assert.strictEqual(responseText, expectedText);
+});
+
 test('CheckParams passes with valid data', () => {
   const proc = createProcess();
   const result = proc.CheckParams({ a: 1, b: 'x' }, { a: 'number', b: 'string' });
