@@ -125,7 +125,7 @@ export class NotificationManager {
     const url = new URL(request.url);
 
     // Internal push channel from Process.ts.
-    if (url.pathname === "/notify") {
+    if (url.pathname === "/notify" || url.pathname === "/v1/notify") {
       if (this.pushToken === "" || request.headers.get("X-Notification-Token") !== this.pushToken) {
         return new Response("Unauthorized", {status: 401});
       }

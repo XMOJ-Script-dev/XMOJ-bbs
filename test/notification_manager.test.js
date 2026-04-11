@@ -86,3 +86,19 @@ test('rejects notify without internal token', async () => {
   assert.strictEqual(response.status, 401);
   assert.deepStrictEqual(socket.getSent(), []);
 });
+
+test('versioned notify endpoint works the same as legacy notify endpoint', async () => {
+  const manager = createManager();
+  const socket = createFakeWebSocket('alice');
+  manager.addSession('alice', socket);
+
+  const payload = { type: 'bbs_mention', data: { PostID: 11 } };
+  const response = await manager.fetch(new Request('https://dummy/v1/notify', {
+    method: 'POST',
+    headers: { 'X-Notification-Token': 'test-push-token' },
+    body: JSON.stringify({ userId: 'alice', notification: payload }),
+  }));
+
+  assert.strictEqual(response.status, 200);
+  assert.deepStrictEqual(socket.getSent(), [JSON.stringify(payload)]);
+});

@@ -164,6 +164,33 @@ test('Process uses GetStd C++ string processing on /v1/GetStd', async () => {
     assert.strictEqual(responseText, expectedText);
 });
 
+test('Process routes a generic versioned endpoint to its legacy handler', async () => {
+    const req = new Request('https://example.com/v1/GetUserSettings', {
+        method: 'POST',
+        headers: {
+            "CF-Connecting-IP": "127.0.0.1",
+            "content-type": "application/json"
+        },
+        body: JSON.stringify({
+            Authentication: { SessionID: 'testsession', Username: 'testuser' },
+            Data: {},
+            Version: 'test',
+            DebugMode: false
+        })
+    });
+    const proc = createProcess({ req });
+
+    proc.CheckToken = test.mock.fn(async () => new Result(true, '', { Success: true }));
+    proc.ProcessFunctions.GetUserSettings = test.mock.fn(async () => new Result(true, 'ok', { Settings: { Discussion: 'true' } }));
+
+    const response = await proc.Process();
+    const payload = await response.json();
+
+    assert.strictEqual(payload.Success, true);
+    assert.strictEqual(payload.Message, 'ok');
+    assert.deepStrictEqual(payload.Data.Settings, { Discussion: 'true' });
+});
+
 test('CheckParams passes with valid data', () => {
   const proc = createProcess();
   const result = proc.CheckParams({ a: 1, b: 'x' }, { a: 'number', b: 'string' });
