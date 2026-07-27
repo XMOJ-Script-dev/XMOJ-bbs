@@ -6,7 +6,8 @@
     "deploy": "wrangler deploy",
     "start": "wrangler dev",
     "test": "TS_NODE_TRANSPILE_ONLY=1 TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\"}' node --require ts-node/register --test",
-    "coverage": "TS_NODE_TRANSPILE_ONLY=1 TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\"}' c8 node --require ts-node/register --test"
+    "coverage": "TS_NODE_TRANSPILE_ONLY=1 TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\"}' c8 node --require ts-node/register --test",
+    "check-badge": "TS_NODE_TRANSPILE_ONLY=1 TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\"}' node --require ts-node/register tools/check-badge.js"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260722.1",
