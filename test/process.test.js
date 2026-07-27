@@ -566,11 +566,24 @@ test('EditBadge sends the badge to the moderation model, delimited', async () =>
     assert.ok(seenBody.max_completion_tokens >= 1024);
 });
 
-test('EditBadge rejects content the model rejects, without leaking the reason', async () => {
+test('EditBadge tells the user which rule the badge broke', async () => {
     const proc = createBadgeProcess({ ai: async () => verdict(false, 1) });
     const result = await proc.ProcessFunctions['EditBadge'](editArgs('nmsl'));
     assert.strictEqual(result.Success, false);
-    assert.strictEqual(result.Message, '标签内容不符合社区规范，请修改后重试');
+    assert.strictEqual(result.Message, '标签内容包含不雅或粗俗用语，请修改后重试');
+});
+
+test('EditBadge gives every rule a distinct, non-empty reason', async () => {
+    const seen = new Set();
+    for (let rule = 1; rule <= 11; rule++) {
+        const proc = createBadgeProcess({ ai: async () => verdict(false, rule) });
+        const result = await proc.ProcessFunctions['EditBadge'](editArgs('whatever'));
+        assert.strictEqual(result.Success, false, 'rule ' + rule);
+        assert.doesNotMatch(result.Message, /undefined/, 'rule ' + rule + ' has no reason string');
+        assert.match(result.Message, /^标签内容.+，请修改后重试$/, 'rule ' + rule);
+        seen.add(result.Message);
+    }
+    assert.strictEqual(seen.size, 11, 'each rule should read differently');
 });
 
 test('EditBadge fails closed when the model throws', async () => {

@@ -206,13 +206,13 @@ const ModerationSchema = {
 };
 ```
 
-`rule` is a number rather than free text on purpose. The user-facing rejection message is
-a fixed Chinese string, so a prose `reason` from the model would never be displayed —
-and displaying it would be actively unwise, since it is model output derived from user
-input and would echo the offending content back into the page. The rule number carries
-everything that is actually needed: it goes to `Output.Log` so that the logs show which
-rule fired and how often, which is what tells us later whether the policy is
-mis-calibrated.
+`rule` is a number rather than free text on purpose, but the number is not the end of the
+story: it indexes a table of fixed, developer-written Chinese strings, so the user is told
+what to change ("包含广告、外部链接或联系方式") rather than just that they failed. What is
+avoided is echoing *model prose* onto the page, since that is generated from user input;
+a lookup into eleven hard-coded strings carries none of that risk. The same number also
+goes to `Output.Log`, so the logs show which rule fired and how often, which is what tells
+us later whether the policy is mis-calibrated.
 
 **The envelope.** Measured against the REST endpoint, this model returns an OpenAI-style
 completion: the verdict is at `choices[0].message.content` as a **JSON string**, and
