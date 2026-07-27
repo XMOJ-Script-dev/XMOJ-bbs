@@ -15,7 +15,7 @@
  *     along with XMOJ-bbs.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {Process} from "./Process";
+import {Process, RebuildStdList} from "./Process";
 import {Database} from "./Database";
 import {NotificationManager} from "./NotificationManager";
 import type {D1Database, KVNamespace, AnalyticsEngineDataset, DurableObjectNamespace, Ai} from "@cloudflare/workers-types";
@@ -152,11 +152,16 @@ export default {
     let Processor = new Process(RequestData, Environment);
     return addCorsHeaders(await Processor.Process(), origin);
   },
-  async scheduled(Event: any, Environment: { DB: D1Database; }, Context: {
+  async scheduled(Event: any, Environment: { DB: D1Database; kv: KVNamespace; }, Context: {
     waitUntil: (arg0: Promise<void>) => void;
   }) {
     let XMOJDatabase = new Database(Environment.DB);
-    Context.waitUntil(new Promise<void>(async (Resolve) => {
+    // An async function passed as a Promise executor swallows its own
+    // rejection - the constructor discards the returned promise, so a throw
+    // from ThrowErrorIfFailed would leave this pending forever and waitUntil
+    // would hang instead of reporting the failed run. Hand waitUntil the async
+    // call's promise directly so errors propagate.
+    Context.waitUntil((async () => {
       await XMOJDatabase.Delete("short_message", {
         "send_time": {
           "Operator": "<=",
@@ -173,7 +178,10 @@ export default {
           "Value": new Date().getTime() - 1000 * 60 * 60 * 24 * 5
         }
       });
-      Resolve();
-    }));
+      // Reconcile the std list cache against the database. One scan per day
+      // bounds any drift - from a dropped KV write or two uploads racing - to
+      // 24 hours, instead of it persisting forever as it does today.
+      await RebuildStdList(XMOJDatabase, Environment.kv);
+    })());
   },
 };

@@ -157,6 +157,32 @@ export function ReadModerationVerdict(Reply: any): { allowed: boolean, rule: num
   return {allowed: Payload.allowed, rule: Payload.rule};
 }
 
+// The KV key holding the list of problems that have a std answer. It is a
+// cache of `SELECT problem_id FROM std_answer`, kept so that GetStdList - a
+// hot read - costs no database rows.
+export const StdListKey = "std_list";
+
+// Tolerates the legacy trailing-newline format and any blank lines left behind
+// by earlier writes. An empty string is a legitimately empty cache; a missing
+// key is not, and callers must handle that before getting here.
+export const ParseStdList = (Cached: string): Array<number> => {
+  return Cached.split("\n")
+    .filter((Entry) => Entry.trim() !== "")
+    .map(Number);
+};
+
+// Rewrites the cache from the database. Rebuilding wholesale rather than
+// patching an entry in means a dropped or racing write can only ever cost
+// freshness until the next rebuild, never permanent drift.
+export const RebuildStdList = async (XMOJDatabase: Database, kv: KVNamespace): Promise<string> => {
+  const Rows = ThrowErrorIfFailed(
+    await XMOJDatabase.Select("std_answer", ["problem_id"])
+  ) as Array<Record<string, any>>;
+  const List = Rows.map((Row) => Row["problem_id"]).join("\n");
+  await kv.put(StdListKey, List);
+  return List;
+};
+
 export class Process {
   private AdminUserList: Array<string> = ["chenlangning", "shanwenxiao", "zhuchenrui2","liushangchen"];
   // noinspection JSMismatchedCollectionQueryUpdate
@@ -781,13 +807,38 @@ export class Process {
           LockTime: 0
         }
       };
-      const Post = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_post", [], {
-        post_id: Data["PostID"]
-      }));
-      if (Post.toString() == "") {
+      // Post metadata, board name, lock state, total reply count and the
+      // requested page of replies all come back in one round trip instead of
+      // five sequential ones - the round trips dominated the time to open a
+      // discussion. The page CTE is bound before PageCount is known, so the
+      // offset is clamped here and the rows are simply discarded when the
+      // range check below rejects the page.
+      const Offset = Math.max(0, (Data["Page"] - 1) * 15);
+      const Rows: Array<Record<string, any>> = (await this.RawDatabase.prepare(
+        "WITH post AS (" +
+        "  SELECT p.user_id AS post_user_id, p.problem_id AS problem_id, p.title AS title, " +
+        "         p.post_time AS post_time, p.board_id AS board_id, " +
+        "         b.board_name AS board_name, l.lock_person AS lock_person, l.lock_time AS lock_time " +
+        "  FROM bbs_post p " +
+        "  LEFT JOIN bbs_board b ON b.board_id = p.board_id " +
+        "  LEFT JOIN bbs_lock l ON l.post_id = p.post_id " +
+        "  WHERE p.post_id = ?" +
+        "), page AS (" +
+        "  SELECT reply_id, user_id AS reply_user_id, content, reply_time, edit_time, edit_person " +
+        "  FROM bbs_reply WHERE post_id = ? ORDER BY reply_time ASC LIMIT ? OFFSET ?" +
+        ") " +
+        "SELECT post.*, " +
+        "(SELECT COUNT(*) FROM bbs_reply WHERE post_id = ?) AS reply_count, " +
+        "page.reply_id AS reply_id, page.reply_user_id AS reply_user_id, page.content AS content, " +
+        "page.reply_time AS reply_time, page.edit_time AS edit_time, page.edit_person AS edit_person " +
+        "FROM post LEFT JOIN page ON 1 = 1;"
+      ).bind(Data["PostID"], Data["PostID"], 15, Offset, Data["PostID"]).all())["results"];
+
+      if (Rows.length === 0) {
         return new Result(false, "该讨论不存在");
       }
-      ResponseData.PageCount = Math.ceil(ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_reply", {post_id: Data["PostID"]}))["TableSize"] / 15);
+      const Post = Rows[0];
+      ResponseData.PageCount = Math.ceil(Post["reply_count"] / 15);
       if (ResponseData.PageCount === 0) {
         return new Result(true, "获得讨论成功", ResponseData);
       }
@@ -798,34 +849,28 @@ export class Process {
         post_id: Data["PostID"],
         to_user_id: this.Username
       });
-      ResponseData.UserID = Post[0]["user_id"];
-      ResponseData.ProblemID = Post[0]["problem_id"];
-      ResponseData.Title = Post[0]["title"];
-      ResponseData.PostTime = Post[0]["post_time"];
-      ResponseData.BoardID = Post[0]["board_id"];
-      ResponseData.BoardName = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_board", ["board_name"], {board_id: Post[0]["board_id"]}))[0]["board_name"];
+      ResponseData.UserID = Post["post_user_id"];
+      ResponseData.ProblemID = Post["problem_id"];
+      ResponseData.Title = Post["title"];
+      ResponseData.PostTime = Post["post_time"];
+      ResponseData.BoardID = Post["board_id"];
+      ResponseData.BoardName = Post["board_name"];
 
-      const Locked = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_lock", [], {
-        post_id: Data["PostID"]
-      }));
-      if (Locked.toString() !== "") {
+      if (Post["lock_person"] !== null && Post["lock_person"] !== undefined) {
         ResponseData.Lock.Locked = true;
-        ResponseData.Lock.LockPerson = Locked[0]["lock_person"];
-        ResponseData.Lock.LockTime = Locked[0]["lock_time"];
+        ResponseData.Lock.LockPerson = Post["lock_person"];
+        ResponseData.Lock.LockTime = Post["lock_time"];
       }
 
-      const Reply = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_reply", [], {post_id: Data["PostID"]}, {
-        Order: "reply_time",
-        OrderIncreasing: true,
-        Limit: 15,
-        Offset: (Data["Page"] - 1) * 15
-      }));
-      for (const ReplyItem of Reply) {
+      for (const ReplyItem of Rows) {
+        if (ReplyItem["reply_id"] === null || ReplyItem["reply_id"] === undefined) {
+          continue;
+        }
         let processedContent: string = ReplyItem["content"];
         processedContent = processedContent.replace(/xmoj-bbs\.tech/g, "xmoj-bbs.me");
         ResponseData.Reply.push({
           ReplyID: ReplyItem["reply_id"],
-          UserID: ReplyItem["user_id"],
+          UserID: ReplyItem["reply_user_id"],
           Content: processedContent,
           ReplyTime: ReplyItem["reply_time"],
           EditTime: ReplyItem["edit_time"],
@@ -1285,13 +1330,13 @@ export class Process {
       if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("std_answer", {
         problem_id: ProblemID
       }))["TableSize"] !== 0) {
-        let currentStdList = await this.kv.get("std_list");
-        console.log(currentStdList.toString().indexOf(Data["ProblemID"].toString()));
-        if (currentStdList.split('\n').some(d => d === Data["ProblemID"])) {
-          currentStdList = currentStdList + Data["ProblemID"] + "\n";
-          this.kv.put("std_list", currentStdList);
+        // This is the hot path - the script calls UploadStd for problems that
+        // already have a std. Only touch the database when the cache is
+        // actually missing this problem, which is the drift we are repairing.
+        const Cached = await this.kv.get(StdListKey);
+        if (Cached === null || Cached === undefined || !ParseStdList(Cached).includes(ProblemID)) {
+          await RebuildStdList(this.XMOJDatabase, this.kv);
         }
-        console.log("ProblemID: " + ProblemID + " already has a std answer, skipping upload.");
         return new Result(true, "此题已经有人上传标程");
       }
       if (await this.GetProblemScoreChecker(ProblemID) !== 100) {
@@ -1382,9 +1427,11 @@ export class Process {
         problem_id: Data["ProblemID"],
         std_code: StdCode
       }));
-      let currentStdList = await this.kv.get("std_list");
-      currentStdList = currentStdList + Data["ProblemID"] + "\n";
-      this.kv.put("std_list", currentStdList);
+      // Rebuild from the database rather than appending to the cached string:
+      // an append races with concurrent uploads (KV has no compare-and-set) and
+      // silently loses entries. Uploads are bounded at one per problem ever, so
+      // the extra scan is affordable here in a way it would not be on reads.
+      await RebuildStdList(this.XMOJDatabase, this.kv);
       return new Result(true, "标程上传成功");
     },
     GetStdList: async (Data: object): Promise<Result> => {
@@ -1392,7 +1439,15 @@ export class Process {
       const ResponseData = {
         StdList: new Array<number>()
       };
-      ResponseData.StdList = (await this.kv.get("std_list")).split("\n").map(Number);
+      // A missing key is not an empty list - it means the cache has never been
+      // built, and answering [] would tell the client that no problem has a std
+      // answer. Fill it from the database instead. An empty string is a real
+      // empty cache and is served as-is, so this costs a scan only on a genuine
+      // miss, which the daily rebuild keeps rare.
+      const Cached = await this.kv.get(StdListKey);
+      ResponseData.StdList = ParseStdList(
+        Cached ?? await RebuildStdList(this.XMOJDatabase, this.kv)
+      );
       return new Result(true, "获得标程列表成功", ResponseData);
     },
     GetStd: async (Data: object): Promise<Result> => {

@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { Process } = require('../Source/Process.ts');
+const { Process, RebuildStdList } = require('../Source/Process.ts');
 const { Result } = require('../Source/Result.ts');
 
 function createProcess(mocks = {}) {
@@ -798,4 +798,358 @@ test('EditBadge refuses badge text containing the prompt delimiter', async () =>
         assert.strictEqual(result.Success, false, attack + ' should be rejected');
         assert.strictEqual(proc.AI.run.mock.callCount(), 0, 'the delimiter never reaches the prompt');
     }
+});
+
+function stubGetPostQuery(proc, rows) {
+    const calls = [];
+    proc.RawDatabase = {
+        prepare: (query) => ({
+            bind: (...args) => ({
+                all: async () => {
+                    calls.push({ query, args });
+                    return { results: rows };
+                }
+            })
+        })
+    };
+    return calls;
+}
+
+function postRow(overrides = {}) {
+    return Object.assign({
+        post_user_id: 'alice',
+        problem_id: 1000,
+        title: 'Post one',
+        post_time: 111,
+        board_id: 2,
+        board_name: '学术版',
+        lock_person: null,
+        lock_time: null,
+        reply_count: 2,
+        reply_id: null,
+        reply_user_id: null,
+        content: null,
+        reply_time: null,
+        edit_time: null,
+        edit_person: null
+    }, overrides);
+}
+
+test('GetPost fetches the whole discussion in a single query', async () => {
+    const proc = createProcess();
+    const calls = stubGetPostQuery(proc, [
+        postRow({ reply_id: 1, reply_user_id: 'u1', content: 'hello', reply_time: 1001 }),
+        postRow({ reply_id: 2, reply_user_id: 'u2', content: 'world', reply_time: 1002 })
+    ]);
+
+    const result = await proc.ProcessFunctions['GetPost']({ PostID: 1, Page: 1 });
+
+    assert.ok(result.Success);
+    assert.strictEqual(result.Message, '获得讨论成功');
+    assert.strictEqual(calls.length, 1, 'expected exactly one SQL query');
+    assert.deepStrictEqual(calls[0].args, [1, 1, 15, 0, 1]);
+    assert.strictEqual(result.Data.UserID, 'alice');
+    assert.strictEqual(result.Data.ProblemID, 1000);
+    assert.strictEqual(result.Data.Title, 'Post one');
+    assert.strictEqual(result.Data.PostTime, 111);
+    assert.strictEqual(result.Data.BoardID, 2);
+    assert.strictEqual(result.Data.BoardName, '学术版');
+    assert.strictEqual(result.Data.PageCount, 1);
+    assert.deepStrictEqual(result.Data.Lock, { Locked: false, LockPerson: '', LockTime: 0 });
+    assert.deepStrictEqual(result.Data.Reply, [
+        { ReplyID: 1, UserID: 'u1', Content: 'hello', ReplyTime: 1001, EditTime: null, EditPerson: null },
+        { ReplyID: 2, UserID: 'u2', Content: 'world', ReplyTime: 1002, EditTime: null, EditPerson: null }
+    ]);
+});
+
+test('GetPost binds the offset for the requested page', async () => {
+    const proc = createProcess();
+    const calls = stubGetPostQuery(proc, [
+        postRow({ reply_count: 20, reply_id: 16, reply_user_id: 'u16', content: 'x', reply_time: 1016 })
+    ]);
+
+    const result = await proc.ProcessFunctions['GetPost']({ PostID: 7, Page: 2 });
+
+    assert.ok(result.Success);
+    assert.deepStrictEqual(calls[0].args, [7, 7, 15, 15, 7]);
+    assert.strictEqual(result.Data.PageCount, 2);
+    assert.strictEqual(result.Data.Reply.length, 1);
+});
+
+test('GetPost reports a locked discussion', async () => {
+    const proc = createProcess();
+    stubGetPostQuery(proc, [
+        postRow({ lock_person: 'admin', lock_time: 999, reply_count: 1, reply_id: 1, reply_user_id: 'u1', content: 'hi', reply_time: 1001 })
+    ]);
+
+    const result = await proc.ProcessFunctions['GetPost']({ PostID: 1, Page: 1 });
+
+    assert.ok(result.Success);
+    assert.deepStrictEqual(result.Data.Lock, { Locked: true, LockPerson: 'admin', LockTime: 999 });
+});
+
+test('GetPost rewrites legacy domain in reply content', async () => {
+    const proc = createProcess();
+    stubGetPostQuery(proc, [
+        postRow({ reply_count: 1, reply_id: 1, reply_user_id: 'u1', content: 'see https://xmoj-bbs.tech/a and xmoj-bbs.tech/b', reply_time: 1001 })
+    ]);
+
+    const result = await proc.ProcessFunctions['GetPost']({ PostID: 1, Page: 1 });
+
+    assert.strictEqual(result.Data.Reply[0].Content, 'see https://xmoj-bbs.me/a and xmoj-bbs.me/b');
+});
+
+test('GetPost fails when the discussion does not exist', async () => {
+    const proc = createProcess();
+    stubGetPostQuery(proc, []);
+
+    const result = await proc.ProcessFunctions['GetPost']({ PostID: 999, Page: 1 });
+
+    assert.strictEqual(result.Success, false);
+    assert.strictEqual(result.Message, '该讨论不存在');
+});
+
+test('GetPost returns an empty discussion when it has no replies', async () => {
+    const proc = createProcess();
+    stubGetPostQuery(proc, [postRow({ reply_count: 0 })]);
+
+    const result = await proc.ProcessFunctions['GetPost']({ PostID: 2, Page: 1 });
+
+    assert.ok(result.Success);
+    assert.strictEqual(result.Data.PageCount, 0);
+    assert.deepStrictEqual(result.Data.Reply, []);
+    assert.strictEqual(result.Data.Title, '', 'metadata is withheld for an empty discussion, as before');
+});
+
+test('GetPost rejects a page outside the available range', async () => {
+    const proc = createProcess();
+    const calls = stubGetPostQuery(proc, [postRow({ reply_count: 2 })]);
+
+    const result = await proc.ProcessFunctions['GetPost']({ PostID: 1, Page: 5 });
+
+    assert.strictEqual(result.Success, false);
+    assert.strictEqual(result.Message, '参数页数不在范围1~1内');
+    assert.strictEqual(calls.length, 1);
+});
+
+test('GetPost clamps a negative offset for a non-positive page', async () => {
+    const proc = createProcess();
+    const calls = stubGetPostQuery(proc, [postRow({ reply_count: 2 })]);
+
+    const result = await proc.ProcessFunctions['GetPost']({ PostID: 1, Page: 0 });
+
+    assert.strictEqual(result.Success, false);
+    assert.strictEqual(calls[0].args[3], 0, 'offset must never be negative');
+});
+
+test('GetPost clears mentions for the reader', async () => {
+    const deleted = [];
+    const proc = createProcess({
+        db: {
+            Delete: async (table, where) => {
+                deleted.push({ table, where });
+                return new Result(true, '');
+            }
+        }
+    });
+    stubGetPostQuery(proc, [
+        postRow({ reply_count: 1, reply_id: 1, reply_user_id: 'u1', content: 'hi', reply_time: 1001 })
+    ]);
+
+    await proc.ProcessFunctions['GetPost']({ PostID: 1, Page: 1 });
+
+    assert.deepStrictEqual(deleted, [{ table: 'bbs_mention', where: { post_id: 1, to_user_id: 'testuser' } }]);
+});
+
+// --- std_list KV cache ---------------------------------------------------
+// The cache is a denormalised copy of `SELECT problem_id FROM std_answer`.
+// It is rebuilt wholesale from the database rather than patched incrementally,
+// so a dropped or racing write cannot leave it permanently out of sync.
+
+function kvStub(initial) {
+    const store = { std_list: initial };
+    const puts = [];
+    return {
+        store,
+        puts,
+        get: async (key) => (key in store ? store[key] : null),
+        put: async (key, value) => { store[key] = value; puts.push(value); },
+    };
+}
+
+test('RebuildStdList writes every problem_id from the database', async () => {
+    const kv = kvStub('stale\n');
+    const db = {
+        Select: async (table, columns) => {
+            assert.strictEqual(table, 'std_answer');
+            assert.deepStrictEqual(columns, ['problem_id']);
+            return new Result(true, '', [
+                { problem_id: 1000 }, { problem_id: 1001 }, { problem_id: 1002 }
+            ]);
+        }
+    };
+
+    const list = await RebuildStdList(db, kv);
+
+    assert.strictEqual(list, '1000\n1001\n1002');
+    assert.strictEqual(kv.store.std_list, '1000\n1001\n1002');
+});
+
+test('RebuildStdList writes an empty cache when the table is empty', async () => {
+    const kv = kvStub('1000\n1001\n');
+    const db = { Select: async () => new Result(true, '', []) };
+
+    await RebuildStdList(db, kv);
+
+    assert.strictEqual(kv.store.std_list, '');
+});
+
+test('RebuildStdList heals a cache that has drifted from the database', async () => {
+    // 1001 was dropped by a lost write; 9999 was never in the table.
+    const kv = kvStub('1000\n9999\n');
+    const db = {
+        Select: async () => new Result(true, '', [
+            { problem_id: 1000 }, { problem_id: 1001 }, { problem_id: 1002 }
+        ])
+    };
+
+    await RebuildStdList(db, kv);
+
+    assert.strictEqual(kv.store.std_list, '1000\n1001\n1002');
+});
+
+const STD_CODE_MARKER = '/' + '*'.repeat(62);
+
+// Minimal pages that satisfy the XMOJ scraper in UploadStd.
+function stdScraperFetch() {
+    const statusPage = `<table id="problemstatus">
+        <thead><tr><th>#</th><th>SID</th><th>user</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>1</td><td>someone</td></tr>
+          <tr><td>2</td><td>555</td><td>std</td></tr>
+        </tbody>
+      </table>[NEXT]`;
+    const sourcePage = `int main(){}\n${STD_CODE_MARKER}\ntrailer\n<!--not cached-->`;
+    return async (url) => new Response(
+        String(url).includes('getsource.php') ? sourcePage : statusPage
+    );
+}
+
+test('UploadStd rebuilds and awaits the cache after inserting a std', async () => {
+    const kv = kvStub('1000\n');
+    const proc = createProcess({
+        db: {
+            GetTableSize: async () => new Result(true, '', { TableSize: 0 }),
+            Insert: async () => new Result(true, '', { InsertID: 1 }),
+            Select: async () => new Result(true, '', [{ problem_id: 1000 }, { problem_id: 1234 }]),
+        }
+    });
+    proc.kv = kv;
+    proc.GetProblemScoreChecker = async () => 100;
+    proc.Fetch = stdScraperFetch();
+
+    const result = await proc.ProcessFunctions['UploadStd']({ ProblemID: 1234 });
+
+    assert.ok(result.Success, result.Message);
+    assert.strictEqual(kv.puts.length, 1, 'cache written exactly once');
+    assert.strictEqual(kv.store.std_list, '1000\n1234',
+        'cache must reflect the database once UploadStd resolves');
+});
+
+test('UploadStd repairs a cache missing an already-uploaded problem', async () => {
+    // The DB already has a std for 1234 but the cache lost it. Re-uploading
+    // must put it back rather than silently doing nothing.
+    const kv = kvStub('1000\n');
+    const proc = createProcess({
+        db: {
+            GetTableSize: async () => new Result(true, '', { TableSize: 1 }),
+            Select: async () => new Result(true, '', [{ problem_id: 1000 }, { problem_id: 1234 }]),
+        }
+    });
+    proc.kv = kv;
+
+    const result = await proc.ProcessFunctions['UploadStd']({ ProblemID: 1234 });
+
+    assert.ok(result.Success);
+    assert.strictEqual(result.Message, '此题已经有人上传标程');
+    assert.strictEqual(kv.store.std_list, '1000\n1234');
+});
+
+test('UploadStd touches neither database nor cache when already in sync', async () => {
+    // The hot path: the script re-uploads a problem that already has a std and
+    // is already cached. This must cost zero database rows and zero KV writes.
+    const kv = kvStub('1000\n1234\n');
+    const select = test.mock.fn(async () => new Result(true, '', []));
+    const proc = createProcess({
+        db: {
+            GetTableSize: async () => new Result(true, '', { TableSize: 1 }),
+            Select: select,
+        }
+    });
+    proc.kv = kv;
+
+    await proc.ProcessFunctions['UploadStd']({ ProblemID: 1234 });
+
+    assert.strictEqual(select.mock.calls.length, 0, 'no database read on the hot path');
+    assert.strictEqual(kv.puts.length, 0, 'no cache write on the hot path');
+    assert.strictEqual(kv.store.std_list, '1000\n1234\n', 'cache left untouched');
+});
+
+test('GetStdList returns no spurious trailing zero', async () => {
+    const proc = createProcess();
+    proc.kv = kvStub('1000\n1001\n1002\n');   // legacy trailing-newline format
+
+    const result = await proc.ProcessFunctions['GetStdList']({});
+
+    assert.ok(result.Success);
+    assert.deepStrictEqual(result.Data.StdList, [1000, 1001, 1002]);
+});
+
+test('GetStdList fills the cache from the database when the key is unset', async () => {
+    // An unset key is not an empty list - answering [] would tell the client
+    // that no problem has a std answer at all.
+    const kv = kvStub(undefined);
+    const proc = createProcess({
+        db: {
+            Select: async () => new Result(true, '', [
+                { problem_id: 1000 }, { problem_id: 1001 }
+            ])
+        }
+    });
+    proc.kv = kv;
+
+    const result = await proc.ProcessFunctions['GetStdList']({});
+
+    assert.ok(result.Success);
+    assert.deepStrictEqual(result.Data.StdList, [1000, 1001]);
+    assert.strictEqual(kv.store.std_list, '1000\n1001', 'cache filled for next time');
+});
+
+test('GetStdList serves an empty cache without touching the database', async () => {
+    // An empty string is a legitimately empty cache (no stds uploaded yet) and
+    // must be distinguished from a missing key.
+    const select = test.mock.fn(async () => new Result(true, '', []));
+    const proc = createProcess({ db: { Select: select } });
+    proc.kv = kvStub('');
+
+    const result = await proc.ProcessFunctions['GetStdList']({});
+
+    assert.ok(result.Success);
+    assert.deepStrictEqual(result.Data.StdList, []);
+    assert.strictEqual(select.mock.calls.length, 0, 'empty cache is valid, no rebuild');
+});
+
+test('UploadStd rebuilds when the cache key is unset entirely', async () => {
+    const kv = kvStub(undefined);
+    const proc = createProcess({
+        db: {
+            GetTableSize: async () => new Result(true, '', { TableSize: 1 }),
+            Select: async () => new Result(true, '', [{ problem_id: 1234 }]),
+        }
+    });
+    proc.kv = kv;
+
+    await proc.ProcessFunctions['UploadStd']({ ProblemID: 1234 });
+
+    assert.strictEqual(kv.store.std_list, '1234');
 });
