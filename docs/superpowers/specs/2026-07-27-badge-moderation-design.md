@@ -124,13 +124,56 @@ Replace the sentiment classifier with a moderation prompt on `@cf/zai-org/glm-4.
 for structured output.
 
 - `temperature: 0` for repeatability.
-- System prompt states the policy: reject insults and harassment, vulgarity, sexual
-  content, hate speech, and impersonation of site staff. Explicitly **not** grounds for
-  rejection: negative or sad sentiment, emoji on their own, and text in any language.
 - Badge content is passed as the user message inside clear delimiters.
 - `response_format` pins output to `{ allowed: boolean, reason: string }`.
 - No score threshold anywhere. The `toFixed()` expression is deleted rather than fixed,
   because nothing compares scores any more.
+
+#### The policy
+
+The standard is what does not belong on a competitive-programming judge whose users are
+largely school-age. That rationale is stated in the prompt, but the rules are enumerated
+rather than left to the model's judgement, because a vague instruction produces
+inconsistent verdicts on exactly the borderline input that issue #39 is about.
+
+System prompt:
+
+```
+You moderate user "badges" on XMOJ, a competitive programming judge used mainly by
+school-age students. A badge is a short public label (max 20 characters) shown next
+to a username.
+
+Reject the badge if it contains any of the following:
+1.  Profanity, vulgarity or obscenity, in any language, including deliberately
+    disguised forms (homophones, leetspeak, initialisms such as nmsl / wcnm).
+2.  Sexual content or innuendo.
+3.  Insults, harassment, threats or mockery aimed at a person or group, including
+    at a named user.
+4.  Hate speech or discrimination based on race, ethnicity, nationality, region,
+    religion, gender, sexuality or disability.
+5.  Violence, gore, or threats of harm.
+6.  References to self-harm or suicide.
+7.  Drugs, alcohol, tobacco or gambling.
+8.  Claiming to be site staff, an administrator, a judge, or a system message.
+9.  Advertising, spam, external links, or contact details (QQ, WeChat, phone).
+10. Soliciting or offering contest answers, account sharing, or other cheating.
+
+Do NOT reject a badge merely because it is:
+-   Negative, sad, self-deprecating or defeatist.
+-   Competitive programming slang that sounds harsh but is ordinary in this
+    community: AK, 爆零, 挂了, 退役, 打铁, 罚坐, WA, TLE, RE, MLE.
+-   Made of emoji, alone or in combination.
+-   Written in any language or script.
+-   Boastful about rating or results.
+
+If the badge is borderline and does not clearly fall into a listed category, allow it.
+```
+
+The closing instruction is deliberate. Issue #39 is a false-positive bug, and
+administrators can already remove a badge afterwards via `DeleteBadge`, so the cost of
+wrongly allowing is much lower than the cost of wrongly rejecting. Note that this
+leniency applies to the model's *judgement* only — it does not conflict with the
+fail-closed behaviour below, which covers infrastructure failure.
 
 **Prompt injection:** badge content is user-controlled but capped at 20 graphemes.
 Delimiters plus schema-constrained output are proportionate at that size; nothing
@@ -158,6 +201,7 @@ In `test/process.test.js`, whose harness already stubs `AI.run`:
 | --- | --- |
 | Emoji-only content (😀, ❤️, 👨‍👩‍👧) | passes all deterministic checks, reaches `AI.run`, allowed |
 | Plainly abusive content | rejected with the policy message |
+| CP slang (爆零, 退役, 挂了) | allowed — the carve-out is load-bearing |
 | `AI.run` throws | rejected with the unavailable message |
 | `AI.run` returns unparseable output | rejected with the unavailable message |
 | Model ID passed to `AI.run` | asserted, so a silent model swap fails the suite |
