@@ -503,3 +503,164 @@ test('GetUserSettings fails when stored settings JSON is valid but not an object
     assert.strictEqual(result.Success, false);
     assert.strictEqual(result.Message, '设置数据损坏');
 });
+
+function stubGetPostQuery(proc, rows) {
+    const calls = [];
+    proc.RawDatabase = {
+        prepare: (query) => ({
+            bind: (...args) => ({
+                all: async () => {
+                    calls.push({ query, args });
+                    return { results: rows };
+                }
+            })
+        })
+    };
+    return calls;
+}
+
+function postRow(overrides = {}) {
+    return Object.assign({
+        post_user_id: 'alice',
+        problem_id: 1000,
+        title: 'Post one',
+        post_time: 111,
+        board_id: 2,
+        board_name: '学术版',
+        lock_person: null,
+        lock_time: null,
+        reply_count: 2,
+        reply_id: null,
+        reply_user_id: null,
+        content: null,
+        reply_time: null,
+        edit_time: null,
+        edit_person: null
+    }, overrides);
+}
+
+test('GetPost fetches the whole discussion in a single query', async () => {
+    const proc = createProcess();
+    const calls = stubGetPostQuery(proc, [
+        postRow({ reply_id: 1, reply_user_id: 'u1', content: 'hello', reply_time: 1001 }),
+        postRow({ reply_id: 2, reply_user_id: 'u2', content: 'world', reply_time: 1002 })
+    ]);
+
+    const result = await proc.ProcessFunctions['GetPost']({ PostID: 1, Page: 1 });
+
+    assert.ok(result.Success);
+    assert.strictEqual(result.Message, '获得讨论成功');
+    assert.strictEqual(calls.length, 1, 'expected exactly one SQL query');
+    assert.deepStrictEqual(calls[0].args, [1, 1, 15, 0, 1]);
+    assert.strictEqual(result.Data.UserID, 'alice');
+    assert.strictEqual(result.Data.ProblemID, 1000);
+    assert.strictEqual(result.Data.Title, 'Post one');
+    assert.strictEqual(result.Data.PostTime, 111);
+    assert.strictEqual(result.Data.BoardID, 2);
+    assert.strictEqual(result.Data.BoardName, '学术版');
+    assert.strictEqual(result.Data.PageCount, 1);
+    assert.deepStrictEqual(result.Data.Lock, { Locked: false, LockPerson: '', LockTime: 0 });
+    assert.deepStrictEqual(result.Data.Reply, [
+        { ReplyID: 1, UserID: 'u1', Content: 'hello', ReplyTime: 1001, EditTime: null, EditPerson: null },
+        { ReplyID: 2, UserID: 'u2', Content: 'world', ReplyTime: 1002, EditTime: null, EditPerson: null }
+    ]);
+});
+
+test('GetPost binds the offset for the requested page', async () => {
+    const proc = createProcess();
+    const calls = stubGetPostQuery(proc, [
+        postRow({ reply_count: 20, reply_id: 16, reply_user_id: 'u16', content: 'x', reply_time: 1016 })
+    ]);
+
+    const result = await proc.ProcessFunctions['GetPost']({ PostID: 7, Page: 2 });
+
+    assert.ok(result.Success);
+    assert.deepStrictEqual(calls[0].args, [7, 7, 15, 15, 7]);
+    assert.strictEqual(result.Data.PageCount, 2);
+    assert.strictEqual(result.Data.Reply.length, 1);
+});
+
+test('GetPost reports a locked discussion', async () => {
+    const proc = createProcess();
+    stubGetPostQuery(proc, [
+        postRow({ lock_person: 'admin', lock_time: 999, reply_count: 1, reply_id: 1, reply_user_id: 'u1', content: 'hi', reply_time: 1001 })
+    ]);
+
+    const result = await proc.ProcessFunctions['GetPost']({ PostID: 1, Page: 1 });
+
+    assert.ok(result.Success);
+    assert.deepStrictEqual(result.Data.Lock, { Locked: true, LockPerson: 'admin', LockTime: 999 });
+});
+
+test('GetPost rewrites legacy domain in reply content', async () => {
+    const proc = createProcess();
+    stubGetPostQuery(proc, [
+        postRow({ reply_count: 1, reply_id: 1, reply_user_id: 'u1', content: 'see https://xmoj-bbs.tech/a and xmoj-bbs.tech/b', reply_time: 1001 })
+    ]);
+
+    const result = await proc.ProcessFunctions['GetPost']({ PostID: 1, Page: 1 });
+
+    assert.strictEqual(result.Data.Reply[0].Content, 'see https://xmoj-bbs.me/a and xmoj-bbs.me/b');
+});
+
+test('GetPost fails when the discussion does not exist', async () => {
+    const proc = createProcess();
+    stubGetPostQuery(proc, []);
+
+    const result = await proc.ProcessFunctions['GetPost']({ PostID: 999, Page: 1 });
+
+    assert.strictEqual(result.Success, false);
+    assert.strictEqual(result.Message, '该讨论不存在');
+});
+
+test('GetPost returns an empty discussion when it has no replies', async () => {
+    const proc = createProcess();
+    stubGetPostQuery(proc, [postRow({ reply_count: 0 })]);
+
+    const result = await proc.ProcessFunctions['GetPost']({ PostID: 2, Page: 1 });
+
+    assert.ok(result.Success);
+    assert.strictEqual(result.Data.PageCount, 0);
+    assert.deepStrictEqual(result.Data.Reply, []);
+    assert.strictEqual(result.Data.Title, '', 'metadata is withheld for an empty discussion, as before');
+});
+
+test('GetPost rejects a page outside the available range', async () => {
+    const proc = createProcess();
+    const calls = stubGetPostQuery(proc, [postRow({ reply_count: 2 })]);
+
+    const result = await proc.ProcessFunctions['GetPost']({ PostID: 1, Page: 5 });
+
+    assert.strictEqual(result.Success, false);
+    assert.strictEqual(result.Message, '参数页数不在范围1~1内');
+    assert.strictEqual(calls.length, 1);
+});
+
+test('GetPost clamps a negative offset for a non-positive page', async () => {
+    const proc = createProcess();
+    const calls = stubGetPostQuery(proc, [postRow({ reply_count: 2 })]);
+
+    const result = await proc.ProcessFunctions['GetPost']({ PostID: 1, Page: 0 });
+
+    assert.strictEqual(result.Success, false);
+    assert.strictEqual(calls[0].args[3], 0, 'offset must never be negative');
+});
+
+test('GetPost clears mentions for the reader', async () => {
+    const deleted = [];
+    const proc = createProcess({
+        db: {
+            Delete: async (table, where) => {
+                deleted.push({ table, where });
+                return new Result(true, '');
+            }
+        }
+    });
+    stubGetPostQuery(proc, [
+        postRow({ reply_count: 1, reply_id: 1, reply_user_id: 'u1', content: 'hi', reply_time: 1001 })
+    ]);
+
+    await proc.ProcessFunctions['GetPost']({ PostID: 1, Page: 1 });
+
+    assert.deepStrictEqual(deleted, [{ table: 'bbs_mention', where: { post_id: 1, to_user_id: 'testuser' } }]);
+});
