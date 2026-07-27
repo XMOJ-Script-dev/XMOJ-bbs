@@ -588,7 +588,7 @@ export class Process {
       let WhereClause = "";
       const BindData: (string | number)[] = [];
       if (Data["ProblemID"] !== 0) {
-        WhereClause += (WhereClause === "" ? "WHERE " : "AND ") + "p.problem_id = ? ";
+        WhereClause += "WHERE p.problem_id = ? ";
         BindData.push(Data["ProblemID"]);
       }
       if (Data["BoardID"] !== -1) {
