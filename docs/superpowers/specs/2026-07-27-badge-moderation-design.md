@@ -157,6 +157,8 @@ Reject the badge if it contains any of the following:
 8.  Claiming to be site staff, an administrator, a judge, or a system message.
 9.  Advertising, spam, external links, or contact details (QQ, WeChat, phone).
 10. Soliciting or offering contest answers, account sharing, or other cheating.
+11. Political content: slogans or advocacy, political figures or parties, disputed
+    territorial or historical claims, and religious proselytising.
 
 Do NOT reject a badge merely because it is:
 -   Negative, sad, self-deprecating or defeatist.
@@ -165,6 +167,8 @@ Do NOT reject a badge merely because it is:
 -   Made of emoji, alone or in combination.
 -   Written in any language or script.
 -   Boastful about rating or results.
+-   A flag emoji, country name, school name or region name used as plain identity.
+    Rule 11 is about advocacy and disputed claims, not about where someone is from.
 
 If the badge is borderline and does not clearly fall into a listed category, allow it.
 ```
@@ -202,6 +206,8 @@ In `test/process.test.js`, whose harness already stubs `AI.run`:
 | Emoji-only content (😀, ❤️, 👨‍👩‍👧) | passes all deterministic checks, reaches `AI.run`, allowed |
 | Plainly abusive content | rejected with the policy message |
 | CP slang (爆零, 退役, 挂了) | allowed — the carve-out is load-bearing |
+| Political slogan | rejected with the policy message |
+| 🇨🇳 flag, school or region name | allowed — rule 11 must not swallow plain identity |
 | `AI.run` throws | rejected with the unavailable message |
 | `AI.run` returns unparseable output | rejected with the unavailable message |
 | Model ID passed to `AI.run` | asserted, so a silent model swap fails the suite |
