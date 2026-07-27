@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { Process } = require('../Source/Process.ts');
+const { Process, RebuildStdList } = require('../Source/Process.ts');
 const { Result } = require('../Source/Result.ts');
 
 function createProcess(mocks = {}) {
@@ -669,8 +669,6 @@ test('GetPost clears mentions for the reader', async () => {
 // The cache is a denormalised copy of `SELECT problem_id FROM std_answer`.
 // It is rebuilt wholesale from the database rather than patched incrementally,
 // so a dropped or racing write cannot leave it permanently out of sync.
-
-const { RebuildStdList } = require('../Source/Process.ts');
 
 function kvStub(initial) {
     const store = { std_list: initial };
