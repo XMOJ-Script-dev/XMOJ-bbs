@@ -45,6 +45,32 @@ function sleep(time: number) {
   return new Promise((resolve) => setTimeout(resolve, time));
 }
 
+// The KV key holding the list of problems that have a std answer. It is a
+// cache of `SELECT problem_id FROM std_answer`, kept so that GetStdList - a
+// hot read - costs no database rows.
+export const StdListKey = "std_list";
+
+// Tolerates the legacy trailing-newline format and any blank lines left behind
+// by earlier writes. An empty string is a legitimately empty cache; a missing
+// key is not, and callers must handle that before getting here.
+export const ParseStdList = (Cached: string): Array<number> => {
+  return Cached.split("\n")
+    .filter((Entry) => Entry.trim() !== "")
+    .map(Number);
+};
+
+// Rewrites the cache from the database. Rebuilding wholesale rather than
+// patching an entry in means a dropped or racing write can only ever cost
+// freshness until the next rebuild, never permanent drift.
+export const RebuildStdList = async (XMOJDatabase: Database, kv: KVNamespace): Promise<string> => {
+  const Rows = ThrowErrorIfFailed(
+    await XMOJDatabase.Select("std_answer", ["problem_id"])
+  ) as Array<Record<string, any>>;
+  const List = Rows.map((Row) => Row["problem_id"]).join("\n");
+  await kv.put(StdListKey, List);
+  return List;
+};
+
 export class Process {
   private AdminUserList: Array<string> = ["chenlangning", "shanwenxiao", "zhuchenrui2","liushangchen"];
   // noinspection JSMismatchedCollectionQueryUpdate
@@ -1192,13 +1218,13 @@ export class Process {
       if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("std_answer", {
         problem_id: ProblemID
       }))["TableSize"] !== 0) {
-        let currentStdList = await this.kv.get("std_list");
-        console.log(currentStdList.toString().indexOf(Data["ProblemID"].toString()));
-        if (currentStdList.split('\n').some(d => d === Data["ProblemID"])) {
-          currentStdList = currentStdList + Data["ProblemID"] + "\n";
-          this.kv.put("std_list", currentStdList);
+        // This is the hot path - the script calls UploadStd for problems that
+        // already have a std. Only touch the database when the cache is
+        // actually missing this problem, which is the drift we are repairing.
+        const Cached = await this.kv.get(StdListKey);
+        if (Cached === null || Cached === undefined || !ParseStdList(Cached).includes(ProblemID)) {
+          await RebuildStdList(this.XMOJDatabase, this.kv);
         }
-        console.log("ProblemID: " + ProblemID + " already has a std answer, skipping upload.");
         return new Result(true, "此题已经有人上传标程");
       }
       if (await this.GetProblemScoreChecker(ProblemID) !== 100) {
@@ -1289,9 +1315,11 @@ export class Process {
         problem_id: Data["ProblemID"],
         std_code: StdCode
       }));
-      let currentStdList = await this.kv.get("std_list");
-      currentStdList = currentStdList + Data["ProblemID"] + "\n";
-      this.kv.put("std_list", currentStdList);
+      // Rebuild from the database rather than appending to the cached string:
+      // an append races with concurrent uploads (KV has no compare-and-set) and
+      // silently loses entries. Uploads are bounded at one per problem ever, so
+      // the extra scan is affordable here in a way it would not be on reads.
+      await RebuildStdList(this.XMOJDatabase, this.kv);
       return new Result(true, "标程上传成功");
     },
     GetStdList: async (Data: object): Promise<Result> => {
@@ -1299,7 +1327,15 @@ export class Process {
       const ResponseData = {
         StdList: new Array<number>()
       };
-      ResponseData.StdList = (await this.kv.get("std_list")).split("\n").map(Number);
+      // A missing key is not an empty list - it means the cache has never been
+      // built, and answering [] would tell the client that no problem has a std
+      // answer. Fill it from the database instead. An empty string is a real
+      // empty cache and is served as-is, so this costs a scan only on a genuine
+      // miss, which the daily rebuild keeps rare.
+      const Cached = await this.kv.get(StdListKey);
+      ResponseData.StdList = ParseStdList(
+        Cached ?? await RebuildStdList(this.XMOJDatabase, this.kv)
+      );
       return new Result(true, "获得标程列表成功", ResponseData);
     },
     GetStd: async (Data: object): Promise<Result> => {
