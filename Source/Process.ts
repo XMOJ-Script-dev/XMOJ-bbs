@@ -605,12 +605,18 @@ export class Process {
         "p.title AS title, p.post_time AS post_time, p.board_id AS board_id, " +
         "b.board_name AS board_name, " +
         "(SELECT COUNT(*) FROM bbs_reply r WHERE r.post_id = p.post_id) AS reply_count, " +
-        "(SELECT r.user_id FROM bbs_reply r WHERE r.post_id = p.post_id ORDER BY r.reply_time DESC LIMIT 1) AS last_reply_user_id, " +
-        "(SELECT r.reply_time FROM bbs_reply r WHERE r.post_id = p.post_id ORDER BY r.reply_time DESC LIMIT 1) AS last_reply_time, " +
+        "lr.user_id AS last_reply_user_id, lr.reply_time AS last_reply_time, " +
         "l.lock_person AS lock_person, l.lock_time AS lock_time " +
         "FROM bbs_post p " +
         "LEFT JOIN bbs_board b ON b.board_id = p.board_id " +
         "LEFT JOIN bbs_lock l ON l.post_id = p.post_id " +
+        "LEFT JOIN (" +
+        "  SELECT post_id, user_id, reply_time FROM (" +
+        "    SELECT post_id, user_id, reply_time, " +
+        "           ROW_NUMBER() OVER (PARTITION BY post_id ORDER BY reply_time DESC) AS rn " +
+        "    FROM bbs_reply" +
+        "  ) WHERE rn = 1" +
+        ") lr ON lr.post_id = p.post_id " +
         WhereClause +
         "ORDER BY p.post_id DESC LIMIT ? OFFSET ?;"
       ).bind(...BindData).all())["results"];
