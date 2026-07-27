@@ -809,12 +809,51 @@ test('GetStdList returns no spurious trailing zero', async () => {
     assert.deepStrictEqual(result.Data.StdList, [1000, 1001, 1002]);
 });
 
-test('GetStdList handles an unset cache key', async () => {
-    const proc = createProcess();
-    proc.kv = kvStub(undefined);
+test('GetStdList fills the cache from the database when the key is unset', async () => {
+    // An unset key is not an empty list - answering [] would tell the client
+    // that no problem has a std answer at all.
+    const kv = kvStub(undefined);
+    const proc = createProcess({
+        db: {
+            Select: async () => new Result(true, '', [
+                { problem_id: 1000 }, { problem_id: 1001 }
+            ])
+        }
+    });
+    proc.kv = kv;
+
+    const result = await proc.ProcessFunctions['GetStdList']({});
+
+    assert.ok(result.Success);
+    assert.deepStrictEqual(result.Data.StdList, [1000, 1001]);
+    assert.strictEqual(kv.store.std_list, '1000\n1001', 'cache filled for next time');
+});
+
+test('GetStdList serves an empty cache without touching the database', async () => {
+    // An empty string is a legitimately empty cache (no stds uploaded yet) and
+    // must be distinguished from a missing key.
+    const select = test.mock.fn(async () => new Result(true, '', []));
+    const proc = createProcess({ db: { Select: select } });
+    proc.kv = kvStub('');
 
     const result = await proc.ProcessFunctions['GetStdList']({});
 
     assert.ok(result.Success);
     assert.deepStrictEqual(result.Data.StdList, []);
+    assert.strictEqual(select.mock.calls.length, 0, 'empty cache is valid, no rebuild');
+});
+
+test('UploadStd rebuilds when the cache key is unset entirely', async () => {
+    const kv = kvStub(undefined);
+    const proc = createProcess({
+        db: {
+            GetTableSize: async () => new Result(true, '', { TableSize: 1 }),
+            Select: async () => new Result(true, '', [{ problem_id: 1234 }]),
+        }
+    });
+    proc.kv = kv;
+
+    await proc.ProcessFunctions['UploadStd']({ ProblemID: 1234 });
+
+    assert.strictEqual(kv.store.std_list, '1234');
 });

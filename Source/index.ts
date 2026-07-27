@@ -156,7 +156,12 @@ export default {
     waitUntil: (arg0: Promise<void>) => void;
   }) {
     let XMOJDatabase = new Database(Environment.DB);
-    Context.waitUntil(new Promise<void>(async (Resolve) => {
+    // An async function passed as a Promise executor swallows its own
+    // rejection - the constructor discards the returned promise, so a throw
+    // from ThrowErrorIfFailed would leave this pending forever and waitUntil
+    // would hang instead of reporting the failed run. Hand waitUntil the async
+    // call's promise directly so errors propagate.
+    Context.waitUntil((async () => {
       await XMOJDatabase.Delete("short_message", {
         "send_time": {
           "Operator": "<=",
@@ -177,7 +182,6 @@ export default {
       // bounds any drift - from a dropped KV write or two uploads racing - to
       // 24 hours, instead of it persisting forever as it does today.
       await RebuildStdList(XMOJDatabase, Environment.kv);
-      Resolve();
-    }));
+    })());
   },
 };

@@ -50,12 +50,10 @@ function sleep(time: number) {
 // hot read - costs no database rows.
 export const StdListKey = "std_list";
 
-// Tolerates the legacy trailing-newline format, a missing key, and any blank
-// lines left behind by earlier writes.
-export const ParseStdList = (Cached: string | null | undefined): Array<number> => {
-  if (!Cached) {
-    return [];
-  }
+// Tolerates the legacy trailing-newline format and any blank lines left behind
+// by earlier writes. An empty string is a legitimately empty cache; a missing
+// key is not, and callers must handle that before getting here.
+export const ParseStdList = (Cached: string): Array<number> => {
   return Cached.split("\n")
     .filter((Entry) => Entry.trim() !== "")
     .map(Number);
@@ -1223,7 +1221,8 @@ export class Process {
         // This is the hot path - the script calls UploadStd for problems that
         // already have a std. Only touch the database when the cache is
         // actually missing this problem, which is the drift we are repairing.
-        if (!ParseStdList(await this.kv.get(StdListKey)).includes(ProblemID)) {
+        const Cached = await this.kv.get(StdListKey);
+        if (Cached === null || Cached === undefined || !ParseStdList(Cached).includes(ProblemID)) {
           await RebuildStdList(this.XMOJDatabase, this.kv);
         }
         return new Result(true, "此题已经有人上传标程");
@@ -1328,7 +1327,15 @@ export class Process {
       const ResponseData = {
         StdList: new Array<number>()
       };
-      ResponseData.StdList = ParseStdList(await this.kv.get(StdListKey));
+      // A missing key is not an empty list - it means the cache has never been
+      // built, and answering [] would tell the client that no problem has a std
+      // answer. Fill it from the database instead. An empty string is a real
+      // empty cache and is served as-is, so this costs a scan only on a genuine
+      // miss, which the daily rebuild keeps rare.
+      const Cached = await this.kv.get(StdListKey);
+      ResponseData.StdList = ParseStdList(
+        Cached ?? await RebuildStdList(this.XMOJDatabase, this.kv)
+      );
       return new Result(true, "获得标程列表成功", ResponseData);
     },
     GetStd: async (Data: object): Promise<Result> => {
