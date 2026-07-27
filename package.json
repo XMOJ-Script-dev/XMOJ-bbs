@@ -9,7 +9,7 @@
     "coverage": "TS_NODE_TRANSPILE_ONLY=1 TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\"}' c8 node --require ts-node/register --test"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20230914.0",
+    "@cloudflare/workers-types": "^5.20260722.1",
     "@types/crypto-js": "^4.2.1",
     "@types/sqlstring": "^2.3.2",
     "c8": "^10.1.3",
