@@ -503,3 +503,198 @@ test('GetUserSettings fails when stored settings JSON is valid but not an object
     assert.strictEqual(result.Success, false);
     assert.strictEqual(result.Message, '设置数据损坏');
 });
+
+// ---------------------------------------------------------------------------
+// EditBadge
+// ---------------------------------------------------------------------------
+
+// Builds a Process whose badge row exists with the given stored content and quota
+// state, and whose AI returns whatever `ai` says.
+function createBadgeProcess({ stored = 'old', windowStart = 0, count = 0, ai, update } = {}) {
+    const proc = createProcess({
+        db: {
+            Select: async () => new Result(true, '', [{
+                content: stored,
+                moderation_window_start: windowStart,
+                moderation_count: count
+            }]),
+            Update: update || (async () => new Result(true, ''))
+        },
+        ai: { run: ai || (async () => allow()) }
+    });
+    proc.Username = 'testuser';
+    return proc;
+}
+
+// The shape the live model actually returns: an OpenAI completion whose content
+// is a JSON string.
+function verdict(allowed, rule) {
+    return { choices: [{ message: { content: JSON.stringify({ allowed, rule }) } }] };
+}
+const allow = () => verdict(true, 0);
+
+function editArgs(Content) {
+    return { UserID: 'testuser', BackgroundColor: '#fff', Color: '#000', Content };
+}
+
+test('EditBadge allows an emoji-only badge', async () => {
+    const proc = createBadgeProcess();
+    const result = await proc.ProcessFunctions['EditBadge'](editArgs('\u{1F600}\u{1F389}'));
+    assert.ok(result.Success, result.Message);
+    assert.strictEqual(result.Message, '编辑标签成功');
+    assert.strictEqual(proc.AI.run.mock.callCount(), 1);
+});
+
+test('EditBadge allows BMP emoji the old allowlist rejected', async () => {
+    for (const emoji of ['❤️', '⭐', '✅', '✨', '☀']) {
+        const proc = createBadgeProcess();
+        const result = await proc.ProcessFunctions['EditBadge'](editArgs(emoji));
+        assert.ok(result.Success, emoji + ' was rejected: ' + result.Message);
+    }
+});
+
+test('EditBadge sends the badge to the moderation model, delimited', async () => {
+    let seenModel = null, seenBody = null;
+    const proc = createBadgeProcess({
+        ai: async (model, body) => { seenModel = model; seenBody = body; return allow(); }
+    });
+    await proc.ProcessFunctions['EditBadge'](editArgs('hello'));
+    assert.strictEqual(seenModel, '@cf/zai-org/glm-4.7-flash');
+    assert.strictEqual(seenBody.messages[1].content, '<badge>hello</badge>');
+    assert.strictEqual(seenBody.temperature, 0);
+    // A small budget is spent entirely on reasoning and returns no content at all.
+    assert.ok(seenBody.max_completion_tokens >= 1024);
+});
+
+test('EditBadge rejects content the model rejects, without leaking the reason', async () => {
+    const proc = createBadgeProcess({ ai: async () => verdict(false, 1) });
+    const result = await proc.ProcessFunctions['EditBadge'](editArgs('nmsl'));
+    assert.strictEqual(result.Success, false);
+    assert.strictEqual(result.Message, '标签内容不符合社区规范，请修改后重试');
+});
+
+test('EditBadge fails closed when the model throws', async () => {
+    const proc = createBadgeProcess({ ai: async () => { throw new Error('AI down'); } });
+    const result = await proc.ProcessFunctions['EditBadge'](editArgs('hello'));
+    assert.strictEqual(result.Success, false);
+    assert.strictEqual(result.Message, '内容审核服务暂时不可用，请稍后重试');
+});
+
+test('EditBadge fails closed on unusable model output', async () => {
+    const unavailable = '内容审核服务暂时不可用，请稍后重试';
+    const cases = {
+        'prose instead of JSON': { choices: [{ message: { content: 'looks fine to me' } }] },
+        'missing rule': { choices: [{ message: { content: '{"allowed":true}' } }] },
+        'rejection with no rule': { choices: [{ message: { content: '{"allowed":false,"rule":0}' } }] },
+        'rule out of range': { choices: [{ message: { content: '{"allowed":false,"rule":99}' } }] },
+        'null content (budget spent on reasoning)': { choices: [{ message: { content: null } }] },
+    };
+    for (const [name, reply] of Object.entries(cases)) {
+        const proc = createBadgeProcess({ ai: async () => reply });
+        const result = await proc.ProcessFunctions['EditBadge'](editArgs('hello'));
+        assert.strictEqual(result.Success, false, name + ' should not pass');
+        assert.strictEqual(result.Message, unavailable, name);
+    }
+});
+
+test('EditBadge accepts a verdict handed back as a parsed object', async () => {
+    const proc = createBadgeProcess({ ai: async () => ({ response: { allowed: true, rule: 0 } }) });
+    const result = await proc.ProcessFunctions['EditBadge'](editArgs('hello'));
+    assert.ok(result.Success, result.Message);
+});
+
+test('EditBadge blocks characters that break rendering, without calling the model', async () => {
+    const badChars = '内容包含不允许的字符，导致渲染问题';
+    const cases = {
+        'NUL': 'a\u0000b',
+        'ESC': 'a\u001Bb',
+        'DEL': 'a\u007Fb',
+        'RLO bidi override': 'a\u202Eb',
+        'zero-width space': 'a\u200Bb',
+        'BOM': 'a\uFEFFb',
+        'line separator': 'a\u2028b',
+        'lone surrogate': '\uDC00\uDC00',
+        'ideographic tone stack': '\u4F60' + '\u302A'.repeat(6),
+        'zalgo': 'a\u0301\u0302\u0303\u0304\u0305',
+    };
+    for (const [name, content] of Object.entries(cases)) {
+        const proc = createBadgeProcess();
+        const result = await proc.ProcessFunctions['EditBadge'](editArgs(content));
+        assert.strictEqual(result.Success, false, name + ' should be rejected');
+        assert.strictEqual(result.Message, badChars, name);
+        assert.strictEqual(proc.AI.run.mock.callCount(), 0, name + ' must not reach the model');
+    }
+});
+
+test('EditBadge allows scripts and emoji sequences that legitimately need marks', async () => {
+    const cases = {
+        'ZWJ family': '\u{1F468}\u200D\u{1F469}\u200D\u{1F467}',
+        'keycap': '1\uFE0F\u20E3',
+        'flag': '\u{1F1E8}\u{1F1F3}',
+        'skin tone': '\u{1F44D}\u{1F3FD}',
+        'vietnamese decomposed': 'tie\u0302\u0301ng',
+        'cafe decomposed': 'cafe\u0301',
+        'hangul': '한글',
+        'cyrillic': 'при',
+    };
+    for (const [name, content] of Object.entries(cases)) {
+        const proc = createBadgeProcess();
+        const result = await proc.ProcessFunctions['EditBadge'](editArgs(content));
+        assert.ok(result.Success, name + ' was rejected: ' + result.Message);
+    }
+});
+
+test('EditBadge measures length in graphemes, not UTF-16 units', async () => {
+    // 20 astral emoji are 40 UTF-16 units, which the old check rejected.
+    const proc = createBadgeProcess();
+    const ok = await proc.ProcessFunctions['EditBadge'](editArgs('\u{1F600}'.repeat(20)));
+    assert.ok(ok.Success, ok.Message);
+
+    const tooLong = createBadgeProcess();
+    const bad = await tooLong.ProcessFunctions['EditBadge'](editArgs('\u{1F600}'.repeat(21)));
+    assert.strictEqual(bad.Success, false);
+    assert.strictEqual(bad.Message, '标签内容过长');
+    assert.strictEqual(tooLong.AI.run.mock.callCount(), 0);
+});
+
+test('EditBadge skips moderation when the content is unchanged', async () => {
+    const proc = createBadgeProcess({ stored: 'same' });
+    const result = await proc.ProcessFunctions['EditBadge'](editArgs('same'));
+    assert.ok(result.Success, result.Message);
+    assert.strictEqual(proc.AI.run.mock.callCount(), 0, 'colour-only edits must not cost inference');
+});
+
+test('EditBadge rejects an 11th moderated edit within the hour', async () => {
+    const proc = createBadgeProcess({ windowStart: new Date().getTime() - 60000, count: 10 });
+    const result = await proc.ProcessFunctions['EditBadge'](editArgs('new content'));
+    assert.strictEqual(result.Success, false);
+    assert.strictEqual(result.Message, '标签修改过于频繁，请稍后再试');
+    assert.strictEqual(proc.AI.run.mock.callCount(), 0);
+});
+
+test('EditBadge resets the quota once the window has expired', async () => {
+    const proc = createBadgeProcess({ windowStart: new Date().getTime() - 3600001, count: 10 });
+    const result = await proc.ProcessFunctions['EditBadge'](editArgs('new content'));
+    assert.ok(result.Success, result.Message);
+    assert.strictEqual(proc.AI.run.mock.callCount(), 1);
+});
+
+test('EditBadge does not spend quota on deterministic rejections', async () => {
+    const updates = [];
+    const proc = createBadgeProcess({
+        update: async (table, values) => { updates.push(values); return new Result(true, ''); }
+    });
+    await proc.ProcessFunctions['EditBadge'](editArgs('a\u0000b'));
+    assert.strictEqual(updates.length, 0, 'a bad-character rejection must not touch the counter');
+});
+
+test('EditBadge counts a moderated edit against the quota', async () => {
+    const updates = [];
+    const proc = createBadgeProcess({
+        count: 3,
+        windowStart: new Date().getTime() - 60000,
+        update: async (table, values) => { updates.push(values); return new Result(true, ''); }
+    });
+    await proc.ProcessFunctions['EditBadge'](editArgs('brand new'));
+    assert.strictEqual(updates[0].moderation_count, 4);
+});
