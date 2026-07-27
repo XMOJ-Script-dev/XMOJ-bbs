@@ -298,6 +298,11 @@ both hold, and 自闭了 is allowed despite being left off the explicit exemptio
 | Vietnamese, Thai, Hebrew niqqud, Devanagari, decomposed café | pass the character check |
 | 20 emoji | within the length limit |
 | 21 emoji | rejected as too long |
+| Unchanged content resubmitted | succeeds without calling `AI.run` |
+| Colour-only edit | succeeds without calling `AI.run` |
+| 11th moderated edit within an hour | rejected as too frequent, `AI.run` never called |
+| Deterministic rejection | does not increment the quota counter |
+| First edit after the window expires | allowed, counter resets to 1 |
 
 The character-check and length cases assert that `AI.run` is not called, which pins the
 ordering that keeps inference cost off the rejection path.
@@ -321,12 +326,40 @@ account-wide, and moderation fail-closes. A user looping badge edits can burn 10
 Neurons in roughly 446 requests and thereby disable badge editing for everyone until
 00:00 UTC. The old classifier was cheap enough that this was not a concern.
 
-Two mitigations, neither yet chosen:
+### Mitigation: rate-limit `EditBadge` per user
 
-1. Rate-limit `EditBadge` per user. Addresses the cause and is useful regardless.
-2. Distinguish a quota error from other AI errors and fail *open* on quota specifically,
-   on the grounds that a rate-limited attacker gains little and legitimate users keep
-   working. This weakens the fail-closed guarantee and needs a deliberate decision.
+Two measures, in order of cheapness.
+
+**Skip the inference call when nothing changed.** Before moderating, compare the
+submitted content against the row already in `badge`. If identical, update nothing and
+return success without calling the model. Re-saving an unchanged badge is the cheapest
+way to loop the endpoint, and this removes its cost entirely. It also spares ordinary
+users an inference charge when they edit only `BackgroundColor` or `Color`.
+
+**Cap moderated edits per user per hour.** Migration `0005_add_badge_edit_quota.sql` adds
+two columns to `badge`:
+
+```sql
+-- Migration number: 0005
+ALTER TABLE badge ADD COLUMN moderation_window_start INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE badge ADD COLUMN moderation_count INTEGER NOT NULL DEFAULT 0;
+```
+
+On each edit that would reach the model: if `moderation_window_start` is more than an
+hour old, reset it to now and set the count to 1; otherwise increment. Above **10 per
+hour**, reject with `"标签修改过于频繁，请稍后再试"` and do not call the model.
+
+The counter increments only for calls that actually reach the model. Deterministic
+rejections — too long, bad characters, impersonation — consume no neurons and must not
+consume quota, or a user could be locked out by typos.
+
+Ten per hour is generous for a label most users set once, and caps a single account at
+240 edits per day against a ~446-edit allocation. Draining the quota therefore requires
+several coordinated accounts, and since every account is a real XMOJ login, that is
+traceable and revocable.
+
+Fail-closed behaviour is unchanged: this removes the cheap path to exhaustion rather than
+relaxing what happens once exhausted.
 
 **Latency.** 532 completion tokens is several seconds per badge edit, against roughly a
 tenth of that for the old classifier. Acceptable for a rare, deliberate action, but it is
