@@ -566,23 +566,6 @@ export class Process {
         "Page": "number",
         "BoardID": "number"
       }));
-      let ResponseData = {
-        Posts: new Array<Object>,
-        PageCount: Data["BoardID"] !== -1 ? (Data["ProblemID"] !== 0 ? Math.ceil(ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_post", {
-          board_id: Data["BoardID"],
-          problem_id: Data["ProblemID"]
-        }))["TableSize"] / 15) : Math.ceil(ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_post", {
-          board_id: Data["BoardID"]
-        }))["TableSize"] / 15)) : (Data["ProblemID"] !== 0 ? Math.ceil(ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_post", {
-          problem_id: Data["ProblemID"]
-        }))["TableSize"] / 15) : Math.ceil(ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_post"))["TableSize"] / 15))
-      };
-      if (ResponseData.PageCount === 0) {
-        return new Result(true, "获得讨论列表成功", ResponseData);
-      }
-      if (Data["Page"] < 1 || Data["Page"] > ResponseData.PageCount) {
-        return new Result(false, "参数页数不在范围1~" + ResponseData.PageCount + "内");
-      }
       const SearchCondition = {};
       if (Data["ProblemID"] !== 0) {
         SearchCondition["problem_id"] = Data["ProblemID"];
@@ -590,39 +573,53 @@ export class Process {
       if (Data["BoardID"] !== -1) {
         SearchCondition["board_id"] = Data["BoardID"];
       }
-      const Posts = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_post", [], SearchCondition, {
-        Order: "post_id",
-        OrderIncreasing: false,
-        Limit: 15,
-        Offset: (Data["Page"] - 1) * 15
-      }));
-      for (const Post of Posts) {
+      let ResponseData = {
+        Posts: new Array<Object>,
+        PageCount: Math.ceil(ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_post",
+          Object.keys(SearchCondition).length === 0 ? undefined : SearchCondition))["TableSize"] / 15)
+      };
+      if (ResponseData.PageCount === 0) {
+        return new Result(true, "获得讨论列表成功", ResponseData);
+      }
+      if (Data["Page"] < 1 || Data["Page"] > ResponseData.PageCount) {
+        return new Result(false, "参数页数不在范围1~" + ResponseData.PageCount + "内");
+      }
 
-        const ReplyCount: number = ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_reply", {post_id: Post["post_id"]}))["TableSize"];
-        const LastReply = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_reply", ["user_id", "reply_time"], {post_id: Post["post_id"]}, {
-          Order: "reply_time",
-          OrderIncreasing: false,
-          Limit: 1
-        }));
-        if (ReplyCount === 0) {
+      let WhereClause = "";
+      const BindData: (string | number)[] = [];
+      if (Data["ProblemID"] !== 0) {
+        WhereClause += (WhereClause === "" ? "WHERE " : "AND ") + "p.problem_id = ? ";
+        BindData.push(Data["ProblemID"]);
+      }
+      if (Data["BoardID"] !== -1) {
+        WhereClause += (WhereClause === "" ? "WHERE " : "AND ") + "p.board_id = ? ";
+        BindData.push(Data["BoardID"]);
+      }
+      BindData.push(15, (Data["Page"] - 1) * 15);
+
+      // Single query with correlated subqueries/joins instead of 4 extra
+      // round trips per post (was causing an N+1 query bottleneck).
+      const Posts = (await this.RawDatabase.prepare(
+        "SELECT p.post_id AS post_id, p.user_id AS user_id, p.problem_id AS problem_id, " +
+        "p.title AS title, p.post_time AS post_time, p.board_id AS board_id, " +
+        "b.board_name AS board_name, " +
+        "(SELECT COUNT(*) FROM bbs_reply r WHERE r.post_id = p.post_id) AS reply_count, " +
+        "(SELECT r.user_id FROM bbs_reply r WHERE r.post_id = p.post_id ORDER BY r.reply_time DESC LIMIT 1) AS last_reply_user_id, " +
+        "(SELECT r.reply_time FROM bbs_reply r WHERE r.post_id = p.post_id ORDER BY r.reply_time DESC LIMIT 1) AS last_reply_time, " +
+        "l.lock_person AS lock_person, l.lock_time AS lock_time " +
+        "FROM bbs_post p " +
+        "LEFT JOIN bbs_board b ON b.board_id = p.board_id " +
+        "LEFT JOIN bbs_lock l ON l.post_id = p.post_id " +
+        WhereClause +
+        "ORDER BY p.post_id DESC LIMIT ? OFFSET ?;"
+      ).bind(...BindData).all())["results"];
+
+      for (const Post of Posts) {
+        if (Post["reply_count"] === 0) {
           await this.XMOJDatabase.Delete("bbs_post", {
             post_id: Post["post_id"]
           });
           continue;
-        }
-
-        const LockData = {
-          Locked: false,
-          LockPerson: "",
-          LockTime: 0
-        };
-        const Locked = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_lock", [], {
-          post_id: Post["post_id"]
-        }));
-        if (Locked.toString() !== "") {
-          LockData.Locked = true;
-          LockData.LockPerson = Locked[0]["lock_person"];
-          LockData.LockTime = Locked[0]["lock_time"];
         }
 
         ResponseData.Posts.push({
@@ -632,13 +629,15 @@ export class Process {
           Title: Post["title"],
           PostTime: Post["post_time"],
           BoardID: Post["board_id"],
-          BoardName: ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_board", ["board_name"], {
-            board_id: Post["board_id"]
-          }))[0]["board_name"],
-          ReplyCount: ReplyCount,
-          LastReplyUserID: LastReply[0]["user_id"],
-          LastReplyTime: LastReply[0]["reply_time"],
-          Lock: LockData
+          BoardName: Post["board_name"],
+          ReplyCount: Post["reply_count"],
+          LastReplyUserID: Post["last_reply_user_id"],
+          LastReplyTime: Post["last_reply_time"],
+          Lock: {
+            Locked: Post["lock_person"] !== null,
+            LockPerson: Post["lock_person"] ?? "",
+            LockTime: Post["lock_time"] ?? 0
+          }
         });
       }
       return new Result(true, "获得讨论列表成功", ResponseData);
