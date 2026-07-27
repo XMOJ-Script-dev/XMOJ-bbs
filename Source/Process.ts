@@ -566,17 +566,28 @@ export class Process {
         "Page": "number",
         "BoardID": "number"
       }));
-      const SearchCondition = {};
+      let WhereClause = "";
+      const FilterBindData: (string | number)[] = [];
       if (Data["ProblemID"] !== 0) {
-        SearchCondition["problem_id"] = Data["ProblemID"];
+        WhereClause += "WHERE p.problem_id = ? ";
+        FilterBindData.push(Data["ProblemID"]);
       }
       if (Data["BoardID"] !== -1) {
-        SearchCondition["board_id"] = Data["BoardID"];
+        WhereClause += (WhereClause === "" ? "WHERE " : "AND ") + "p.board_id = ? ";
+        FilterBindData.push(Data["BoardID"]);
       }
+
+      // Count and page query must share this.RawDatabase's session (rather than
+      // this.XMOJDatabase's own session) so D1 read replication reads a
+      // consistent snapshot across both - otherwise the count can observe a
+      // newer version than the page query, corrupting pagination.
+      const PostCount = (await this.RawDatabase.prepare(
+        "SELECT COUNT(*) AS count FROM bbs_post p " + WhereClause + ";"
+      ).bind(...FilterBindData).all())["results"][0]["count"];
+
       let ResponseData = {
         Posts: new Array<object>,
-        PageCount: Math.ceil(ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_post",
-          Object.keys(SearchCondition).length === 0 ? undefined : SearchCondition))["TableSize"] / 15)
+        PageCount: Math.ceil(PostCount / 15)
       };
       if (ResponseData.PageCount === 0) {
         return new Result(true, "获得讨论列表成功", ResponseData);
@@ -585,17 +596,7 @@ export class Process {
         return new Result(false, "参数页数不在范围1~" + ResponseData.PageCount + "内");
       }
 
-      let WhereClause = "";
-      const BindData: (string | number)[] = [];
-      if (Data["ProblemID"] !== 0) {
-        WhereClause += "WHERE p.problem_id = ? ";
-        BindData.push(Data["ProblemID"]);
-      }
-      if (Data["BoardID"] !== -1) {
-        WhereClause += (WhereClause === "" ? "WHERE " : "AND ") + "p.board_id = ? ";
-        BindData.push(Data["BoardID"]);
-      }
-      BindData.push(15, (Data["Page"] - 1) * 15);
+      const BindData: (string | number)[] = [...FilterBindData, 15, (Data["Page"] - 1) * 15];
 
       // Single query with correlated subqueries/joins instead of 4 extra
       // round trips per post (was causing an N+1 query bottleneck).
