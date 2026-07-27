@@ -210,7 +210,7 @@ export class Process {
     return this.DenyBadgeEditList.indexOf(this.Username) !== -1;
   }
   public VerifyCaptcha = async (CaptchaToken: string): Promise<Result> => {
-    const ErrorDescriptions: Object = {
+    const ErrorDescriptions: object = {
       "missing-input-secret": "密钥为空",
       "invalid-input-secret": "密钥不正确",
       "missing-input-response": "验证码令牌为空",
@@ -574,7 +574,7 @@ export class Process {
         SearchCondition["board_id"] = Data["BoardID"];
       }
       let ResponseData = {
-        Posts: new Array<Object>,
+        Posts: new Array<object>,
         PageCount: Math.ceil(ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_post",
           Object.keys(SearchCondition).length === 0 ? undefined : SearchCondition))["TableSize"] / 15)
       };
@@ -654,7 +654,7 @@ export class Process {
         BoardID: 0,
         BoardName: "",
         PostTime: 0,
-        Reply: new Array<Object>(),
+        Reply: new Array<object>(),
         PageCount: 0,
         Lock: {
           Locked: false,
@@ -869,7 +869,7 @@ export class Process {
     GetBBSMentionList: async (Data: object): Promise<Result> => {
       ThrowErrorIfFailed(this.CheckParams(Data, {}));
       const ResponseData = {
-        MentionList: new Array<Object>()
+        MentionList: new Array<object>()
       };
       const Mentions = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_mention", ["bbs_mention_id", "post_id", "bbs_mention_time", "reply_id"], {
         to_user_id: this.Username
@@ -895,7 +895,7 @@ export class Process {
     GetMailMentionList: async (Data: object): Promise<Result> => {
       ThrowErrorIfFailed(this.CheckParams(Data, {}));
       const ResponseData = {
-        MentionList: new Array<Object>()
+        MentionList: new Array<object>()
       };
       const Mentions = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message_mention", ["mail_mention_id", "from_user_id", "mail_mention_time"], {
         to_user_id: this.Username
@@ -958,7 +958,7 @@ export class Process {
     GetMailList: async (Data: object): Promise<Result> => {
       ThrowErrorIfFailed(this.CheckParams(Data, {}));
       const ResponseData = {
-        MailList: new Array<Object>()
+        MailList: new Array<object>()
       };
       let OtherUsernameList = new Array<string>();
       let Mails = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message", ["message_from"], {message_to: this.Username}, {}, true));
@@ -987,7 +987,7 @@ export class Process {
           OrderIncreasing: false,
           Limit: 1
         }));
-        let LastMessage: Object;
+        let LastMessage: object;
         if (LastMessageFrom.toString() === "") {
           LastMessage = LastMessageTo;
 
@@ -1068,7 +1068,7 @@ export class Process {
         "OtherUser": "string"
       }));
       const ResponseData = {
-        Mail: new Array<Object>()
+        Mail: new Array<object>()
       };
       let Mails = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message", [], {
         message_from: Data["OtherUser"],
@@ -1384,7 +1384,7 @@ export class Process {
     },
     GetBoards: async (Data: object): Promise<Result> => {
       ThrowErrorIfFailed(this.CheckParams(Data, {}));
-      const Boards: Array<Object> = new Array<Object>();
+      const Boards: Array<object> = new Array<object>();
       const BoardsData = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_board", []));
       for (const Board of BoardsData) {
         Boards.push({
