@@ -46,6 +46,14 @@ function sleep(time: number) {
 }
 
 export const BadgeModerationModel = "@cf/zai-org/glm-4.7-flash";
+// Reasoning tokens come out of the same budget as the answer, so a badge the model
+// finds hard can spend the whole allowance deliberating and return no content at
+// all. Ordinary badges finish in a few hundred tokens; the headroom is only ever
+// billed on the inputs that need it.
+export const BadgeModerationMaxTokens = 2048;
+// One retry, because truncation is not a verdict and the model does not stop in the
+// same place twice.
+export const BadgeModerationAttempts = 2;
 const BadgeMaxGraphemes = 20;
 const BadgeEditsPerHour = 10;
 const BadgeQuotaWindow = 60 * 60 * 1000;
@@ -155,6 +163,13 @@ export function ReadModerationVerdict(Reply: any): { allowed: boolean, rule: num
     return null;
   }
   return {allowed: Payload.allowed, rule: Payload.rule};
+}
+
+// A reply that ran out of budget mid-thought says nothing about the badge, so it is
+// worth asking again. Anything else that fails to validate is the model answering
+// badly, and asking again would only spend another inference call to hear it twice.
+export function ModerationReplyTruncated(Reply: any): boolean {
+  return Reply?.choices?.[0]?.finish_reason === "length";
 }
 
 // The KV key holding the list of problems that have a std answer. It is a
@@ -1554,22 +1569,29 @@ export class Process {
         }
 
         let Verdict: { allowed: boolean, rule: number } | null = null;
-        try {
-          Verdict = ReadModerationVerdict(await this.AI.run(BadgeModerationModel, {
-            messages: [
-              {role: "system", content: BadgeModerationPrompt},
-              {role: "user", content: "<badge>" + Data["Content"] + "</badge>"}
-            ],
-            temperature: 0,
-            // The model reasons before answering; a small budget is spent entirely
-            // on reasoning and comes back with no content at all.
-            max_completion_tokens: 1024,
-            response_format: {type: "json_schema", json_schema: BadgeModerationSchema}
-          }));
-        } catch (Error) {
-          Output.Error("Badge moderation failed: " + Error + "\n" +
+        for (let Attempt = 0; Attempt < BadgeModerationAttempts; Attempt++) {
+          let Reply: any;
+          try {
+            Reply = await this.AI.run(BadgeModerationModel, {
+              messages: [
+                {role: "system", content: BadgeModerationPrompt},
+                {role: "user", content: "<badge>" + Data["Content"] + "</badge>"}
+              ],
+              temperature: 0,
+              max_completion_tokens: BadgeModerationMaxTokens,
+              response_format: {type: "json_schema", json_schema: BadgeModerationSchema}
+            });
+          } catch (Error) {
+            Output.Error("Badge moderation failed: " + Error + "\n" +
+              "Username: " + this.Username);
+            return new Result(false, "内容审核服务暂时不可用，请稍后重试");
+          }
+          Verdict = ReadModerationVerdict(Reply);
+          if (Verdict !== null || !ModerationReplyTruncated(Reply)) {
+            break;
+          }
+          Output.Warn("Badge moderation ran out of tokens before answering, retrying\n" +
             "Username: " + this.Username);
-          return new Result(false, "内容审核服务暂时不可用，请稍后重试");
         }
         if (Verdict === null) {
           Output.Error("Badge moderation returned an unusable verdict\n" +

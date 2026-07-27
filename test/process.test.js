@@ -564,8 +564,57 @@ test('EditBadge sends the badge to the moderation model, delimited', async () =>
     assert.strictEqual(seenModel, '@cf/zai-org/glm-4.7-flash');
     assert.strictEqual(seenBody.messages[1].content, '<badge>hello</badge>');
     assert.strictEqual(seenBody.temperature, 0);
-    // A small budget is spent entirely on reasoning and returns no content at all.
-    assert.ok(seenBody.max_completion_tokens >= 1024);
+    // Reasoning shares the completion budget, and a badge the model finds hard can
+    // spend more than 1024 tokens thinking before it writes any JSON.
+    assert.ok(seenBody.max_completion_tokens >= 2048);
+});
+
+// The shape the live model returns when reasoning eats the whole budget: no content,
+// and finish_reason "length" to say why.
+function truncated() {
+    return { choices: [{ finish_reason: 'length', message: { content: null } }] };
+}
+
+test('EditBadge retries when the model runs out of tokens before answering', async () => {
+    const replies = [truncated(), verdict(false, 1)];
+    const proc = createBadgeProcess({ ai: async () => replies.shift() });
+    const result = await proc.ProcessFunctions['EditBadge'](editArgs('陈开尔万岁'));
+    assert.strictEqual(proc.AI.run.mock.callCount(), 2);
+    assert.strictEqual(result.Success, false);
+    assert.strictEqual(result.Message, '标签内容包含不雅或粗俗用语，请修改后重试');
+});
+
+test('EditBadge keeps an allow verdict that arrives on the retry', async () => {
+    const replies = [truncated(), allow()];
+    const proc = createBadgeProcess({ ai: async () => replies.shift() });
+    const result = await proc.ProcessFunctions['EditBadge'](editArgs('hello'));
+    assert.ok(result.Success, result.Message);
+    assert.strictEqual(proc.AI.run.mock.callCount(), 2);
+});
+
+test('EditBadge fails closed when the retry is truncated too', async () => {
+    const proc = createBadgeProcess({ ai: async () => truncated() });
+    const result = await proc.ProcessFunctions['EditBadge'](editArgs('hello'));
+    assert.strictEqual(result.Success, false);
+    assert.strictEqual(result.Message, '内容审核服务暂时不可用，请稍后重试');
+    // Bounded: a badge that always truncates must not loop on the model.
+    assert.strictEqual(proc.AI.run.mock.callCount(), 2);
+});
+
+test('EditBadge does not retry a reply that is merely malformed', async () => {
+    const proc = createBadgeProcess({
+        ai: async () => ({ choices: [{ finish_reason: 'stop', message: { content: 'looks fine to me' } }] })
+    });
+    const result = await proc.ProcessFunctions['EditBadge'](editArgs('hello'));
+    assert.strictEqual(result.Success, false);
+    assert.strictEqual(result.Message, '内容审核服务暂时不可用，请稍后重试');
+    assert.strictEqual(proc.AI.run.mock.callCount(), 1);
+});
+
+test('EditBadge does not retry after the model throws', async () => {
+    const proc = createBadgeProcess({ ai: async () => { throw new Error('AI down'); } });
+    await proc.ProcessFunctions['EditBadge'](editArgs('hello'));
+    assert.strictEqual(proc.AI.run.mock.callCount(), 1);
 });
 
 test('EditBadge tells the user which rule the badge broke', async () => {
