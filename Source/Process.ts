@@ -1456,18 +1456,45 @@ export class Process {
         BadgeCombiningMarkRun.test(Data["Content"])) {
         return new Result(false, "内容包含不允许的字符，导致渲染问题");
       }
-      if (Data["Content"].trim() === "") {
+      // ZWJ and variation selectors are exempted above because emoji need them, so
+      // strip them before asking whether anything visible is left. Otherwise a badge
+      // of nothing but joiners renders as blank.
+      if (Data["Content"].replace(/[\u200D\uFE00-\uFE0F]/gu, "").trim() === "") {
         return new Result(false, "内容不能仅包含空格");
+      }
+      // The moderation prompt delimits badge text with <badge>...</badge>. Nothing
+      // legitimate needs the closing tag inside a 20-character label, and refusing it
+      // here means the boundary cannot be forged whatever the model does.
+      if (Data["Content"].toLowerCase().includes("</badge>")) {
+        return new Result(false, "内容包含不允许的字符，导致渲染问题");
       }
 
       // Re-saving the same text, or changing only the colours, needs no moderation.
       // This is also what stops a loop over this endpoint from costing anything.
       if (BadgeRows[0]["content"] !== Data["Content"]) {
         const Now = new Date().getTime();
-        const WindowStart = Number(BadgeRows[0]["moderation_window_start"]) || 0;
-        const WindowLive = Now - WindowStart < BadgeQuotaWindow;
-        const UsedThisWindow = WindowLive ? Number(BadgeRows[0]["moderation_count"]) || 0 : 0;
+        const StoredStart = Number(BadgeRows[0]["moderation_window_start"]) || 0;
+        const StoredCount = Number(BadgeRows[0]["moderation_count"]) || 0;
+        const WindowLive = Now - StoredStart < BadgeQuotaWindow;
+        const UsedThisWindow = WindowLive ? StoredCount : 0;
         if (UsedThisWindow >= BadgeEditsPerHour) {
+          return new Result(false, "标签修改过于频繁，请稍后再试");
+        }
+
+        // Take the quota slot *before* spending the inference call, and take it with a
+        // compare-and-swap on the values we just read. Reserving afterwards would let a
+        // call that throws or returns garbage cost neurons without costing quota, and a
+        // plain write would let concurrent edits all read the same count and all store
+        // the same increment, advancing the counter by one for any number of calls.
+        const Reserved = ThrowErrorIfFailed(await this.XMOJDatabase.Update("badge", {
+          moderation_window_start: WindowLive ? StoredStart : Now,
+          moderation_count: UsedThisWindow + 1
+        }, {
+          user_id: Data["UserID"],
+          moderation_window_start: StoredStart,
+          moderation_count: StoredCount
+        }));
+        if (Reserved["Changes"] === 0) {
           return new Result(false, "标签修改过于频繁，请稍后再试");
         }
 
@@ -1494,15 +1521,6 @@ export class Process {
             "Username: " + this.Username);
           return new Result(false, "内容审核服务暂时不可用，请稍后重试");
         }
-
-        // Only calls that actually reached the model consume quota, so a user cannot
-        // lock themselves out with content the checks above already rejected.
-        ThrowErrorIfFailed(await this.XMOJDatabase.Update("badge", {
-          moderation_window_start: WindowLive ? WindowStart : Now,
-          moderation_count: UsedThisWindow + 1
-        }, {
-          user_id: Data["UserID"]
-        }));
 
         if (!Verdict.allowed) {
           Output.Log("Badge rejected by rule " + Verdict.rule + " for " + Data["UserID"]);

@@ -345,13 +345,20 @@ ALTER TABLE badge ADD COLUMN moderation_window_start INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE badge ADD COLUMN moderation_count INTEGER NOT NULL DEFAULT 0;
 ```
 
-On each edit that would reach the model: if `moderation_window_start` is more than an
-hour old, reset it to now and set the count to 1; otherwise increment. Above **10 per
-hour**, reject with `"标签修改过于频繁，请稍后再试"` and do not call the model.
+The slot is taken **before** the inference call, and taken as a compare-and-swap: the
+update is conditioned on the `moderation_window_start` and `moderation_count` values that
+were just read, and `Database.Update` now reports rows changed so a caller can tell
+whether it won. Zero rows changed means another request moved the counter in between, and
+the edit is rejected without calling the model.
 
-The counter increments only for calls that actually reach the model. Deterministic
-rejections — too long, bad characters, impersonation — consume no neurons and must not
-consume quota, or a user could be locked out by typos.
+Both halves matter. Reserving *after* the call would let a request that throws or returns
+garbage cost neurons without costing quota. Reserving with an unconditional write would
+let concurrent edits all read the same count and all store the same increment, advancing
+the counter by one no matter how many calls were made — which defeats the cap entirely.
+
+Deterministic rejections — too long, bad characters, impersonation — happen before the
+reservation, consume no neurons, and must not consume quota, or a user could be locked out
+by typos.
 
 Ten per hour is generous for a label most users set once, and caps a single account at
 240 edits per day against a ~446-edit allocation. Draining the quota therefore requires

@@ -154,7 +154,11 @@ export class Database {
         BindData.push(Condition[i]["Value"]);
       }
     }
-    return new Result(true, "数据库更新成功", ThrowErrorIfFailed(await this.Query(QueryString, BindData))["results"]);
+    // Report how many rows actually changed so callers can use a conditional
+    // update as a compare-and-swap instead of a racy read-then-write.
+    return new Result(true, "数据库更新成功", {
+      "Changes": ThrowErrorIfFailed(await this.Query(QueryString, BindData))["meta"]["changes"]
+    });
   }
 
   public async GetTableSize(Table: string, Condition?: object): Promise<Result> {
