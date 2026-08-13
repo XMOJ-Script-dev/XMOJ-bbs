@@ -29,10 +29,13 @@ const os = require("os");
 const path = require("path");
 
 const {
+    BadgeModerationAttempts,
+    BadgeModerationMaxTokens,
     BadgeModerationModel,
     BadgeModerationPrompt,
     BadgeModerationSchema,
     BadgeRuleReasons,
+    ModerationReplyTruncated,
     ReadModerationVerdict,
 } = require("../Source/Process.ts");
 
@@ -66,7 +69,7 @@ function token() {
     return match ? match[1] : null;
 }
 
-async function moderate(content, bearer) {
+async function ask(content, bearer) {
     const response = await fetch(
         "https://api.cloudflare.com/client/v4/accounts/" + ACCOUNT_ID + "/ai/run/" + BadgeModerationModel,
         {
@@ -78,19 +81,32 @@ async function moderate(content, bearer) {
                     { role: "user", content: "<badge>" + content + "</badge>" },
                 ],
                 temperature: 0,
-                max_completion_tokens: 1024,
+                max_completion_tokens: BadgeModerationMaxTokens,
                 response_format: { type: "json_schema", json_schema: BadgeModerationSchema },
             }),
         }
     );
-    const body = await response.json();
-    if (!body.success) {
-        return { error: JSON.stringify(body.errors || body) };
+    return response.json();
+}
+
+// Same retry EditBadge does, so the neuron count printed below is what a real edit
+// of this text would cost, retries included.
+async function moderate(content, bearer) {
+    let neurons = 0;
+    let retries = 0;
+    for (let attempt = 0; attempt < BadgeModerationAttempts; attempt++) {
+        const body = await ask(content, bearer);
+        if (!body.success) {
+            return { error: JSON.stringify(body.errors || body), neurons };
+        }
+        neurons += body.result?.usage?.neurons || 0;
+        const verdict = ReadModerationVerdict(body.result);
+        if (verdict !== null || !ModerationReplyTruncated(body.result)) {
+            return { verdict, neurons, retries };
+        }
+        retries++;
     }
-    return {
-        verdict: ReadModerationVerdict(body.result),
-        neurons: body.result?.usage?.neurons,
-    };
+    return { verdict: null, neurons, retries };
 }
 
 async function main() {
@@ -123,19 +139,21 @@ async function main() {
             console.log("BLOCKED  " + JSON.stringify(content) + "  " + blocked + "  (no model call)");
             continue;
         }
-        const { verdict, neurons, error } = await moderate(content, bearer);
+        const { verdict, neurons, retries, error } = await moderate(content, bearer);
+        spent += neurons || 0;
         if (error) {
             console.log("ERROR    " + JSON.stringify(content) + "  " + error);
             continue;
         }
-        spent += neurons || 0;
+        const retried = retries > 0 ? "  (retried " + retries + "x after truncation)" : "";
         if (verdict === null) {
-            console.log("UNUSABLE " + JSON.stringify(content) + "  model reply failed validation, edit would fail closed");
+            console.log("UNUSABLE " + JSON.stringify(content) +
+                "  model reply failed validation, edit would fail closed" + retried);
         } else if (verdict.allowed) {
-            console.log("ALLOW    " + JSON.stringify(content));
+            console.log("ALLOW    " + JSON.stringify(content) + retried);
         } else {
             console.log("REJECT   " + JSON.stringify(content) +
-                "  rule " + verdict.rule + " — 标签内容" + BadgeRuleReasons[verdict.rule] + "，请修改后重试");
+                "  rule " + verdict.rule + " — 标签内容" + BadgeRuleReasons[verdict.rule] + "，请修改后重试" + retried);
         }
     }
     if (spent > 0) {
