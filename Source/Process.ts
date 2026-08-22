@@ -882,7 +882,7 @@ export class Process {
           continue;
         }
         let processedContent: string = ReplyItem["content"];
-        processedContent = processedContent.replace(/xmoj-bbs\.tech/g, "xmoj-bbs.me");
+        processedContent = processedContent.replace(/xmoj-bbs\.(?:tech|me)/g, "xmoj-script.uk");
         ResponseData.Reply.push({
           ReplyID: ReplyItem["reply_id"],
           UserID: ReplyItem["reply_user_id"],
