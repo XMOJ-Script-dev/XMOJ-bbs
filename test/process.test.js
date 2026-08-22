@@ -937,15 +937,24 @@ test('GetPost reports a locked discussion', async () => {
     assert.deepStrictEqual(result.Data.Lock, { Locked: true, LockPerson: 'admin', LockTime: 999 });
 });
 
-test('GetPost rewrites legacy domain in reply content', async () => {
+test('GetPost rewrites all legacy domains in reply content', async () => {
     const proc = createProcess();
     stubGetPostQuery(proc, [
-        postRow({ reply_count: 1, reply_id: 1, reply_user_id: 'u1', content: 'see https://xmoj-bbs.tech/a and xmoj-bbs.tech/b', reply_time: 1001 })
+        postRow({
+            reply_count: 1,
+            reply_id: 1,
+            reply_user_id: 'u1',
+            content: 'see https://xmoj-bbs.tech/a, https://www.xmoj-bbs.me/b, and https://assets.xmoj-bbs.me/c',
+            reply_time: 1001
+        })
     ]);
 
     const result = await proc.ProcessFunctions['GetPost']({ PostID: 1, Page: 1 });
 
-    assert.strictEqual(result.Data.Reply[0].Content, 'see https://xmoj-bbs.me/a and xmoj-bbs.me/b');
+    assert.strictEqual(
+        result.Data.Reply[0].Content,
+        'see https://xmoj-script.uk/a, https://www.xmoj-script.uk/b, and https://assets.xmoj-script.uk/c'
+    );
 });
 
 test('GetPost fails when the discussion does not exist', async () => {
