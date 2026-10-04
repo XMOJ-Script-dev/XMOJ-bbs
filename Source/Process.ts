@@ -279,7 +279,7 @@ export class Process {
         ThrowErrorIfFailed(await this.XMOJDatabase.Delete("phpsessid", {
           token: HashedToken
         }));
-        Output.Log("Session " + this.SessionID + " expired");
+        Output.Log("Session " + HashedToken.substring(0, 8) + " expired");
       }
     }
 
@@ -292,18 +292,18 @@ export class Process {
         return SessionUsername;
       }).catch((Error) => {
         Output.Error("Check token failed: " + Error + "\n" +
-          "PHPSessionID: \"" + this.SessionID + "\"\n" +
-          "Username    : \"" + this.Username + "\"\n");
+          "Session : \"" + HashedToken.substring(0, 8) + "\"\n" +
+          "Username: \"" + this.Username + "\"\n");
         return "";
       });
     if (SessionUsername == "") {
       Output.Debug("Check token failed: Session invalid\n" +
-        "PHPSessionID: \"" + this.SessionID + "\"\n");
+        "Session: \"" + HashedToken.substring(0, 8) + "\"\n");
       return new Result(false, "令牌不合法");
     }
     if (SessionUsername != this.Username) {
       Output.Debug("Check token failed: Session and username not match \n" +
-        "PHPSessionID   : \"" + this.SessionID + "\"\n" +
+        "Session        : \"" + HashedToken.substring(0, 8) + "\"\n" +
         "SessionUsername: \"" + SessionUsername + "\"\n" +
         "Username       : \"" + this.Username + "\"\n");
       return new Result(false, "令牌不匹配");
@@ -320,7 +320,7 @@ export class Process {
     } else {
       Output.Log("token already exists, skipping insert");
     }
-    Output.Log("Record session: " + this.SessionID + " for " + this.Username);
+    Output.Log("Record session: " + HashedToken.substring(0, 8) + " for " + this.Username);
     return new Result(true, "令牌匹配");
   }
   public IfUserExist = async (Username: string): Promise<Result> => {
