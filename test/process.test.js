@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { Process, RebuildStdList } = require('../Source/Process.ts');
+const { Process, RebuildStdList, WorkersAIOverHTTP } = require('../Source/Process.ts');
 const { Result } = require('../Source/Result.ts');
 
 function createProcess(mocks = {}) {
@@ -1210,4 +1210,68 @@ test('UploadStd rebuilds when the cache key is unset entirely', async () => {
     await proc.ProcessFunctions['UploadStd']({ ProblemID: 1234 });
 
     assert.strictEqual(kv.store.std_list, '1234');
+});
+
+// ---------------------------------------------------------------------------
+// Workers AI over HTTP
+// ---------------------------------------------------------------------------
+
+function processWithEnv(extra) {
+    const env = Object.assign({ ACCOUNT_ID: 'test-account-id', DB: { withSession() { return this; } } }, extra);
+    return new Process(new Request('https://example.com'), env);
+}
+
+test('WorkersAIOverHTTP posts the inputs to the account run endpoint and returns result', async (t) => {
+    let seenUrl = null, seenInit = null;
+    t.mock.method(global, 'fetch', async (url, init) => {
+        seenUrl = url;
+        seenInit = init;
+        return Response.json({ success: true, result: verdict(true, 0), errors: [] });
+    });
+    const reply = await WorkersAIOverHTTP('acct', 'tok').run('@cf/zai-org/glm-4.7-flash', { temperature: 0 });
+    assert.strictEqual(seenUrl, 'https://api.cloudflare.com/client/v4/accounts/acct/ai/run/@cf/zai-org/glm-4.7-flash');
+    assert.strictEqual(seenInit.method, 'POST');
+    assert.strictEqual(seenInit.headers['Authorization'], 'Bearer tok');
+    assert.deepStrictEqual(JSON.parse(seenInit.body), { temperature: 0 });
+    assert.deepStrictEqual(reply, verdict(true, 0));
+});
+
+test('WorkersAIOverHTTP throws on an HTTP error', async (t) => {
+    t.mock.method(global, 'fetch', async () => Response.json({ success: false, errors: [{ code: 10000 }] }, { status: 401 }));
+    await assert.rejects(WorkersAIOverHTTP('acct', 'tok').run('m', {}), /HTTP 401/);
+});
+
+test('WorkersAIOverHTTP throws when the API reports failure with 200', async (t) => {
+    t.mock.method(global, 'fetch', async () => Response.json({ success: false, errors: [] }));
+    await assert.rejects(WorkersAIOverHTTP('acct', 'tok').run('m', {}), /HTTP 200/);
+});
+
+test('WorkersAIOverHTTP throws on a non-JSON body', async (t) => {
+    t.mock.method(global, 'fetch', async () => new Response('<html>', { status: 502 }));
+    await assert.rejects(WorkersAIOverHTTP('acct', 'tok').run('m', {}), /HTTP 502/);
+});
+
+test('Process prefers the AI binding when it exists', () => {
+    const binding = { run: async () => ({}) };
+    const proc = processWithEnv({ AI: binding, AI_API_TOKEN: 'tok' });
+    assert.strictEqual(proc.AI, binding);
+});
+
+test('Process falls back to HTTP when only the token is set', async (t) => {
+    let seenUrl = null;
+    t.mock.method(global, 'fetch', async (url) => {
+        seenUrl = url;
+        return Response.json({ success: true, result: {} });
+    });
+    const proc = processWithEnv({ AI_API_TOKEN: 'tok' });
+    await proc.AI.run('m', {});
+    assert.strictEqual(seenUrl, 'https://api.cloudflare.com/client/v4/accounts/test-account-id/ai/run/m');
+});
+
+test('EditBadge refuses the edit when there is no AI at all', async () => {
+    const proc = createBadgeProcess();
+    proc.AI = processWithEnv({}).AI;
+    const result = await proc.ProcessFunctions['EditBadge'](editArgs('hello'));
+    assert.strictEqual(result.Success, false);
+    assert.strictEqual(result.Message, '内容审核服务暂时不可用，请稍后重试');
 });

@@ -29,7 +29,8 @@ interface Environment {
   CaptchaSecretKey: string;
   DB: D1Database;
   logdb: AnalyticsEngineDataset;
-  AI: Ai;
+  AI?: Ai;
+  AI_API_TOKEN?: string;
   NOTIFICATIONS: DurableObjectNamespace;
   NOTIFICATION_PUSH_TOKEN: string;
 }

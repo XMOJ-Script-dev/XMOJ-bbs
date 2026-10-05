@@ -35,7 +35,8 @@ interface Environment {
   CaptchaSecretKey: string;
   DB: D1Database;
   logdb: AnalyticsEngineDataset;
-  AI: any;
+  AI?: any;
+  AI_API_TOKEN?: string;
   NOTIFICATIONS: DurableObjectNamespace;
   NOTIFICATION_PUSH_TOKEN: string;
 }
@@ -170,6 +171,31 @@ export function ReadModerationVerdict(Reply: any): { allowed: boolean, rule: num
 // badly, and asking again would only spend another inference call to hear it twice.
 export function ModerationReplyTruncated(Reply: any): boolean {
   return Reply?.choices?.[0]?.finish_reason === "length";
+}
+
+// Workers AI over the REST API, shaped like the binding's `run` so callers do not
+// care which one they got. Cloudflare has been failing to attach the `ai` binding
+// to new versions of this worker (error 10021), so it is no longer in wrangler.toml;
+// the REST API serves the same models and returns the binding's output under
+// `result`. https://github.com/cloudflare/workers-sdk/issues/15973
+export function WorkersAIOverHTTP(AccountID: string, Token: string) {
+  return {
+    run: async (Model: string, Inputs: object): Promise<any> => {
+      const Response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${AccountID}/ai/run/${Model}`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${Token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(Inputs)
+      });
+      const Body: any = await Response.json().catch(() => null);
+      if (!Response.ok || !Body?.success) {
+        throw new Error("Workers AI returned HTTP " + Response.status + ": " + JSON.stringify(Body?.errors ?? null));
+      }
+      return Body.result;
+    }
+  };
 }
 
 // The KV key holding the list of problems that have a std answer. It is a
@@ -1855,7 +1881,9 @@ export class Process {
 
   constructor(RequestData: Request, Environment: Environment) {
     this.XMOJDatabase = new Database(Environment.DB);
-    this.AI = Environment.AI;
+    // Prefer the binding if it is ever restored; otherwise go over HTTP. With
+    // neither, `run` throws inside the moderation try block and the edit is refused.
+    this.AI = Environment.AI ?? (Environment.AI_API_TOKEN ? WorkersAIOverHTTP(Environment.ACCOUNT_ID, Environment.AI_API_TOKEN) : null);
     this.kv = Environment.kv;
     this.logs = Environment.logdb;
     this.notifications = Environment.NOTIFICATIONS;
