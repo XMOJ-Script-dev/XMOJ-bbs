@@ -14,7 +14,12 @@ test('RequestLogLine never includes the query string', () => {
 test('RequestLogLine records the failure when one is given', () => {
     const line = RequestLogLine(new Request('https://api.xmoj-script.uk/GetPost', { method: 'POST' }), 500, 3, new Error('boom'));
     assert.strictEqual(line.method, 'POST');
-    assert.strictEqual(line.error, 'Error: boom');
+    assert.match(line.error, /^Error: boom\n\s+at /, 'errors keep their stack');
+});
+
+test('RequestLogLine stringifies non-Error throws', () => {
+    const line = RequestLogLine(new Request('https://api.xmoj-script.uk/GetPost'), 500, 3, 'plain failure');
+    assert.strictEqual(line.error, 'plain failure');
 });
 
 test('RequestLogLine leaves error unset on success', () => {

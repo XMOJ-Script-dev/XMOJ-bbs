@@ -166,7 +166,7 @@ export const RequestLogLine = (RequestData: Request, Status: number, Duration: n
     durationMs: Duration,
     colo: Cf.colo,
     country: Cf.country,
-    error: Failure === undefined ? undefined : String(Failure)
+    error: Failure === undefined ? undefined : Failure instanceof Error ? (Failure.stack ?? Failure.message) : String(Failure)
   };
 };
 
