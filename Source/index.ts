@@ -107,8 +107,7 @@ const ValidateSession = async (sessionID: string): Promise<string> => {
 
 export {NotificationManager};
 
-export default {
-  async fetch(RequestData: Request, Environment: Environment, Context: any) {
+const HandleRequest = async (RequestData: Request, Environment: Environment): Promise<Response> => {
     const origin = RequestData.headers.get("Origin") || "";
     if (RequestData.method === "OPTIONS") {
       const allowedOrigin = getAllowedOrigin(origin);
@@ -152,6 +151,36 @@ export default {
 
     let Processor = new Process(RequestData, Environment);
     return addCorsHeaders(await Processor.Process(), origin);
+};
+
+// Workers' automatic invocation logs are off (see wrangler.toml) because they
+// record full URLs and headers, and the notification WebSocket carries the
+// session ID in its query string. This is our replacement: one line per request
+// with what we need for debugging, and never the query string or headers.
+export const RequestLogLine = (RequestData: Request, Status: number, Duration: number, Failure?: unknown) => {
+  const Cf: any = (RequestData as any).cf || {};
+  return {
+    method: RequestData.method,
+    path: new URL(RequestData.url).pathname,
+    status: Status,
+    durationMs: Duration,
+    colo: Cf.colo,
+    country: Cf.country,
+    error: Failure === undefined ? undefined : String(Failure)
+  };
+};
+
+export default {
+  async fetch(RequestData: Request, Environment: Environment, Context: any) {
+    const Start = Date.now();
+    try {
+      const Response = await HandleRequest(RequestData, Environment);
+      console.log(RequestLogLine(RequestData, Response.status, Date.now() - Start));
+      return Response;
+    } catch (Failure) {
+      console.error(RequestLogLine(RequestData, 500, Date.now() - Start, Failure));
+      throw Failure;
+    }
   },
   async scheduled(Event: any, Environment: { DB: D1Database; kv: KVNamespace; }, Context: {
     waitUntil: (arg0: Promise<void>) => void;
