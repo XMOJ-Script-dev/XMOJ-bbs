@@ -20,6 +20,12 @@ binding = "logdb"
 [observability]
 enabled = true
 
+# Invocation logs record every request's URL and headers. The notification
+# WebSocket carries the session ID in its URL (/ws/notifications?SessionID=...),
+# so they would store raw PHPSESSIDs. Our own console logs (hash-only) are kept.
+[observability.logs]
+invocation_logs = false
+
 
 [[durable_objects.bindings]]
 name = "NOTIFICATIONS"
