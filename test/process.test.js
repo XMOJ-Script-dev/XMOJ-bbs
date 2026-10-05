@@ -1268,6 +1268,26 @@ test('Process falls back to HTTP when only the token is set', async (t) => {
     assert.strictEqual(seenUrl, 'https://api.cloudflare.com/client/v4/accounts/test-account-id/ai/run/m');
 });
 
+test('Process prefers AI_API_TOKEN over API_TOKEN', async (t) => {
+    let seenAuth = null;
+    t.mock.method(global, 'fetch', async (url, init) => {
+        seenAuth = init.headers['Authorization'];
+        return Response.json({ success: true, result: {} });
+    });
+    await processWithEnv({ API_TOKEN: 'analytics', AI_API_TOKEN: 'ai' }).AI.run('m', {});
+    assert.strictEqual(seenAuth, 'Bearer ai');
+});
+
+test('Process falls back to API_TOKEN for Workers AI', async (t) => {
+    let seenAuth = null;
+    t.mock.method(global, 'fetch', async (url, init) => {
+        seenAuth = init.headers['Authorization'];
+        return Response.json({ success: true, result: {} });
+    });
+    await processWithEnv({ API_TOKEN: 'analytics' }).AI.run('m', {});
+    assert.strictEqual(seenAuth, 'Bearer analytics');
+});
+
 test('EditBadge refuses the edit when there is no AI at all', async () => {
     const proc = createBadgeProcess();
     proc.AI = processWithEnv({}).AI;

@@ -1881,9 +1881,12 @@ export class Process {
 
   constructor(RequestData: Request, Environment: Environment) {
     this.XMOJDatabase = new Database(Environment.DB);
-    // Prefer the binding if it is ever restored; otherwise go over HTTP. With
-    // neither, `run` throws inside the moderation try block and the edit is refused.
-    this.AI = Environment.AI ?? (Environment.AI_API_TOKEN ? WorkersAIOverHTTP(Environment.ACCOUNT_ID, Environment.AI_API_TOKEN) : null);
+    // Prefer the binding if it is ever restored; otherwise go over HTTP, with a
+    // dedicated AI_API_TOKEN if one is set and the analytics API_TOKEN (granted
+    // Workers AI Read) if not. With no AI at all, `run` throws inside the
+    // moderation try block and the edit is refused.
+    const AIToken = Environment.AI_API_TOKEN || Environment.API_TOKEN;
+    this.AI = Environment.AI ?? (AIToken ? WorkersAIOverHTTP(Environment.ACCOUNT_ID, AIToken) : null);
     this.kv = Environment.kv;
     this.logs = Environment.logdb;
     this.notifications = Environment.NOTIFICATIONS;
