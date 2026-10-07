@@ -209,10 +209,18 @@ export class NotificationManager {
     }
   }
 
-  webSocketClose(websocket: WebSocket): void {
+  webSocketClose(websocket: WebSocket, code?: number, reason?: string): void {
     const userId = this.getSocketUserId(websocket);
     if (userId !== "") {
       this.removeSession(userId, websocket);
+    }
+    // Our compatibility date predates automatic close replies, so finish the
+    // close handshake ourselves; otherwise the client sits in CLOSING and
+    // never sees why it was closed (such as 4001 from /disconnect).
+    try {
+      websocket.close(code === undefined || code === 1005 || code === 1006 ? 1000 : code, reason || "");
+    } catch (_) {
+      // Already closed.
     }
   }
 

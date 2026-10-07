@@ -120,3 +120,13 @@ test('disconnect requires the internal token', async () => {
   }));
   assert.strictEqual(response.status, 401);
 });
+
+test('webSocketClose answers the close frame so the client sees the code', () => {
+  const manager = createManager();
+  const closed = [];
+  const socket = Object.assign(createFakeWebSocket('alice'), { close: (code, reason) => closed.push([code, reason]) });
+  manager.addSession('alice', socket);
+  manager.webSocketClose(socket, 4001, 'Logged out');
+  manager.webSocketClose(Object.assign(createFakeWebSocket('alice'), { close: (code, reason) => closed.push([code, reason]) }), 1005, '');
+  assert.deepStrictEqual(closed, [[4001, 'Logged out'], [1000, '']], 'reserved codes cannot be sent back');
+});
