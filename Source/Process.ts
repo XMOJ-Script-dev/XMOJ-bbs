@@ -540,19 +540,25 @@ export class Process {
     }
     this.RequireSession();
     const Score = await this.GetProblemScore(ProblemID);
-    // The cache is an optimisation; a failed or racing write only costs a
-    // re-scrape next time.
+    // The cache is an optimisation, so a failed write must not fail the
+    // request. Two requests can both see no row; the loser's insert hits the
+    // primary key and falls back to raising the score, never lowering it.
     if (Score > CachedScore) {
+      let Inserted = false;
       if (Cached.length === 0) {
-        await this.XMOJDatabase.Insert("problem_score", {
+        Inserted = await this.XMOJDatabase.Insert("problem_score", {
           user_id: this.Username,
           problem_id: ProblemID,
           score: Score
-        });
-      } else {
+        }).then((InsertResult) => InsertResult.Success, () => false);
+      }
+      if (!Inserted) {
         await this.XMOJDatabase.Update("problem_score", {score: Score}, {
           user_id: this.Username,
-          problem_id: ProblemID
+          problem_id: ProblemID,
+          score: {Operator: "<", Value: Score}
+        }).catch((Error) => {
+          Output.Warn("Caching problem score failed: " + JSON.stringify(Error));
         });
       }
     }

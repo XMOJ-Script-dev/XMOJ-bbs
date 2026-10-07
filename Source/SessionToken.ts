@@ -40,7 +40,9 @@ export const HashSessionToken = (Token: string): string => {
   return CryptoJS.SHA3(Token).toString();
 };
 
-export const IssueSessionToken = async (XMOJDatabase: Database, Username: string): Promise<{ Token: string; ExpireTime: number }> => {
+// No expiry is handed out: the lifetime slides with use, so any fixed time
+// would go stale.
+export const IssueSessionToken = async (XMOJDatabase: Database, Username: string): Promise<{ Token: string }> => {
   const Bytes = new Uint8Array(32);
   crypto.getRandomValues(Bytes);
   const Token = Array.from(Bytes, (Byte) => Byte.toString(16).padStart(2, "0")).join("");
@@ -51,7 +53,7 @@ export const IssueSessionToken = async (XMOJDatabase: Database, Username: string
     create_time: Now,
     last_used: Now
   }));
-  return {Token, ExpireTime: Now + SessionTokenLifetime};
+  return {Token};
 };
 
 // Returns the user the token was issued to, or "" if it is unknown or expired.

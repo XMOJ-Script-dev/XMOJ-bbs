@@ -32,8 +32,10 @@ test('RequestLogLine leaves error unset on success', () => {
 const Worker = require('../Source/index.ts').default;
 const { HashSessionToken } = require('../Source/SessionToken.ts');
 
-// Answers SELECTs on session_token with `tokenRows` and records every query.
-function wsEnvironment(tokenRows = []) {
+// Answers SELECTs on session_token from `tokens`, a map of token to row,
+// matched on the hash the query binds, and records every query.
+function wsEnvironment(tokens = {}) {
+    const rowsByHash = Object.fromEntries(Object.entries(tokens).map(([token, row]) => [HashSessionToken(token), row]));
     const queries = [];
     const forwarded = [];
     const DB = {
@@ -45,7 +47,8 @@ function wsEnvironment(tokenRows = []) {
                         all: async () => {
                             queries.push({ q, args });
                             if (q.startsWith('SELECT') && q.includes('session_token')) {
-                                return { results: tokenRows, meta: {} };
+                                const row = rowsByHash[args[0]];
+                                return { results: row ? [row] : [], meta: {} };
                             }
                             return { results: [], meta: { last_row_id: 1, changes: 1 } };
                         }
@@ -71,8 +74,8 @@ const ProfilePage = (user) => new Response("<a href='userinfo.php?user_id=" + us
 
 test('WebSocket with a token resolves the user without touching xmoj', async (t) => {
     const xmoj = t.mock.method(global, 'fetch', async () => ProfilePage('mallory'));
-    const { env, forwarded } = wsEnvironment([{ user_id: 'alice', last_used: Date.now() }]);
     const token = 'b'.repeat(64);
+    const { env, forwarded } = wsEnvironment({ [token]: { user_id: 'alice', last_used: Date.now() } });
     await Worker.fetch(new Request('https://api.xmoj-script.uk/ws/notifications?Token=' + token), env);
     assert.strictEqual(xmoj.mock.calls.length, 0);
     assert.strictEqual(forwarded[0].searchParams.get('userId'), 'alice');
@@ -80,7 +83,7 @@ test('WebSocket with a token resolves the user without touching xmoj', async (t)
 });
 
 test('WebSocket with an unknown token is unauthorized', async () => {
-    const { env, forwarded } = wsEnvironment([]);
+    const { env, forwarded } = wsEnvironment({ ['b'.repeat(64)]: { user_id: 'alice', last_used: Date.now() } });
     const response = await Worker.fetch(new Request('https://api.xmoj-script.uk/ws/notifications?Token=' + 'c'.repeat(64)), env);
     assert.strictEqual(response.status, 401);
     assert.strictEqual(forwarded.length, 0);
@@ -89,7 +92,7 @@ test('WebSocket with an unknown token is unauthorized', async () => {
 test('WebSocket with a PHPSESSID and IssueToken=1 mints a token for the connected message', async (t) => {
     t.mock.method(global, 'fetch', async () => ProfilePage('alice'));
     const { env, queries, forwarded } = wsEnvironment();
-    await Worker.fetch(new Request('https://api.xmoj-script.uk/ws/notifications?SessionID=abc123&IssueToken=1'), env);
+    await Worker.fetch(new Request('https://api.xmoj-script.uk/ws/notifications?SessionID=abc123&IssueToken=1', { headers: { Upgrade: 'websocket' } }), env);
     const issued = forwarded[0].searchParams.get('issuedToken');
     assert.match(issued, /^[0-9a-f]{64}$/);
     assert.strictEqual(forwarded[0].searchParams.get('SessionID'), null);
@@ -106,4 +109,19 @@ test('WebSocket with only a PHPSESSID behaves as before', async (t) => {
     assert.strictEqual(forwarded[0].searchParams.get('userId'), 'alice');
     assert.strictEqual(forwarded[0].searchParams.get('issuedToken'), null);
     assert.strictEqual(queries.length, 0, 'no token minted');
+});
+
+test('WebSocket mints no token for a request that is not a WebSocket handshake', async (t) => {
+    t.mock.method(global, 'fetch', async () => ProfilePage('alice'));
+    const { env, queries, forwarded } = wsEnvironment();
+    await Worker.fetch(new Request('https://api.xmoj-script.uk/ws/notifications?SessionID=abc123&IssueToken=1'), env);
+    assert.strictEqual(queries.length, 0);
+    assert.strictEqual(forwarded[0].searchParams.get('issuedToken'), null);
+});
+
+test('WebSocket drops an issuedToken the client supplied', async (t) => {
+    t.mock.method(global, 'fetch', async () => ProfilePage('alice'));
+    const { env, forwarded } = wsEnvironment();
+    await Worker.fetch(new Request('https://api.xmoj-script.uk/ws/notifications?SessionID=abc123&issuedToken=' + 'd'.repeat(64)), env);
+    assert.strictEqual(forwarded[0].searchParams.get('issuedToken'), null);
 });

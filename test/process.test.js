@@ -1498,3 +1498,32 @@ test('Process checks a valid legacy session once, not three times', async () => 
     await proc.Process();
     assert.strictEqual(check.mock.calls.length, 1);
 });
+
+test('Losing the race to cache a score raises the cached one instead of failing the request', async () => {
+    const update = test.mock.fn(async () => new Result(true, '', { Changes: 1 }));
+    const proc = createProcess({
+        db: {
+            Select: selectByTable({}),
+            Insert: async () => { throw new Result(false, 'UNIQUE constraint failed'); },
+            Update: update
+        }
+    });
+    proc.GetProblemScore = async () => 100;
+    assert.strictEqual(await proc.GetProblemScoreChecker(1000, 50), 100);
+    const [table, data, condition] = update.mock.calls[0].arguments;
+    assert.strictEqual(table, 'problem_score');
+    assert.deepStrictEqual(data, { score: 100 });
+    assert.deepStrictEqual(condition.score, { Operator: '<', Value: 100 }, 'never lowers a cached score');
+});
+
+test('A failed score cache write does not fail the request', async () => {
+    const proc = createProcess({
+        db: {
+            Select: selectByTable({}),
+            Insert: async () => { throw new Result(false, 'db down'); },
+            Update: async () => { throw new Result(false, 'db down'); }
+        }
+    });
+    proc.GetProblemScore = async () => 100;
+    assert.strictEqual(await proc.GetProblemScoreChecker(1000, 50), 100);
+});

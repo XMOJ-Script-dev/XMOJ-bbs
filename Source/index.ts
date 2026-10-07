@@ -146,7 +146,10 @@ const HandleRequest = async (RequestData: Request, Environment: Environment): Pr
           return new Response("Invalid SessionID", {status: 401});
         }
         userId = await ValidateSession(sessionID);
-        if (userId !== "" && url.searchParams.get("IssueToken") === "1") {
+        // Only mint for a real WebSocket handshake; anything else gets a 426
+        // from the Durable Object and would never see the token.
+        if (userId !== "" && url.searchParams.get("IssueToken") === "1" &&
+          RequestData.headers.get("Upgrade") === "websocket") {
           issuedToken = (await IssueSessionToken(new Database(Environment.DB), userId)).Token;
         }
       }
@@ -161,6 +164,9 @@ const HandleRequest = async (RequestData: Request, Environment: Environment): Pr
       forwardURL.searchParams.delete("SessionID");
       forwardURL.searchParams.delete("Token");
       forwardURL.searchParams.delete("IssueToken");
+      // The Durable Object trusts issuedToken as ours, so never pass on one
+      // the client supplied.
+      forwardURL.searchParams.delete("issuedToken");
       if (issuedToken !== "") {
         forwardURL.searchParams.set("issuedToken", issuedToken);
       }
