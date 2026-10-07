@@ -92,7 +92,7 @@ No routing configuration needed - pathname automatically maps to function name.
 
 #### Authentication
 - `CheckToken` accepts either a backend-issued `{Token}` (current clients) or a legacy `{SessionID, Username}` (old clients)
-- `Login` (in `Source/Process.ts`) swaps a verified PHPSESSID for a token issued by `Source/SessionToken.ts`; tokens are stored as SHA3 hashes in `session_token`, expire after 30 days unused, and are revoked by `Logout`. The username always comes from the token row
+- `Login` (in `Source/Process.ts`) swaps a verified PHPSESSID for a token issued by `Source/SessionToken.ts`; tokens are stored as SHA3 hashes in `session_token`, expire after 30 days unused, and are revoked by `Logout` (this device) or `LogoutAll` (every token for the user, plus their cached `phpsessid` rows and open notification sockets). The username always comes from the token row
 - Legacy PHPSESSIDs are validated against the XMOJ website and cached as SHA3 hashes in the `phpsessid` table
 - Token requests carry no PHPSESSID. Code that must scrape xmoj as the user calls `this.RequireSession()` first, which answers `SessionRequired`; the client then retries once with `{Token, SessionID}`. Keep such scrapes rare, since we want to see users' PHPSESSIDs as little as possible
 - `problem_score` caches users' best scores so `GetStd` doesn't need to scrape (and so doesn't need a session) once a score has cleared the threshold

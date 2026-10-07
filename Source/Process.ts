@@ -25,7 +25,7 @@ import * as sqlstring from 'sqlstring';
 // @ts-ignore
 import CryptoJS from "crypto-js";
 import {AnalyticsEngineDataset, D1Database, D1DatabaseSession, DurableObjectNamespace, KVNamespace} from "@cloudflare/workers-types";
-import {IssueSessionToken, ResolveSessionToken, RevokeSessionToken} from "./SessionToken";
+import {IssueSessionToken, ResolveSessionToken, RevokeAllSessionTokens, RevokeSessionToken} from "./SessionToken";
 
 interface Environment {
   API_TOKEN: string;
@@ -660,6 +660,25 @@ export class Process {
       }));
     } catch (_) {
       // Non-critical path: mention persistence already succeeded.
+    }
+  };
+
+  // Closes the user's open notification sockets. They reconnect on their own,
+  // and only get back in if they can still prove an xmoj session.
+  private disconnectNotifications = async (userId: string): Promise<void> => {
+    try {
+      const id = this.notifications.idFromName(userId);
+      const stub = this.notifications.get(id);
+      await stub.fetch(new Request("https://dummy/disconnect", {
+        method: "POST",
+        headers: {
+          "X-Notification-Token": this.notificationPushToken
+        },
+        body: JSON.stringify({userId})
+      }));
+    } catch (_) {
+      // The tokens are already gone; a socket left open only keeps receiving
+      // notifications until it next reconnects.
     }
   };
 
@@ -1591,6 +1610,17 @@ export class Process {
         await RevokeSessionToken(this.XMOJDatabase, this.SessionToken);
       }
       return new Result(true, "登出成功");
+    },
+    // Signs the user out of the backend on every device: all tokens, the
+    // cached PHPSESSID checks old clients rely on, and open sockets.
+    LogoutAll: async (Data: object): Promise<Result> => {
+      ThrowErrorIfFailed(this.CheckParams(Data, {}));
+      await RevokeAllSessionTokens(this.XMOJDatabase, this.Username);
+      ThrowErrorIfFailed(await this.XMOJDatabase.Delete("phpsessid", {
+        user_id: this.Username
+      }));
+      await this.disconnectNotifications(this.Username);
+      return new Result(true, "已在所有设备上登出");
     },
     GetStdList: async (Data: object): Promise<Result> => {
       ThrowErrorIfFailed(this.CheckParams(Data, {}));

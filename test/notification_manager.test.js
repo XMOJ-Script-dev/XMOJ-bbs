@@ -86,3 +86,37 @@ test('rejects notify without internal token', async () => {
   assert.strictEqual(response.status, 401);
   assert.deepStrictEqual(socket.getSent(), []);
 });
+
+test('disconnect closes every socket of the user with 4001 and nobody else\'s', async () => {
+  const manager = createManager();
+  const closed = [];
+  const socket = (user) => Object.assign(createFakeWebSocket(user), { close: (code, reason) => closed.push([user, code, reason]) });
+  const aliceA = socket('alice'), aliceB = socket('alice'), bob = socket('bob');
+  manager.addSession('alice', aliceA);
+  manager.addSession('alice', aliceB);
+  manager.addSession('bob', bob);
+
+  const response = await manager.fetch(new Request('https://dummy/disconnect', {
+    method: 'POST',
+    headers: { 'X-Notification-Token': 'test-push-token' },
+    body: JSON.stringify({ userId: 'alice' }),
+  }));
+
+  assert.strictEqual(response.status, 200);
+  assert.deepStrictEqual(closed, [['alice', 4001, 'Logged out'], ['alice', 4001, 'Logged out']]);
+  await manager.fetch(new Request('https://dummy/notify', {
+    method: 'POST',
+    headers: { 'X-Notification-Token': 'test-push-token' },
+    body: JSON.stringify({ userId: 'bob', notification: { type: 'pong' } }),
+  }));
+  assert.deepStrictEqual(bob.getSent(), [JSON.stringify({ type: 'pong' })], 'other users keep their socket');
+});
+
+test('disconnect requires the internal token', async () => {
+  const manager = createManager();
+  const response = await manager.fetch(new Request('https://dummy/disconnect', {
+    method: 'POST',
+    body: JSON.stringify({ userId: 'alice' }),
+  }));
+  assert.strictEqual(response.status, 401);
+});

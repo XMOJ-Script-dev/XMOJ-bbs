@@ -143,6 +143,28 @@ export class NotificationManager {
       return new Response("OK");
     }
 
+    // Internal: the user logged out everywhere. 4001 tells the client its
+    // token is gone, so it reconnects by proving its xmoj session again.
+    if (url.pathname === "/disconnect") {
+      if (this.pushToken === "" || request.headers.get("X-Notification-Token") !== this.pushToken) {
+        return new Response("Unauthorized", {status: 401});
+      }
+
+      const body = await request.json() as { userId: string };
+      const userSessions = this.sessions.get(body.userId);
+      if (userSessions) {
+        for (const websocket of Array.from(userSessions)) {
+          this.removeSession(body.userId, websocket);
+          try {
+            websocket.close(4001, "Logged out");
+          } catch (_) {
+            // Already closing.
+          }
+        }
+      }
+      return new Response("OK");
+    }
+
     const upgradeHeader = request.headers.get("Upgrade");
     if (upgradeHeader !== "websocket") {
       return new Response("Expected WebSocket", {status: 426});
