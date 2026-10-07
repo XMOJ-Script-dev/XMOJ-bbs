@@ -79,6 +79,14 @@ export const ResolveSessionToken = async (XMOJDatabase: Database, Token: string)
   return Rows[0]["user_id"];
 };
 
+// Every token the user holds, on every device. Devices that still have a live
+// xmoj session simply exchange it again; a token on its own is dead.
+export const RevokeAllSessionTokens = async (XMOJDatabase: Database, Username: string): Promise<void> => {
+  ThrowErrorIfFailed(await XMOJDatabase.Delete("session_token", {
+    user_id: Username
+  }));
+};
+
 export const RevokeSessionToken = async (XMOJDatabase: Database, Token: string): Promise<void> => {
   ThrowErrorIfFailed(await XMOJDatabase.Delete("session_token", {
     token_hash: HashSessionToken(Token)

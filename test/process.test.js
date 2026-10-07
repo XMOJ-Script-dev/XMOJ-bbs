@@ -1541,3 +1541,25 @@ test('A score cached by a racing request wins over our older, lower scrape', asy
     proc.GetProblemScore = async () => 40;
     assert.strictEqual(await proc.GetProblemScoreChecker(1000, 50), 100);
 });
+
+test('LogoutAll revokes every token, the cached PHPSESSID checks and open sockets', async () => {
+    const del = test.mock.fn(async () => new Result(true, ''));
+    const proc = createProcess({ db: { Delete: del } });
+    proc.Username = 'alice';
+    const result = await proc.ProcessFunctions['LogoutAll']({});
+    assert.ok(result.Success);
+    assert.deepStrictEqual(del.mock.calls.map((call) => call.arguments), [
+        ['session_token', { user_id: 'alice' }],
+        ['phpsessid', { user_id: 'alice' }]
+    ]);
+    const request = proc._notifyFetch.mock.calls[0].arguments[0];
+    assert.strictEqual(new URL(request.url).pathname, '/disconnect');
+    assert.strictEqual(request.headers.get('X-Notification-Token'), 'test-notification-token');
+    assert.deepStrictEqual(await request.json(), { userId: 'alice' });
+});
+
+test('LogoutAll still succeeds when the notification socket cannot be reached', async () => {
+    const proc = createProcess({ notifications: { fetch: async () => { throw new Error('DO down'); } } });
+    const result = await proc.ProcessFunctions['LogoutAll']({});
+    assert.ok(result.Success);
+});
