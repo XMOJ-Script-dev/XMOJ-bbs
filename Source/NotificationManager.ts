@@ -34,18 +34,21 @@ interface HibernationWebSocket extends WebSocket {
 
 interface NotificationEnvironment {
   NOTIFICATION_PUSH_TOKEN?: string;
+  DB?: D1Database;
 }
 
 export class NotificationManager {
   private readonly state: DurableObjectState;
   private readonly sessions: Map<string, Set<WebSocket>>;
   private readonly pushToken: string;
+  private readonly db: D1Database | null;
   private static readonly MAX_SESSIONS_PER_USER = 20;
 
   constructor(state: DurableObjectState, env: NotificationEnvironment) {
     this.state = state;
     this.sessions = new Map<string, Set<WebSocket>>();
     this.pushToken = env.NOTIFICATION_PUSH_TOKEN || "";
+    this.db = env.DB || null;
     // `state.getWebSockets()` is synchronous in the current Cloudflare runtime.
     this.rebuildSessionIndex();
   }
@@ -150,7 +153,15 @@ export class NotificationManager {
         return new Response("Unauthorized", {status: 401});
       }
 
-      const body = await request.json() as { userId: string };
+      let body: { userId?: unknown };
+      try {
+        body = await request.json() as { userId?: unknown };
+      } catch (_) {
+        return new Response("Bad Request", {status: 400});
+      }
+      if (!body || typeof body.userId !== "string") {
+        return new Response("Bad Request", {status: 400});
+      }
       const userSessions = this.sessions.get(body.userId);
       if (userSessions) {
         for (const websocket of Array.from(userSessions)) {
@@ -186,6 +197,17 @@ export class NotificationManager {
     });
     this.addSession(userId, server);
 
+    // The worker checked the token, but LogoutAll may have revoked it since.
+    // The socket is registered before this check because D1 calls don't hold
+    // other requests back: /disconnect either finds the socket and closes it,
+    // or ran first, and then the token is already gone here.
+    const tokenHash = url.searchParams.get("tokenHash");
+    if (tokenHash && !(await this.tokenStillValid(tokenHash))) {
+      this.removeSession(userId, server);
+      server.close(4001, "Logged out");
+      return new Response(null, {status: 101, webSocket: client});
+    }
+
     // Only set when the worker minted a token for a client that connected
     // with its PHPSESSID. It is handed over once and never stored here.
     const issuedToken = url.searchParams.get("issuedToken");
@@ -209,6 +231,20 @@ export class NotificationManager {
     }
   }
 
+  private async tokenStillValid(tokenHash: string): Promise<boolean> {
+    if (this.db === null) {
+      return true;
+    }
+    try {
+      const row = await this.db.prepare("SELECT 1 FROM session_token WHERE token_hash = ?").bind(tokenHash).first();
+      return row !== null;
+    } catch (_) {
+      // The worker has just validated this token; a D1 hiccup shouldn't cost
+      // the user their notifications.
+      return true;
+    }
+  }
+
   webSocketClose(websocket: WebSocket, code?: number, reason?: string): void {
     const userId = this.getSocketUserId(websocket);
     if (userId !== "") {
@@ -218,7 +254,10 @@ export class NotificationManager {
     // close handshake ourselves; otherwise the client sits in CLOSING and
     // never sees why it was closed (such as 4001 from /disconnect).
     try {
-      websocket.close(code === undefined || code === 1005 || code === 1006 ? 1000 : code, reason || "");
+      // close() only takes 1000 and 3000-4999; peers also send 1001 (page
+      // closed) and others, which must still get an answer.
+      const ReplyCode = code !== undefined && (code === 1000 || (code >= 3000 && code <= 4999)) ? code : 1000;
+      websocket.close(ReplyCode, reason || "");
     } catch (_) {
       // Already closed.
     }

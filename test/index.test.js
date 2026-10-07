@@ -125,3 +125,25 @@ test('WebSocket drops an issuedToken the client supplied', async (t) => {
     await Worker.fetch(new Request('https://api.xmoj-script.uk/ws/notifications?SessionID=abc123&issuedToken=' + 'd'.repeat(64)), env);
     assert.strictEqual(forwarded[0].searchParams.get('issuedToken'), null);
 });
+
+test('WebSocket forwards only the token hash, so the Durable Object can re-check it', async () => {
+    const token = 'b'.repeat(64);
+    const { env, forwarded } = wsEnvironment({ [token]: { user_id: 'alice', last_used: Date.now() } });
+    await Worker.fetch(new Request('https://api.xmoj-script.uk/ws/notifications?Token=' + token + '&tokenHash=spoofed'), env);
+    assert.strictEqual(forwarded[0].searchParams.get('tokenHash'), HashSessionToken(token));
+    assert.ok(!forwarded[0].toString().includes(token), 'the token itself is not forwarded');
+});
+
+test('WebSocket forwards the hash of a freshly minted token too', async (t) => {
+    t.mock.method(global, 'fetch', async () => ProfilePage('alice'));
+    const { env, forwarded } = wsEnvironment();
+    await Worker.fetch(new Request('https://api.xmoj-script.uk/ws/notifications?SessionID=abc123&IssueToken=1', { headers: { Upgrade: 'websocket' } }), env);
+    assert.strictEqual(forwarded[0].searchParams.get('tokenHash'), HashSessionToken(forwarded[0].searchParams.get('issuedToken')));
+});
+
+test('WebSocket on the plain PHPSESSID path forwards no token hash', async (t) => {
+    t.mock.method(global, 'fetch', async () => ProfilePage('alice'));
+    const { env, forwarded } = wsEnvironment();
+    await Worker.fetch(new Request('https://api.xmoj-script.uk/ws/notifications?SessionID=abc123&tokenHash=spoofed'), env);
+    assert.strictEqual(forwarded[0].searchParams.get('tokenHash'), null);
+});

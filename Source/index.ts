@@ -18,7 +18,7 @@
 import {Process, RebuildStdList} from "./Process";
 import {Database} from "./Database";
 import {NotificationManager} from "./NotificationManager";
-import {IssueSessionToken, ResolveSessionToken, SessionTokenLifetime} from "./SessionToken";
+import {HashSessionToken, IssueSessionToken, ResolveSessionToken, SessionTokenLifetime} from "./SessionToken";
 import type {D1Database, KVNamespace, AnalyticsEngineDataset, DurableObjectNamespace, Ai} from "@cloudflare/workers-types";
 
 interface Environment {
@@ -169,6 +169,13 @@ const HandleRequest = async (RequestData: Request, Environment: Environment): Pr
       forwardURL.searchParams.delete("issuedToken");
       if (issuedToken !== "") {
         forwardURL.searchParams.set("issuedToken", issuedToken);
+      }
+      // Lets the Durable Object re-check the token as it admits the socket,
+      // so a handshake racing LogoutAll can't slip in. Only the hash travels.
+      forwardURL.searchParams.delete("tokenHash");
+      const admittedToken = token !== "" ? token : issuedToken;
+      if (admittedToken !== "") {
+        forwardURL.searchParams.set("tokenHash", HashSessionToken(admittedToken));
       }
       return await notificationStub.fetch(new Request(forwardURL.toString(), RequestData));
     }
