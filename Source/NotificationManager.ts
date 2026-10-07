@@ -126,56 +126,70 @@ export class NotificationManager {
 
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
-
-    // Internal push channel from Process.ts.
     if (url.pathname === "/notify") {
-      if (this.pushToken === "" || request.headers.get("X-Notification-Token") !== this.pushToken) {
-        return new Response("Unauthorized", {status: 401});
-      }
-
-      const body = await request.json() as { userId: string; notification: object };
-      const userSessions = this.sessions.get(body.userId);
-      if (userSessions) {
-        const payload = JSON.stringify(body.notification);
-        for (const websocket of userSessions) {
-          if (websocket.readyState === 1) {
-            websocket.send(payload);
-          }
-        }
-      }
-      return new Response("OK");
+      return this.handleNotify(request);
     }
-
-    // Internal: the user logged out everywhere. 4001 tells the client its
-    // token is gone, so it reconnects by proving its xmoj session again.
     if (url.pathname === "/disconnect") {
-      if (this.pushToken === "" || request.headers.get("X-Notification-Token") !== this.pushToken) {
-        return new Response("Unauthorized", {status: 401});
-      }
+      return this.handleDisconnect(request);
+    }
+    return this.handleConnect(request, url);
+  }
 
-      let body: { userId?: unknown };
-      try {
-        body = await request.json() as { userId?: unknown };
-      } catch (_) {
-        return new Response("Bad Request", {status: 400});
-      }
-      if (!body || typeof body.userId !== "string") {
-        return new Response("Bad Request", {status: 400});
-      }
-      const userSessions = this.sessions.get(body.userId);
-      if (userSessions) {
-        for (const websocket of Array.from(userSessions)) {
-          this.removeSession(body.userId, websocket);
-          try {
-            websocket.close(4001, "Logged out");
-          } catch (_) {
-            // Already closing.
-          }
-        }
-      }
-      return new Response("OK");
+  // The internal channels from Process.ts are only for the worker.
+  private isInternal(request: Request): boolean {
+    return this.pushToken !== "" && request.headers.get("X-Notification-Token") === this.pushToken;
+  }
+
+  // Internal push channel from Process.ts.
+  private async handleNotify(request: Request): Promise<Response> {
+    if (!this.isInternal(request)) {
+      return new Response("Unauthorized", {status: 401});
     }
 
+    const body = await request.json() as { userId: string; notification: object };
+    const userSessions = this.sessions.get(body.userId);
+    if (userSessions) {
+      const payload = JSON.stringify(body.notification);
+      for (const websocket of userSessions) {
+        if (websocket.readyState === 1) {
+          websocket.send(payload);
+        }
+      }
+    }
+    return new Response("OK");
+  }
+
+  // Internal: the user logged out everywhere. 4001 tells the client its
+  // token is gone, so it reconnects by proving its xmoj session again.
+  private async handleDisconnect(request: Request): Promise<Response> {
+    if (!this.isInternal(request)) {
+      return new Response("Unauthorized", {status: 401});
+    }
+
+    let body: { userId?: unknown };
+    try {
+      body = await request.json() as { userId?: unknown };
+    } catch (_) {
+      return new Response("Bad Request", {status: 400});
+    }
+    if (!body || typeof body.userId !== "string") {
+      return new Response("Bad Request", {status: 400});
+    }
+    const userSessions = this.sessions.get(body.userId);
+    if (userSessions) {
+      for (const websocket of Array.from(userSessions)) {
+        this.removeSession(body.userId, websocket);
+        try {
+          websocket.close(4001, "Logged out");
+        } catch (_) {
+          // Already closing.
+        }
+      }
+    }
+    return new Response("OK");
+  }
+
+  private async handleConnect(request: Request, url: URL): Promise<Response> {
     const upgradeHeader = request.headers.get("Upgrade");
     if (upgradeHeader !== "websocket") {
       return new Response("Expected WebSocket", {status: 426});
