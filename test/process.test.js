@@ -1527,3 +1527,17 @@ test('A failed score cache write does not fail the request', async () => {
     proc.GetProblemScore = async () => 100;
     assert.strictEqual(await proc.GetProblemScoreChecker(1000, 50), 100);
 });
+
+test('A score cached by a racing request wins over our older, lower scrape', async () => {
+    let selects = 0;
+    const proc = createProcess({
+        db: {
+            // Empty before the scrape; by the time we write, a racer cached 100.
+            Select: async () => new Result(true, '', selects++ === 0 ? [] : [{ score: 100 }]),
+            Insert: async () => { throw new Result(false, 'UNIQUE constraint failed'); },
+            Update: async () => new Result(true, '', { Changes: 0 })
+        }
+    });
+    proc.GetProblemScore = async () => 40;
+    assert.strictEqual(await proc.GetProblemScoreChecker(1000, 50), 100);
+});

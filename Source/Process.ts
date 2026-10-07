@@ -553,13 +553,25 @@ export class Process {
         }).then((InsertResult) => InsertResult.Success, () => false);
       }
       if (!Inserted) {
-        await this.XMOJDatabase.Update("problem_score", {score: Score}, {
+        const Changes = await this.XMOJDatabase.Update("problem_score", {score: Score}, {
           user_id: this.Username,
           problem_id: ProblemID,
           score: {Operator: "<", Value: Score}
-        }).catch((Error) => {
+        }).then((UpdateResult) => UpdateResult.Data["Changes"], (Error) => {
           Output.Warn("Caching problem score failed: " + JSON.stringify(Error));
+          return -1;
         });
+        // Nothing changed: a request racing us already cached at least this
+        // much, and its scrape is newer than ours, so trust it.
+        if (Changes === 0) {
+          const Latest = await this.XMOJDatabase.Select("problem_score", ["score"], {
+            user_id: this.Username,
+            problem_id: ProblemID
+          }).then((SelectResult) => SelectResult.Data as Array<Record<string, any>>, () => []);
+          if (Latest.length > 0) {
+            return Math.max(Score, Latest[0]["score"]);
+          }
+        }
       }
     }
     return Score;
