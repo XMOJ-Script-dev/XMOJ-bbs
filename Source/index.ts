@@ -18,6 +18,7 @@
 import {Process, RebuildStdList} from "./Process";
 import {Database} from "./Database";
 import {NotificationManager} from "./NotificationManager";
+import {IssueSessionToken, ResolveSessionToken, SessionTokenLifetime} from "./SessionToken";
 import type {D1Database, KVNamespace, AnalyticsEngineDataset, DurableObjectNamespace, Ai} from "@cloudflare/workers-types";
 
 interface Environment {
@@ -128,15 +129,27 @@ const HandleRequest = async (RequestData: Request, Environment: Environment): Pr
 
     const url = new URL(RequestData.url);
     if (url.pathname === "/ws/notifications") {
+      // A token is a database lookup. The PHPSESSID path costs a fetch to xmoj
+      // and is kept for old clients and for new ones that have no token yet;
+      // those ask for one with IssueToken=1 so the next connect needs neither.
+      const token = url.searchParams.get("Token") || "";
       const sessionID = url.searchParams.get("SessionID") || "";
-      if (sessionID === "") {
-        return new Response("Missing SessionID", {status: 401});
+      let userId = "";
+      let issuedToken = "";
+      if (token !== "") {
+        userId = await ResolveSessionToken(new Database(Environment.DB), token);
+      } else {
+        if (sessionID === "") {
+          return new Response("Missing SessionID", {status: 401});
+        }
+        if (!isValidSessionID(sessionID)) {
+          return new Response("Invalid SessionID", {status: 401});
+        }
+        userId = await ValidateSession(sessionID);
+        if (userId !== "" && url.searchParams.get("IssueToken") === "1") {
+          issuedToken = (await IssueSessionToken(new Database(Environment.DB), userId)).Token;
+        }
       }
-      if (!isValidSessionID(sessionID)) {
-        return new Response("Invalid SessionID", {status: 401});
-      }
-
-      const userId = await ValidateSession(sessionID);
       if (userId === "") {
         return new Response("Unauthorized", {status: 401});
       }
@@ -146,6 +159,11 @@ const HandleRequest = async (RequestData: Request, Environment: Environment): Pr
       const forwardURL = new URL(RequestData.url);
       forwardURL.searchParams.set("userId", userId);
       forwardURL.searchParams.delete("SessionID");
+      forwardURL.searchParams.delete("Token");
+      forwardURL.searchParams.delete("IssueToken");
+      if (issuedToken !== "") {
+        forwardURL.searchParams.set("issuedToken", issuedToken);
+      }
       return await notificationStub.fetch(new Request(forwardURL.toString(), RequestData));
     }
 
@@ -154,8 +172,8 @@ const HandleRequest = async (RequestData: Request, Environment: Environment): Pr
 };
 
 // Workers' automatic invocation logs are off (see wrangler.toml) because they
-// record full URLs and headers, and the notification WebSocket carries the
-// session ID in its query string. This is our replacement: one line per request
+// record full URLs and headers, and the notification WebSocket carries a
+// session ID or token in its query string. This is our replacement: one line per request
 // with what we need for debugging, and never the query string or headers.
 export const RequestLogLine = (RequestData: Request, Status: number, Duration: number, Failure?: unknown) => {
   const Cf: any = (RequestData as any).cf || {};
@@ -206,6 +224,12 @@ export default {
         "create_time": {
           "Operator": "<=",
           "Value": new Date().getTime() - 1000 * 60 * 60 * 24 * 5
+        }
+      });
+      await XMOJDatabase.Delete("session_token", {
+        "last_used": {
+          "Operator": "<=",
+          "Value": new Date().getTime() - SessionTokenLifetime
         }
       });
       // Reconcile the std list cache against the database. One scan per day

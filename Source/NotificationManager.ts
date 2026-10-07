@@ -164,9 +164,13 @@ export class NotificationManager {
     });
     this.addSession(userId, server);
 
+    // Only set when the worker minted a token for a client that connected
+    // with its PHPSESSID. It is handed over once and never stored here.
+    const issuedToken = url.searchParams.get("issuedToken");
     server.send(JSON.stringify({
       type: "connected",
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      ...(issuedToken ? {token: issuedToken} : {})
     }));
 
     return new Response(null, {status: 101, webSocket: client});

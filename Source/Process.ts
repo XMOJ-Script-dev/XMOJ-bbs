@@ -25,6 +25,7 @@ import * as sqlstring from 'sqlstring';
 // @ts-ignore
 import CryptoJS from "crypto-js";
 import {AnalyticsEngineDataset, D1Database, D1DatabaseSession, DurableObjectNamespace, KVNamespace} from "@cloudflare/workers-types";
+import {IssueSessionToken, ResolveSessionToken, RevokeSessionToken} from "./SessionToken";
 
 interface Environment {
   API_TOKEN: string;
@@ -241,18 +242,25 @@ export class Process {
   private readonly shortMessageEncryptKey_v1: string;
   private readonly API_TOKEN: string;
   private Username: string;
-  private SessionID: string;
+  // Empty unless this request carried a verified PHPSESSID. Token requests
+  // only bring one when RequireSession asked for it.
+  private SessionID: string = "";
+  private SessionToken: string = "";
   private readonly RemoteIP: string;
   private XMOJDatabase: Database;
   private readonly logs: AnalyticsEngineDataset;
   private readonly notifications: DurableObjectNamespace;
   private readonly notificationPushToken: string;
   private RequestData: Request;
-  private Fetch = async (RequestURL: URL): Promise<Response> => {
+  private Fetch = async (RequestURL: URL, WithSession: boolean = true): Promise<Response> => {
     Output.Log("Fetch: " + RequestURL.toString());
+    const Headers: Record<string, string> = {};
+    if (WithSession && this.SessionID !== "") {
+      Headers["Cookie"] = "PHPSESSID=" + this.SessionID;
+    }
     const RequestData = new Request(RequestURL, {
       headers: {
-        "Cookie": "PHPSESSID=" + this.SessionID,
+        ...Headers,
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Safari/605.1.15",
         "accept": "*/*",
         "accept-language": "en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7",
@@ -286,6 +294,47 @@ export class Process {
     return new Result(true, "参数检测通过");
   }
   public CheckToken = async (Data: object): Promise<Result> => {
+    if (Data["Token"] !== undefined) {
+      return await this.CheckSessionToken(Data);
+    }
+    return await this.CheckSessionID(Data);
+  }
+  // Token requests never send the username: it comes from the token row. A
+  // PHPSESSID rides along only when RequireSession asked for one, and then it
+  // must belong to the same user, or a token could borrow someone else's cookie.
+  public CheckSessionToken = async (Data: object): Promise<Result> => {
+    const Checklist = {"Token": "string"};
+    if (Data["SessionID"] !== undefined) {
+      Checklist["SessionID"] = "string";
+    }
+    ThrowErrorIfFailed(this.CheckParams(Data, Checklist));
+    const TokenUsername = await ResolveSessionToken(this.XMOJDatabase, Data["Token"]);
+    if (TokenUsername === "") {
+      return new Result(false, "令牌已失效", {"TokenInvalid": true});
+    }
+    if (Data["SessionID"] !== undefined) {
+      const SessionResult = await this.CheckSessionID({
+        "SessionID": Data["SessionID"],
+        "Username": TokenUsername
+      });
+      if (!SessionResult.Success) {
+        this.SessionID = "";
+        return SessionResult;
+      }
+    }
+    this.SessionToken = Data["Token"];
+    this.Username = TokenUsername;
+    return new Result(true, "令牌匹配");
+  }
+  // Scrapes that need a logged-in xmoj session call this first. Token clients
+  // answer SessionRequired by retrying once with their PHPSESSID, so we only see
+  // it when it is actually going to be used.
+  public RequireSession = (): void => {
+    if (this.SessionID === "") {
+      throw new Result(false, "需要会话", {"SessionRequired": true});
+    }
+  }
+  public CheckSessionID = async (Data: object): Promise<Result> => {
     ThrowErrorIfFailed(this.CheckParams(Data, {
       "SessionID": "string",
       "Username": "string"
@@ -355,12 +404,15 @@ export class Process {
     }
     if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("phpsessid", {
       user_id: Username
+    }))["TableSize"] > 0 || ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("session_token", {
+      user_id: Username
     }))["TableSize"] > 0) {
       return new Result(true, "用户检查成功", {
         "Exist": true
       });
     }
-    return await this.Fetch(new URL("https://www.xmoj.tech/userinfo.php?user=" + Username))
+    // userinfo.php is public, so this never needs the caller's cookie.
+    return await this.Fetch(new URL("https://www.xmoj.tech/userinfo.php?user=" + Username), false)
       .then((Response) => {
         return Response.text();
       }).then((Response) => {
@@ -475,8 +527,36 @@ export class Process {
         return 0;
       });
   }
-  public GetProblemScoreChecker = async (ProblemID: number): Promise<number> => {
-    return await this.GetProblemScore(ProblemID);
+  // Scores only go up, so a cached score that already clears RequiredScore is
+  // final. Anything less needs a fresh scrape of status.php, which needs a login.
+  public GetProblemScoreChecker = async (ProblemID: number, RequiredScore: number): Promise<number> => {
+    const Cached = ThrowErrorIfFailed(await this.XMOJDatabase.Select("problem_score", ["score"], {
+      user_id: this.Username,
+      problem_id: ProblemID
+    })) as Array<Record<string, any>>;
+    const CachedScore: number = Cached.length === 0 ? 0 : Cached[0]["score"];
+    if (CachedScore >= RequiredScore) {
+      return CachedScore;
+    }
+    this.RequireSession();
+    const Score = await this.GetProblemScore(ProblemID);
+    // The cache is an optimisation; a failed or racing write only costs a
+    // re-scrape next time.
+    if (Score > CachedScore) {
+      if (Cached.length === 0) {
+        await this.XMOJDatabase.Insert("problem_score", {
+          user_id: this.Username,
+          problem_id: ProblemID,
+          score: Score
+        });
+      } else {
+        await this.XMOJDatabase.Update("problem_score", {score: Score}, {
+          user_id: this.Username,
+          problem_id: ProblemID
+        });
+      }
+    }
+    return Score;
   }
 
   public processCppString(inputStr: string) {
@@ -1380,9 +1460,12 @@ export class Process {
         }
         return new Result(true, "此题已经有人上传标程");
       }
-      if (await this.GetProblemScoreChecker(ProblemID) !== 100) {
+      if (await this.GetProblemScoreChecker(ProblemID, 100) < 100) {
         return new Result(false, "没有权限上传此标程");
       }
+      // A cached score skips the check above, but the scrapes below still
+      // read xmoj as this user.
+      this.RequireSession();
       let StdCode: string = "";
       let PageIndex: number = 0;
       while (StdCode === "") {
@@ -1475,6 +1558,22 @@ export class Process {
       await RebuildStdList(this.XMOJDatabase, this.kv);
       return new Result(true, "标程上传成功");
     },
+    // Swaps a verified PHPSESSID for a token of ours, so later requests need
+    // neither the cookie nor a round-trip to xmoj.
+    Login: async (Data: object): Promise<Result> => {
+      ThrowErrorIfFailed(this.CheckParams(Data, {}));
+      if (this.SessionID === "") {
+        return new Result(false, "登录需要会话");
+      }
+      return new Result(true, "登录成功", await IssueSessionToken(this.XMOJDatabase, this.Username));
+    },
+    Logout: async (Data: object): Promise<Result> => {
+      ThrowErrorIfFailed(this.CheckParams(Data, {}));
+      if (this.SessionToken !== "") {
+        await RevokeSessionToken(this.XMOJDatabase, this.SessionToken);
+      }
+      return new Result(true, "登出成功");
+    },
     GetStdList: async (Data: object): Promise<Result> => {
       ThrowErrorIfFailed(this.CheckParams(Data, {}));
       const ResponseData = {
@@ -1495,7 +1594,7 @@ export class Process {
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "ProblemID": "number"
       }));
-      if (await this.GetProblemScoreChecker(Data["ProblemID"]) < 50) {
+      if (await this.GetProblemScoreChecker(Data["ProblemID"], 50) < 50) {
         return new Result(false, "没有权限获取此标程");
       }
       const Std = ThrowErrorIfFailed(await this.XMOJDatabase.Select("std_answer", ["std_code"], {
@@ -1963,14 +2062,17 @@ export class Process {
         "Version": "string",
         "DebugMode": "boolean"
       }));
+      // A legacy check can fail on a slow xmoj fetch, so it gets one retry. A
+      // token check is a database lookup and its answer will not change.
       let TokenFailedCount = 0;
       while (true) {
-        if ((await this.CheckToken(RequestJSON["Authentication"])).Data["Success"]) {
+        const TokenResult = await this.CheckToken(RequestJSON["Authentication"]);
+        if (TokenResult.Success) {
           break;
         }
         TokenFailedCount++;
-        if (TokenFailedCount >= 2) {
-          ThrowErrorIfFailed(await this.CheckToken(RequestJSON["Authentication"]));
+        if (TokenFailedCount >= 2 || RequestJSON["Authentication"]["Token"] !== undefined) {
+          ThrowErrorIfFailed(TokenResult);
           break;
         }
       }

@@ -26,3 +26,84 @@ test('RequestLogLine leaves error unset on success', () => {
     const line = RequestLogLine(new Request('https://api.xmoj-script.uk/GetNotice'), 200, 1);
     assert.strictEqual(line.error, undefined);
 });
+
+// ---- Notification WebSocket auth ----
+
+const Worker = require('../Source/index.ts').default;
+const { HashSessionToken } = require('../Source/SessionToken.ts');
+
+// Answers SELECTs on session_token with `tokenRows` and records every query.
+function wsEnvironment(tokenRows = []) {
+    const queries = [];
+    const forwarded = [];
+    const DB = {
+        withSession() { return this; },
+        prepare(q) {
+            return {
+                bind(...args) {
+                    return {
+                        all: async () => {
+                            queries.push({ q, args });
+                            if (q.startsWith('SELECT') && q.includes('session_token')) {
+                                return { results: tokenRows, meta: {} };
+                            }
+                            return { results: [], meta: { last_row_id: 1, changes: 1 } };
+                        }
+                    };
+                }
+            };
+        }
+    };
+    const NOTIFICATIONS = {
+        idFromName: (name) => name,
+        get: () => ({
+            fetch: async (request) => {
+                forwarded.push(new URL(request.url));
+                return new Response('forwarded');
+            }
+        })
+    };
+    return { env: { DB, NOTIFICATIONS }, queries, forwarded };
+}
+
+// profile.php embeds the logged-in user as user_id=<name>'
+const ProfilePage = (user) => new Response("<a href='userinfo.php?user_id=" + user + "'>" + user + "</a>");
+
+test('WebSocket with a token resolves the user without touching xmoj', async (t) => {
+    const xmoj = t.mock.method(global, 'fetch', async () => ProfilePage('mallory'));
+    const { env, forwarded } = wsEnvironment([{ user_id: 'alice', last_used: Date.now() }]);
+    const token = 'b'.repeat(64);
+    await Worker.fetch(new Request('https://api.xmoj-script.uk/ws/notifications?Token=' + token), env);
+    assert.strictEqual(xmoj.mock.calls.length, 0);
+    assert.strictEqual(forwarded[0].searchParams.get('userId'), 'alice');
+    assert.strictEqual(forwarded[0].searchParams.get('Token'), null, 'the token is not passed on');
+});
+
+test('WebSocket with an unknown token is unauthorized', async () => {
+    const { env, forwarded } = wsEnvironment([]);
+    const response = await Worker.fetch(new Request('https://api.xmoj-script.uk/ws/notifications?Token=' + 'c'.repeat(64)), env);
+    assert.strictEqual(response.status, 401);
+    assert.strictEqual(forwarded.length, 0);
+});
+
+test('WebSocket with a PHPSESSID and IssueToken=1 mints a token for the connected message', async (t) => {
+    t.mock.method(global, 'fetch', async () => ProfilePage('alice'));
+    const { env, queries, forwarded } = wsEnvironment();
+    await Worker.fetch(new Request('https://api.xmoj-script.uk/ws/notifications?SessionID=abc123&IssueToken=1'), env);
+    const issued = forwarded[0].searchParams.get('issuedToken');
+    assert.match(issued, /^[0-9a-f]{64}$/);
+    assert.strictEqual(forwarded[0].searchParams.get('SessionID'), null);
+    assert.strictEqual(forwarded[0].searchParams.get('IssueToken'), null);
+    const insert = queries.find((query) => query.q.startsWith('INSERT INTO `session_token`'));
+    assert.ok(insert.args.includes(HashSessionToken(issued)));
+    assert.ok(insert.args.includes('alice'));
+});
+
+test('WebSocket with only a PHPSESSID behaves as before', async (t) => {
+    t.mock.method(global, 'fetch', async () => ProfilePage('alice'));
+    const { env, queries, forwarded } = wsEnvironment();
+    await Worker.fetch(new Request('https://api.xmoj-script.uk/ws/notifications?SessionID=abc123'), env);
+    assert.strictEqual(forwarded[0].searchParams.get('userId'), 'alice');
+    assert.strictEqual(forwarded[0].searchParams.get('issuedToken'), null);
+    assert.strictEqual(queries.length, 0, 'no token minted');
+});
