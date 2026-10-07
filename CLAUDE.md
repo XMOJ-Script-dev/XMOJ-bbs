@@ -91,8 +91,11 @@ NewEndpoint: async (Data: object): Promise<Result> => {
 No routing configuration needed - pathname automatically maps to function name.
 
 #### Authentication
-- Uses `CheckToken` which validates session ID against XMOJ website
-- Session tokens are hashed (SHA3) and cached in `phpsessid` table
+- `CheckToken` accepts either a backend-issued `{Token}` (current clients) or a legacy `{SessionID, Username}` (old clients)
+- `Login` (in `Source/Process.ts`) swaps a verified PHPSESSID for a token issued by `Source/SessionToken.ts`; tokens are stored as SHA3 hashes in `session_token`, expire after 30 days unused, and are revoked by `Logout`. The username always comes from the token row
+- Legacy PHPSESSIDs are validated against the XMOJ website and cached as SHA3 hashes in the `phpsessid` table
+- Token requests carry no PHPSESSID. Code that must scrape xmoj as the user calls `this.RequireSession()` first, which answers `SessionRequired`; the client then retries once with `{Token, SessionID}`. Keep such scrapes rare, since we want to see users' PHPSESSIDs as little as possible
+- `problem_score` caches users' best scores so `GetStd` doesn't need to scrape (and so doesn't need a session) once a score has cleared the threshold
 - Admin users are hardcoded in `AdminUserList` array
 - Use `this.IsAdmin()`, `this.IsSilenced()`, `this.DenyMessage()`, `this.DenyEdit()` for permission checks
 
@@ -117,7 +120,9 @@ Tables use snake_case naming:
 - `short_message`: Encrypted private messages between users
 - `badge`: User badges with custom colors and content
 - `std_answer`: Standard solution codes for problems
-- `phpsessid`: Cached session tokens
+- `phpsessid`: Cached hashes of verified PHPSESSIDs (legacy auth)
+- `session_token`: Hashes of backend-issued session tokens
+- `problem_score`: Best score per user and problem, scraped from XMOJ
 
 ### Testing Conventions
 

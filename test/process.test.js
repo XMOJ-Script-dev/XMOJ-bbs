@@ -1295,3 +1295,249 @@ test('EditBadge refuses the edit when there is no AI at all', async () => {
     assert.strictEqual(result.Success, false);
     assert.strictEqual(result.Message, '内容审核服务暂时不可用，请稍后重试');
 });
+
+// ---- Session tokens ----
+
+const { HashSessionToken } = require('../Source/SessionToken.ts');
+const ValidToken = 'a'.repeat(64);
+
+// Select stub that answers per table, so token lookups and score lookups can
+// be told apart from everything else.
+function selectByTable(tables) {
+    return test.mock.fn(async (table) => new Result(true, '', tables[table] || []));
+}
+
+test('CheckToken with a token takes the username from the token row', async () => {
+    const proc = createProcess({
+        db: { Select: selectByTable({ session_token: [{ user_id: 'alice', last_used: Date.now() }] }) }
+    });
+    proc.Username = '';
+    proc.SessionID = '';
+    const result = await proc.CheckToken({ Token: ValidToken });
+    assert.ok(result.Success);
+    assert.strictEqual(proc.Username, 'alice');
+    assert.strictEqual(proc.SessionID, '', 'a token alone brings no PHPSESSID');
+    assert.strictEqual(proc.Fetch.mock.calls.length, 0, 'no round-trip to xmoj');
+});
+
+test('CheckToken rejects a username sent alongside a token', async () => {
+    const proc = createProcess();
+    await assert.rejects(proc.CheckToken({ Token: ValidToken, Username: 'mallory' }), (thrown) => thrown.Success === false);
+});
+
+test('CheckToken reports an unknown token as invalid', async () => {
+    const proc = createProcess({ db: { Select: selectByTable({}) } });
+    const result = await proc.CheckToken({ Token: ValidToken });
+    assert.strictEqual(result.Success, false);
+    assert.strictEqual(result.Data.TokenInvalid, true);
+});
+
+test('CheckToken reports a malformed token as invalid without a lookup', async () => {
+    const select = selectByTable({});
+    const proc = createProcess({ db: { Select: select } });
+    const result = await proc.CheckToken({ Token: 'not-a-token' });
+    assert.strictEqual(result.Data.TokenInvalid, true);
+    assert.strictEqual(select.mock.calls.length, 0);
+});
+
+test('CheckToken expires and deletes a token unused for 30 days', async () => {
+    const del = test.mock.fn(async () => new Result(true, ''));
+    const proc = createProcess({
+        db: {
+            Select: selectByTable({ session_token: [{ user_id: 'alice', last_used: Date.now() - 1000 * 60 * 60 * 24 * 31 }] }),
+            Delete: del
+        }
+    });
+    const result = await proc.CheckToken({ Token: ValidToken });
+    assert.strictEqual(result.Data.TokenInvalid, true);
+    assert.strictEqual(del.mock.calls[0].arguments[0], 'session_token');
+});
+
+test('CheckToken refreshes last_used at most once a day', async () => {
+    const update = test.mock.fn(async () => new Result(true, ''));
+    const fresh = createProcess({
+        db: { Select: selectByTable({ session_token: [{ user_id: 'alice', last_used: Date.now() - 1000 * 60 }] }), Update: update }
+    });
+    await fresh.CheckToken({ Token: ValidToken });
+    assert.strictEqual(update.mock.calls.length, 0);
+    const stale = createProcess({
+        db: { Select: selectByTable({ session_token: [{ user_id: 'alice', last_used: Date.now() - 1000 * 60 * 60 * 25 }] }), Update: update }
+    });
+    await stale.CheckToken({ Token: ValidToken });
+    assert.strictEqual(update.mock.calls.length, 1);
+    assert.strictEqual(update.mock.calls[0].arguments[0], 'session_token');
+});
+
+test('CheckToken refuses a PHPSESSID that belongs to someone else', async () => {
+    const proc = createProcess({
+        db: { Select: selectByTable({ session_token: [{ user_id: 'alice', last_used: Date.now() }] }) },
+        fetch: async () => new Response("user_id=mallory'")
+    });
+    const result = await proc.CheckToken({ Token: ValidToken, SessionID: 'malloryssession' });
+    assert.strictEqual(result.Success, false);
+    assert.strictEqual(proc.SessionID, '', 'the borrowed cookie must not be kept');
+});
+
+test('CheckToken accepts the token owner\'s own PHPSESSID', async () => {
+    const proc = createProcess({
+        db: { Select: selectByTable({ session_token: [{ user_id: 'alice', last_used: Date.now() }] }) },
+        fetch: async () => new Response("user_id=alice'")
+    });
+    const result = await proc.CheckToken({ Token: ValidToken, SessionID: 'alicessession' });
+    assert.ok(result.Success);
+    assert.strictEqual(proc.Username, 'alice');
+    assert.strictEqual(proc.SessionID, 'alicessession');
+});
+
+test('GetStd asks for a session only when the score is not cached', async () => {
+    const proc = createProcess({ db: { Select: selectByTable({}) } });
+    proc.SessionID = '';
+    await assert.rejects(proc.ProcessFunctions['GetStd']({ ProblemID: 1000 }), (thrown) => {
+        assert.strictEqual(thrown.Data.SessionRequired, true);
+        return true;
+    });
+    assert.strictEqual(proc.Fetch.mock.calls.length, 0);
+});
+
+test('GetStd serves a cached passing score without a session or a scrape', async () => {
+    const proc = createProcess({
+        db: {
+            Select: selectByTable({
+                problem_score: [{ score: 100 }],
+                std_answer: [{ std_code: 'int main(){}' }]
+            })
+        }
+    });
+    proc.SessionID = '';
+    const result = await proc.ProcessFunctions['GetStd']({ ProblemID: 1000 });
+    assert.ok(result.Success);
+    assert.strictEqual(proc.Fetch.mock.calls.length, 0);
+});
+
+test('A scraped score is cached for next time', async () => {
+    const insert = test.mock.fn(async () => new Result(true, '', { InsertID: 1 }));
+    const proc = createProcess({ db: { Select: selectByTable({}), Insert: insert } });
+    proc.GetProblemScore = async () => 100;
+    assert.strictEqual(await proc.GetProblemScoreChecker(1000, 50), 100);
+    assert.strictEqual(insert.mock.calls[0].arguments[0], 'problem_score');
+    assert.deepStrictEqual(insert.mock.calls[0].arguments[1], { user_id: 'testuser', problem_id: 1000, score: 100 });
+});
+
+test('IfUserExist never sends the caller\'s cookie', async () => {
+    const proc = createProcess({
+        db: { GetTableSize: async () => new Result(true, '', { TableSize: 0 }) },
+        fetch: async () => new Response('some content')
+    });
+    await proc.IfUserExist('someone');
+    assert.strictEqual(proc.Fetch.mock.calls[0].arguments[1], false);
+});
+
+test('IfUserExist counts users who only have a session token', async () => {
+    const proc = createProcess({
+        db: { GetTableSize: async (table) => new Result(true, '', { TableSize: table === 'session_token' ? 1 : 0 }) }
+    });
+    const result = await proc.IfUserExist('alice');
+    assert.strictEqual(result.Data.Exist, true);
+    assert.strictEqual(proc.Fetch.mock.calls.length, 0);
+});
+
+test('Login issues a token and stores only its hash', async () => {
+    const insert = test.mock.fn(async () => new Result(true, '', { InsertID: 1 }));
+    const proc = createProcess({ db: { Insert: insert } });
+    const result = await proc.ProcessFunctions['Login']({});
+    assert.ok(result.Success);
+    assert.match(result.Data.Token, /^[0-9a-f]{64}$/);
+    const [table, row] = insert.mock.calls[0].arguments;
+    assert.strictEqual(table, 'session_token');
+    assert.strictEqual(row.user_id, 'testuser');
+    assert.strictEqual(row.token_hash, HashSessionToken(result.Data.Token));
+    assert.ok(!JSON.stringify(row).includes(result.Data.Token));
+});
+
+test('Login refuses a request that only carried a token', async () => {
+    const proc = createProcess();
+    proc.SessionID = '';
+    const result = await proc.ProcessFunctions['Login']({});
+    assert.strictEqual(result.Success, false);
+});
+
+test('Logout revokes the token the request came with', async () => {
+    const del = test.mock.fn(async () => new Result(true, ''));
+    const proc = createProcess({
+        db: { Select: selectByTable({ session_token: [{ user_id: 'alice', last_used: Date.now() }] }), Delete: del }
+    });
+    await proc.CheckToken({ Token: ValidToken });
+    await proc.ProcessFunctions['Logout']({});
+    assert.strictEqual(del.mock.calls[0].arguments[0], 'session_token');
+    assert.deepStrictEqual(del.mock.calls[0].arguments[1], { token_hash: HashSessionToken(ValidToken) });
+});
+
+function apiRequest(path, authentication) {
+    return new Request('https://api.xmoj-script.uk/' + path, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ Authentication: authentication, Data: {}, Version: '4.0.1', DebugMode: false })
+    });
+}
+
+test('Process checks a token once and passes TokenInvalid to the client', async () => {
+    const select = selectByTable({});
+    const proc = createProcess({ db: { Select: select }, req: apiRequest('GetBoards', { Token: ValidToken }) });
+    const body = await (await proc.Process()).json();
+    assert.strictEqual(body.Success, false);
+    assert.strictEqual(body.Data.TokenInvalid, true);
+    assert.strictEqual(select.mock.calls.length, 1, 'no retry for a database answer');
+});
+
+test('Process checks a valid legacy session once, not three times', async () => {
+    const proc = createProcess({
+        db: { Select: async () => new Result(true, '', [{ user_id: 'testuser', create_time: Date.now() }]) },
+        req: apiRequest('GetBoards', { SessionID: 'testsession', Username: 'testuser' })
+    });
+    const check = test.mock.method(proc, 'CheckToken');
+    await proc.Process();
+    assert.strictEqual(check.mock.calls.length, 1);
+});
+
+test('Losing the race to cache a score raises the cached one instead of failing the request', async () => {
+    const update = test.mock.fn(async () => new Result(true, '', { Changes: 1 }));
+    const proc = createProcess({
+        db: {
+            Select: selectByTable({}),
+            Insert: async () => { throw new Result(false, 'UNIQUE constraint failed'); },
+            Update: update
+        }
+    });
+    proc.GetProblemScore = async () => 100;
+    assert.strictEqual(await proc.GetProblemScoreChecker(1000, 50), 100);
+    const [table, data, condition] = update.mock.calls[0].arguments;
+    assert.strictEqual(table, 'problem_score');
+    assert.deepStrictEqual(data, { score: 100 });
+    assert.deepStrictEqual(condition.score, { Operator: '<', Value: 100 }, 'never lowers a cached score');
+});
+
+test('A failed score cache write does not fail the request', async () => {
+    const proc = createProcess({
+        db: {
+            Select: selectByTable({}),
+            Insert: async () => { throw new Result(false, 'db down'); },
+            Update: async () => { throw new Result(false, 'db down'); }
+        }
+    });
+    proc.GetProblemScore = async () => 100;
+    assert.strictEqual(await proc.GetProblemScoreChecker(1000, 50), 100);
+});
+
+test('A score cached by a racing request wins over our older, lower scrape', async () => {
+    let selects = 0;
+    const proc = createProcess({
+        db: {
+            // Empty before the scrape; by the time we write, a racer cached 100.
+            Select: async () => new Result(true, '', selects++ === 0 ? [] : [{ score: 100 }]),
+            Insert: async () => { throw new Result(false, 'UNIQUE constraint failed'); },
+            Update: async () => new Result(true, '', { Changes: 0 })
+        }
+    });
+    proc.GetProblemScore = async () => 40;
+    assert.strictEqual(await proc.GetProblemScoreChecker(1000, 50), 100);
+});
