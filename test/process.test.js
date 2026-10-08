@@ -1563,3 +1563,47 @@ test('LogoutAll still succeeds when the notification socket cannot be reached', 
     const result = await proc.ProcessFunctions['LogoutAll']({});
     assert.ok(result.Success);
 });
+
+// GetImage: image IDs are random and never reused, so a found image can be
+// cached by browsers forever. Without cache headers every page view re-fetched
+// the image through the Worker and the GitHub API (~1-2s each time).
+const ImageID = 'gkjfwuififximrruzslgzskeysazzbgh';
+
+function imageRequest(headers = {}) {
+    return new Request('https://assets.xmoj-script.uk/GetImage?ImageID=' + ImageID, { headers });
+}
+
+test('GetImage marks a found image immutable and streams its bytes', async () => {
+    const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
+    const proc = createProcess({ req: imageRequest(), fetch: async () => new Response(bytes) });
+    const response = await proc.Process();
+    assert.strictEqual(response.status, 200);
+    assert.strictEqual(response.headers.get('content-type'), 'image/png');
+    assert.strictEqual(response.headers.get('cache-control'), 'public, max-age=31536000, immutable');
+    assert.strictEqual(response.headers.get('etag'), '"' + ImageID + '"');
+    assert.deepStrictEqual(new Uint8Array(await response.arrayBuffer()), bytes);
+});
+
+test('GetImage answers a matching If-None-Match with 304 without calling GitHub', async () => {
+    const fetchMock = test.mock.fn(async () => new Response('unexpected'));
+    const proc = createProcess({ req: imageRequest({ 'If-None-Match': '"' + ImageID + '"' }), fetch: fetchMock });
+    const response = await proc.Process();
+    assert.strictEqual(response.status, 304);
+    assert.strictEqual(response.headers.get('etag'), '"' + ImageID + '"');
+    assert.strictEqual(fetchMock.mock.calls.length, 0);
+});
+
+test('GetImage passes a GitHub error through and never caches it', async () => {
+    const proc = createProcess({ req: imageRequest(), fetch: async () => new Response('{"message":"Not Found"}', { status: 404 }) });
+    const response = await proc.Process();
+    assert.strictEqual(response.status, 404);
+    assert.strictEqual(response.headers.get('cache-control'), 'no-store');
+    assert.strictEqual(response.headers.get('etag'), null);
+});
+
+test('GetImage returns 502 without caching when GitHub is unreachable', async () => {
+    const proc = createProcess({ req: imageRequest(), fetch: async () => { throw new TypeError('network down'); } });
+    const response = await proc.Process();
+    assert.strictEqual(response.status, 502);
+    assert.strictEqual(response.headers.get('cache-control'), 'no-store');
+});

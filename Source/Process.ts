@@ -1871,25 +1871,46 @@ export class Process {
         ImageID: ImageID
       });
     },
-    GetImage: async (Data: object): Promise<Blob> => {
+    GetImage: async (Data: object): Promise<Response> => {
       const GithubImageRepo = "XMOJ-Script-dev/XMOJ-Script-Pictures";
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "ImageID": "string"
       }));
-      return await fetch(new URL("https://api.github.com/repos/" + GithubImageRepo + "/contents/" + Data["ImageID"] + "?1=1"), {
-        method: "GET",
-        headers: {
-          "Authorization": "Bearer " + this.GithubImagePAT,
-          "Accept": "application/vnd.github.v3.raw",
-          "User-Agent": "XMOJ-Script-Server"
-        }
-      }).then((Response) => {
-        return Response.blob();
-      }).catch((Error) => {
+      // Image IDs are random and never reused, so a found image can be cached
+      // by browsers forever and revalidated by ID alone. Errors are never
+      // cached, or a transient GitHub failure would stick for a year.
+      const ETag = "\"" + Data["ImageID"] + "\"";
+      const CacheHeaders = {
+        "content-type": "image/png",
+        "cache-control": "public, max-age=31536000, immutable",
+        "etag": ETag
+      };
+      if (this.RequestData.headers.get("If-None-Match") === ETag) {
+        return new Response(null, {status: 304, headers: CacheHeaders});
+      }
+      let GithubResponse: Response;
+      try {
+        GithubResponse = await fetch(new URL("https://api.github.com/repos/" + GithubImageRepo + "/contents/" + Data["ImageID"]), {
+          method: "GET",
+          headers: {
+            "Authorization": "Bearer " + this.GithubImagePAT,
+            "Accept": "application/vnd.github.v3.raw",
+            "User-Agent": "XMOJ-Script-Server"
+          }
+        });
+      } catch (Error) {
         Output.Error("Get image failed: " + Error + "\n" +
           "ImageID : \"" + Data["ImageID"] + "\"\n");
-        return new Blob();
-      });
+        return new Response(null, {status: 502, headers: {"cache-control": "no-store"}});
+      }
+      if (!GithubResponse.ok) {
+        return new Response(GithubResponse.body, {
+          status: GithubResponse.status,
+          headers: {"content-type": "application/json", "cache-control": "no-store"}
+        });
+      }
+      // Stream the bytes through instead of buffering the whole image first.
+      return new Response(GithubResponse.body, {headers: CacheHeaders});
     },
     SendData: async (): Promise<Result> => {
       //instantly return
@@ -2084,12 +2105,8 @@ export class Process {
         throw new Result(false, "访问的页面不存在");
       }
       if (this.RequestData.method === "GET" && PathName === "GetImage") {
-        return new Response(await this.ProcessFunctions[PathName]({
+        return await this.ProcessFunctions[PathName]({
           ImageID: new URL(this.RequestData.url).searchParams.get("ImageID")
-        }), {
-          headers: {
-            "content-type": "image/png"
-          }
         });
       }
       if (this.RequestData.method !== "POST") {
