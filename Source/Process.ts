@@ -1879,13 +1879,22 @@ export class Process {
       // Image IDs are random and never reused, so a found image can be cached
       // by browsers forever and revalidated by ID alone. Errors are never
       // cached, or a transient GitHub failure would stick for a year.
+      // UploadImage only ever issues 32 lowercase letters. Anything else is
+      // rejected before it reaches the PAT-authenticated GitHub URL, where
+      // "../" segments would otherwise resolve to other paths.
+      if (!/^[a-z]{32}$/.test(Data["ImageID"])) {
+        return new Response(null, {status: 400, headers: {"cache-control": "no-store"}});
+      }
       const ETag = "\"" + Data["ImageID"] + "\"";
       const CacheHeaders = {
         "content-type": "image/png",
         "cache-control": "public, max-age=31536000, immutable",
         "etag": ETag
       };
-      if (this.RequestData.headers.get("If-None-Match") === ETag) {
+      // If-None-Match on GET uses weak comparison over a comma-separated list
+      // (RFC 9110 13.1.2), so ignore W/ prefixes; "*" falls through to a 200.
+      const IfNoneMatch = this.RequestData.headers.get("If-None-Match") || "";
+      if (IfNoneMatch.split(",").some((Tag) => Tag.trim().replace(/^W\//, "") === ETag)) {
         return new Response(null, {status: 304, headers: CacheHeaders});
       }
       let GithubResponse: Response;

@@ -1607,3 +1607,27 @@ test('GetImage returns 502 without caching when GitHub is unreachable', async ()
     assert.strictEqual(response.status, 502);
     assert.strictEqual(response.headers.get('cache-control'), 'no-store');
 });
+
+test('GetImage rejects IDs that UploadImage could not have produced, before calling GitHub', async () => {
+    for (const bad of ['..%2F..%2FREADME.md', 'logo', 'ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEF', 'a b', '']) {
+        const fetchMock = test.mock.fn(async () => new Response('unexpected'));
+        const req = new Request('https://assets.xmoj-script.uk/GetImage?ImageID=' + bad);
+        const proc = createProcess({ req, fetch: fetchMock });
+        const response = await proc.Process();
+        assert.strictEqual(response.status, 400, 'ImageID=' + bad);
+        assert.strictEqual(response.headers.get('cache-control'), 'no-store');
+        assert.strictEqual(fetchMock.mock.calls.length, 0, 'ImageID=' + bad);
+    }
+});
+
+test('GetImage If-None-Match uses weak comparison over a tag list', async () => {
+    for (const header of ['W/"' + ImageID + '"', '"other", "' + ImageID + '"', '"x",W/"' + ImageID + '"']) {
+        const fetchMock = test.mock.fn(async () => new Response('unexpected'));
+        const proc = createProcess({ req: imageRequest({ 'If-None-Match': header }), fetch: fetchMock });
+        const response = await proc.Process();
+        assert.strictEqual(response.status, 304, header);
+        assert.strictEqual(fetchMock.mock.calls.length, 0, header);
+    }
+    const proc = createProcess({ req: imageRequest({ 'If-None-Match': '"other"' }), fetch: async () => new Response('png') });
+    assert.strictEqual((await proc.Process()).status, 200);
+});
