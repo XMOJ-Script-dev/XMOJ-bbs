@@ -1879,14 +1879,22 @@ export class Process {
       // Image IDs are random and never reused, so a found image can be cached
       // by browsers forever and revalidated by ID alone. Errors are never
       // cached, or a transient GitHub failure would stick for a year.
-      // UploadImage only ever issues 32 lowercase letters. Anything else is
-      // rejected before it reaches the PAT-authenticated GitHub URL, where
-      // "../" segments would otherwise resolve to other paths.
-      if (!/^[a-z]{32}$/.test(Data["ImageID"])) {
+      // UploadImage only ever issues 32 lowercase letters; "logo" and
+      // "logo.png" are the project logo, kept in the pictures repo so it can
+      // be linked through GetImage. Anything else is rejected before it
+      // reaches the PAT-authenticated GitHub URL, where "../" segments would
+      // otherwise resolve to other paths.
+      const IsLogo = Data["ImageID"] === "logo" || Data["ImageID"] === "logo.png";
+      if (!IsLogo && !/^[a-z]{32}$/.test(Data["ImageID"])) {
         return new Response(null, {status: 400, headers: {"cache-control": "no-store"}});
       }
       const ETag = "\"" + Data["ImageID"] + "\"";
-      const CacheHeaders = {
+      // The logo can be replaced in place, so it gets a day of caching and no
+      // ID-based ETag; only random upload IDs are immutable.
+      const CacheHeaders: Record<string, string> = IsLogo ? {
+        "content-type": "image/png",
+        "cache-control": "public, max-age=86400"
+      } : {
         "content-type": "image/png",
         "cache-control": "public, max-age=31536000, immutable",
         "etag": ETag
@@ -1894,7 +1902,7 @@ export class Process {
       // If-None-Match on GET uses weak comparison over a comma-separated list
       // (RFC 9110 13.1.2), so ignore W/ prefixes; "*" falls through to a 200.
       const IfNoneMatch = this.RequestData.headers.get("If-None-Match") || "";
-      if (IfNoneMatch.split(",").some((Tag) => Tag.trim().replace(/^W\//, "") === ETag)) {
+      if (!IsLogo && IfNoneMatch.split(",").some((Tag) => Tag.trim().replace(/^W\//, "") === ETag)) {
         return new Response(null, {status: 304, headers: CacheHeaders});
       }
       let GithubResponse: Response;

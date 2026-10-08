@@ -1609,7 +1609,7 @@ test('GetImage returns 502 without caching when GitHub is unreachable', async ()
 });
 
 test('GetImage rejects IDs that UploadImage could not have produced, before calling GitHub', async () => {
-    for (const bad of ['..%2F..%2FREADME.md', 'logo', 'ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEF', 'a b', '']) {
+    for (const bad of ['..%2F..%2FREADME.md', 'README.md', 'logo.svg', 'ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEF', 'a b', '']) {
         const fetchMock = test.mock.fn(async () => new Response('unexpected'));
         const req = new Request('https://assets.xmoj-script.uk/GetImage?ImageID=' + bad);
         const proc = createProcess({ req, fetch: fetchMock });
@@ -1630,4 +1630,27 @@ test('GetImage If-None-Match uses weak comparison over a tag list', async () => 
     }
     const proc = createProcess({ req: imageRequest({ 'If-None-Match': '"other"' }), fetch: async () => new Response('png') });
     assert.strictEqual((await proc.Process()).status, 200);
+});
+
+test('GetImage serves the project logo by its fixed IDs', async () => {
+    for (const id of ['logo', 'logo.png']) {
+        const fetchMock = test.mock.fn(async () => new Response('png'));
+        const req = new Request('https://assets.xmoj-script.uk/GetImage?ImageID=' + id);
+        const proc = createProcess({ req, fetch: fetchMock });
+        const response = await proc.Process();
+        assert.strictEqual(response.status, 200, id);
+        assert.strictEqual(fetchMock.mock.calls.length, 1, id);
+        assert.ok(String(fetchMock.mock.calls[0].arguments[0]).endsWith('/contents/' + id), id);
+    }
+});
+
+test('GetImage does not pin the logo forever: it can be replaced, unlike random IDs', async () => {
+    const fetchMock = test.mock.fn(async () => new Response('png'));
+    const req = new Request('https://assets.xmoj-script.uk/GetImage?ImageID=logo.png', { headers: { 'If-None-Match': '"logo.png"' } });
+    const proc = createProcess({ req, fetch: fetchMock });
+    const response = await proc.Process();
+    assert.strictEqual(response.status, 200);
+    assert.strictEqual(fetchMock.mock.calls.length, 1);
+    assert.strictEqual(response.headers.get('cache-control'), 'public, max-age=86400');
+    assert.strictEqual(response.headers.get('etag'), null);
 });
