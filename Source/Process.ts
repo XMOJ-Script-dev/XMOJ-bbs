@@ -225,6 +225,17 @@ export const RebuildStdList = async (XMOJDatabase: Database, kv: KVNamespace): P
   return List;
 };
 
+const MentionConcurrency = 4;
+
+// A Promise.allSettled outcome as its value, or its failure rethrown. Lets
+// lookups run side by side while failures are still reported in a chosen order.
+const Settled = <T>(Outcome: PromiseSettledResult<T>): T => {
+  if (Outcome.status === "rejected") {
+    throw Outcome.reason;
+  }
+  return Outcome.value;
+};
+
 export class Process {
   private AdminUserList: Array<string> = ["chenlangning", "shanwenxiao", "zhuchenrui2","liushangchen"];
   // noinspection JSMismatchedCollectionQueryUpdate
@@ -434,13 +445,28 @@ export class Process {
   public IfUserExistChecker = async (Username: string): Promise<Result> => {
     return this.IfUserExist(Username);
   }
-  // The distinct @-mentioned users in Content that exist. Each check can be a
-  // fetch to xmoj, so they run side by side instead of one after another.
+  // Runs Task over Items with at most MentionConcurrency in flight, keeping
+  // results in order. Content can hold any number of @names, each worth a few
+  // queries and maybe a fetch to xmoj, so firing them all at once would let one
+  // request launch a burst proportional to its input.
+  private MapBounded = async <T, R>(Items: Array<T>, Task: (Item: T) => Promise<R>): Promise<Array<R>> => {
+    const Results = new Array<R>(Items.length);
+    let Next = 0;
+    const Worker = async () => {
+      while (Next < Items.length) {
+        const Index = Next++;
+        Results[Index] = await Task(Items[Index]);
+      }
+    };
+    await Promise.all(Array.from({length: Math.min(MentionConcurrency, Items.length)}, Worker));
+    return Results;
+  }
+  // The distinct @-mentioned users in Content that exist.
   private FindMentionedUsers = async (Content: string): Promise<Array<string>> => {
     // @ts-ignore
     const Candidates = Array.from(new Set(Array.from(String(Content).matchAll(/@([a-zA-Z0-9]+)/g), (Match) => Match[1]))) as Array<string>;
-    const Exists = await Promise.all(Candidates.map(async (Candidate) =>
-      ThrowErrorIfFailed(await this.IfUserExistChecker(Candidate))["Exist"]));
+    const Exists = await this.MapBounded(Candidates, async (Candidate) =>
+      ThrowErrorIfFailed(await this.IfUserExistChecker(Candidate))["Exist"]);
     return Candidates.filter((_, Index) => Exists[Index]);
   }
   public IsAdmin = (): boolean => {
@@ -778,11 +804,13 @@ export class Process {
         "BoardID": "number"
       }));
       // The board lookup is a read, so it goes out alongside the captcha check.
-      const [CaptchaResult, BoardResult] = await Promise.all([
+      // allSettled, so a failed lookup can't hide a failed captcha.
+      const [CaptchaOutcome, BoardOutcome] = await Promise.allSettled([
         this.VerifyCaptcha(Data["CaptchaSecretKey"]),
         Data["BoardID"] !== 0 ? this.XMOJDatabase.GetTableSize("bbs_board", {board_id: Data["BoardID"]}) : null
       ]);
-      ThrowErrorIfFailed(CaptchaResult);
+      ThrowErrorIfFailed(Settled(CaptchaOutcome));
+      const BoardResult = Settled(BoardOutcome);
       if (Data["Title"].trim() === "") {
         return new Result(false, "标题不能为空");
       }
@@ -823,14 +851,16 @@ export class Process {
         "CaptchaSecretKey": "string"
       }));
       // These lookups are reads, so they can go out alongside the captcha check
-      // instead of after it. Failures are still reported captcha first.
-      const [CaptchaResult, PostResult, LockResult] = await Promise.all([
+      // instead of after it. allSettled, so failures are still reported captcha
+      // first: a failed lookup can't hide a failed captcha.
+      const [CaptchaOutcome, PostOutcome, LockOutcome] = await Promise.allSettled([
         this.VerifyCaptcha(Data["CaptchaSecretKey"]),
         this.XMOJDatabase.Select("bbs_post", ["title", "user_id", "board_id"], {post_id: Data["PostID"]}),
         this.XMOJDatabase.GetTableSize("bbs_lock", {post_id: Data["PostID"]})
       ]);
-      ThrowErrorIfFailed(CaptchaResult);
-      const Post = ThrowErrorIfFailed(PostResult);
+      ThrowErrorIfFailed(Settled(CaptchaOutcome));
+      const Post = ThrowErrorIfFailed(Settled(PostOutcome));
+      const LockResult = Settled(LockOutcome);
       if (Post.toString() == "") {
         return new Result(false, "该讨论不存在");
       }
@@ -862,8 +892,8 @@ export class Process {
 
       // The post's author is told too. A Set, because two concurrent calls for
       // the same person would both see no row and insert one each.
-      await Promise.all(Array.from(new Set([...MentionPeople, Post[0]["user_id"]]))
-        .map((Person) => this.AddBBSMention(Person, Data["PostID"], ReplyID)));
+      await this.MapBounded(Array.from(new Set([...MentionPeople, Post[0]["user_id"]])),
+        (Person) => this.AddBBSMention(Person, Data["PostID"], ReplyID));
 
       return new Result(true, "创建回复成功", {
         ReplyID: ReplyID
@@ -1138,7 +1168,7 @@ export class Process {
       }, {
         reply_id: Data["ReplyID"]
       });
-      await Promise.all(MentionPeople.map((Person) => this.AddBBSMention(Person, Reply[0]["post_id"], Data["ReplyID"])));
+      await this.MapBounded(MentionPeople, (Person) => this.AddBBSMention(Person, Reply[0]["post_id"], Data["ReplyID"]));
       return new Result(true, "编辑回复成功");
     },
     DeletePost: async (Data: object, CheckUserID: boolean = true): Promise<Result> => {

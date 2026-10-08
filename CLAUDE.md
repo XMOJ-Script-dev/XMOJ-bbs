@@ -140,7 +140,7 @@ Tables use snake_case naming:
 - **CORS/Headers**: Requests to XMOJ mimic real browser headers for compatibility
 - **Captcha**: Cloudflare Turnstile used for post/reply creation
 - **Content Moderation**: AI model checks badge content for negative sentiment
-- **Round Trips**: Workers often run far from the D1 primary (APAC), so each query costs tens of milliseconds while SQL itself takes well under one. Never query in a loop: fold N+1 lookups into one SQL statement, use `batch()` for independent statements, and `Promise.all` for independent fetches
+- **Round Trips**: Workers often run far from the D1 primary (APAC), so each query costs tens of milliseconds while SQL itself takes well under one. Avoid per-item/N+1 queries in loops: fold N+1 lookups into one SQL statement, use `batch()` for independent statements, and `Promise.all` for independent fetches (bounded, when user input sets how many); keep loops where each query depends on the previous result, such as cursor pagination
 - **Cron Jobs**: Daily cleanup of old read messages (5+ days) and expired sessions
 
 ### Language Note

@@ -1613,6 +1613,45 @@ test('NewReply notifies a post author who is also @-mentioned only once', async 
     const mentioned = proc.XMOJDatabase.Insert.mock.calls
         .filter((call) => call.arguments[0] === 'bbs_mention').map((call) => call.arguments[1].to_user_id).sort();
     assert.deepStrictEqual(mentioned, ['alice', 'bob']);
+    const existenceChecks = proc.XMOJDatabase.GetTableSize.mock.calls
+        .filter((call) => call.arguments[0] === 'phpsessid').map((call) => call.arguments[1].user_id).sort();
+    assert.deepStrictEqual(existenceChecks, ['alice', 'bob'], 'one existence check per distinct name');
+});
+
+test('NewReply reports a failed captcha even when a lookup beside it fails', async () => {
+    const proc = createProcess({
+        db: { Select: async () => { throw new Result(false, '数据库查询失败：down'); } },
+        fetch: async () => new Response(JSON.stringify({ success: false, 'error-codes': ['invalid-input-response'] }))
+    });
+    await assert.rejects(
+        proc.ProcessFunctions['NewReply']({ PostID: 1, Content: 'hi', CaptchaSecretKey: 'token' }),
+        (error) => /验证没有通过/.test(error.Message)
+    );
+});
+
+test('EditReply checks @-mentioned names at most four at a time', async () => {
+    let inFlight = 0;
+    let peak = 0;
+    const proc = createProcess({
+        db: {
+            Select: async () => new Result(true, '', [{ post_id: 1, user_id: 'testuser' }]),
+            GetTableSize: async (table) => {
+                if (table === 'phpsessid') {
+                    inFlight++;
+                    peak = Math.max(peak, inFlight);
+                    await new Promise((resolve) => setTimeout(resolve, 1));
+                    inFlight--;
+                    return new Result(true, '', { TableSize: 0 });
+                }
+                return new Result(true, '', { TableSize: table === 'bbs_post' ? 1 : 0 });
+            }
+        },
+        fetch: async () => new Response('No such User!')
+    });
+    const names = Array.from({ length: 20 }, (_, i) => '@user' + i).join(' ');
+    const result = await proc.ProcessFunctions['EditReply']({ ReplyID: 1, Content: names });
+    assert.ok(result.Success);
+    assert.strictEqual(peak, 4);
 });
 
 test('GetPosts reads the count and the page in one batch', async () => {
