@@ -1871,25 +1871,63 @@ export class Process {
         ImageID: ImageID
       });
     },
-    GetImage: async (Data: object): Promise<Blob> => {
+    GetImage: async (Data: object): Promise<Response> => {
       const GithubImageRepo = "XMOJ-Script-dev/XMOJ-Script-Pictures";
       ThrowErrorIfFailed(this.CheckParams(Data, {
         "ImageID": "string"
       }));
-      return await fetch(new URL("https://api.github.com/repos/" + GithubImageRepo + "/contents/" + Data["ImageID"] + "?1=1"), {
-        method: "GET",
-        headers: {
-          "Authorization": "Bearer " + this.GithubImagePAT,
-          "Accept": "application/vnd.github.v3.raw",
-          "User-Agent": "XMOJ-Script-Server"
-        }
-      }).then((Response) => {
-        return Response.blob();
-      }).catch((Error) => {
+      // Image IDs are random and never reused, so a found image can be cached
+      // by browsers forever and revalidated by ID alone. Errors are never
+      // cached, or a transient GitHub failure would stick for a year.
+      // UploadImage only ever issues 32 lowercase letters; "logo" and
+      // "logo.png" are the project logo, kept in the pictures repo so it can
+      // be linked through GetImage. Anything else is rejected before it
+      // reaches the PAT-authenticated GitHub URL, where "../" segments would
+      // otherwise resolve to other paths.
+      const IsLogo = Data["ImageID"] === "logo" || Data["ImageID"] === "logo.png";
+      if (!IsLogo && !/^[a-z]{32}$/.test(Data["ImageID"])) {
+        return new Response(null, {status: 400, headers: {"cache-control": "no-store"}});
+      }
+      const ETag = "\"" + Data["ImageID"] + "\"";
+      // The logo can be replaced in place, so it gets a day of caching and no
+      // ID-based ETag; only random upload IDs are immutable.
+      const CacheHeaders: Record<string, string> = IsLogo ? {
+        "content-type": "image/png",
+        "cache-control": "public, max-age=86400"
+      } : {
+        "content-type": "image/png",
+        "cache-control": "public, max-age=31536000, immutable",
+        "etag": ETag
+      };
+      // If-None-Match on GET uses weak comparison over a comma-separated list
+      // (RFC 9110 13.1.2), so ignore W/ prefixes; "*" falls through to a 200.
+      const IfNoneMatch = this.RequestData.headers.get("If-None-Match") || "";
+      if (!IsLogo && IfNoneMatch.split(",").some((Tag) => Tag.trim().replace(/^W\//, "") === ETag)) {
+        return new Response(null, {status: 304, headers: CacheHeaders});
+      }
+      let GithubResponse: Response;
+      try {
+        GithubResponse = await fetch(new URL("https://api.github.com/repos/" + GithubImageRepo + "/contents/" + Data["ImageID"]), {
+          method: "GET",
+          headers: {
+            "Authorization": "Bearer " + this.GithubImagePAT,
+            "Accept": "application/vnd.github.v3.raw",
+            "User-Agent": "XMOJ-Script-Server"
+          }
+        });
+      } catch (Error) {
         Output.Error("Get image failed: " + Error + "\n" +
           "ImageID : \"" + Data["ImageID"] + "\"\n");
-        return new Blob();
-      });
+        return new Response(null, {status: 502, headers: {"cache-control": "no-store"}});
+      }
+      if (!GithubResponse.ok) {
+        return new Response(GithubResponse.body, {
+          status: GithubResponse.status,
+          headers: {"content-type": "application/json", "cache-control": "no-store"}
+        });
+      }
+      // Stream the bytes through instead of buffering the whole image first.
+      return new Response(GithubResponse.body, {headers: CacheHeaders});
     },
     SendData: async (): Promise<Result> => {
       //instantly return
@@ -2084,12 +2122,8 @@ export class Process {
         throw new Result(false, "访问的页面不存在");
       }
       if (this.RequestData.method === "GET" && PathName === "GetImage") {
-        return new Response(await this.ProcessFunctions[PathName]({
+        return await this.ProcessFunctions[PathName]({
           ImageID: new URL(this.RequestData.url).searchParams.get("ImageID")
-        }), {
-          headers: {
-            "content-type": "image/png"
-          }
         });
       }
       if (this.RequestData.method !== "POST") {
