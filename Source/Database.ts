@@ -46,11 +46,11 @@ export class Database {
     }
   }
 
-  public async Insert(Table: string, Data: object): Promise<Result> {
+  public async Insert(Table: string, Data: object, OrReplace: boolean = false): Promise<Result> {
     if (readonly) {
       return new Result(false, "数据库只读模式，无法写入");
     }
-    let QueryString = "INSERT INTO `" + Table + "` (";
+    let QueryString = (OrReplace ? "INSERT OR REPLACE INTO `" : "INSERT INTO `") + Table + "` (";
     for (let i in Data) {
       QueryString += "`" + i + "`, ";
     }

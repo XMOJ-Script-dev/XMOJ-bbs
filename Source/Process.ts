@@ -225,6 +225,17 @@ export const RebuildStdList = async (XMOJDatabase: Database, kv: KVNamespace): P
   return List;
 };
 
+const MentionConcurrency = 4;
+
+// A Promise.allSettled outcome as its value, or its failure rethrown. Lets
+// lookups run side by side while failures are still reported in a chosen order.
+const Settled = <T>(Outcome: PromiseSettledResult<T>): T => {
+  if (Outcome.status === "rejected") {
+    throw Outcome.reason;
+  }
+  return Outcome.value;
+};
+
 export class Process {
   private AdminUserList: Array<string> = ["chenlangning", "shanwenxiao", "zhuchenrui2","liushangchen"];
   // noinspection JSMismatchedCollectionQueryUpdate
@@ -246,6 +257,9 @@ export class Process {
   // only bring one when RequireSession asked for it.
   private SessionID: string = "";
   private SessionToken: string = "";
+  // Set by CheckSessionID: true when its last failure was xmoj not answering,
+  // rather than xmoj saying the session is invalid.
+  private SessionCheckRetryable: boolean = false;
   private readonly RemoteIP: string;
   private XMOJDatabase: Database;
   private readonly logs: AnalyticsEngineDataset;
@@ -358,8 +372,14 @@ export class Process {
       }
     }
 
+    // Only a failed fetch is worth retrying. A page that loaded but names no
+    // user means the session is gone, and asking xmoj again won't change that.
+    this.SessionCheckRetryable = false;
     const SessionUsername: string = await this.Fetch(new URL("https://www.xmoj.tech/template/bs3/profile.php"))
       .then((Response) => {
+        if (!Response.ok) {
+          throw new Error("HTTP " + Response.status);
+        }
         return Response.text();
       }).then((Response) => {
         let SessionUsername = Response.substring(Response.indexOf("user_id=") + 8);
@@ -369,6 +389,7 @@ export class Process {
         Output.Error("Check token failed: " + Error + "\n" +
           "Session : \"" + HashedToken.substring(0, 16) + "\"\n" +
           "Username: \"" + this.Username + "\"\n");
+        this.SessionCheckRetryable = true;
         return "";
       });
     if (SessionUsername == "") {
@@ -383,18 +404,14 @@ export class Process {
         "Username       : \"" + this.Username + "\"\n");
       return new Result(false, "令牌不匹配");
     }
-    //check if the item already exists in db
-    if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("phpsessid", {
-      token: HashedToken
-    }))["TableSize"] == 0) {
-      ThrowErrorIfFailed(await this.XMOJDatabase.Insert("phpsessid", {
-        token: HashedToken,
-        user_id: this.Username,
-        create_time: new Date().getTime()
-      }));
-    } else {
-      Output.Log("token already exists, skipping insert");
-    }
+    // One round trip instead of a count and then an insert. A row can only be
+    // here already if another request recorded it first, and the session was
+    // just verified, so refreshing its create_time is right either way.
+    ThrowErrorIfFailed(await this.XMOJDatabase.Insert("phpsessid", {
+      token: HashedToken,
+      user_id: this.Username,
+      create_time: new Date().getTime()
+    }, true));
     Output.Log("Record session: " + HashedToken.substring(0, 16) + " for " + this.Username);
     return new Result(true, "令牌匹配");
   }
@@ -427,6 +444,30 @@ export class Process {
   }
   public IfUserExistChecker = async (Username: string): Promise<Result> => {
     return this.IfUserExist(Username);
+  }
+  // Runs Task over Items with at most MentionConcurrency in flight, keeping
+  // results in order. Content can hold any number of @names, each worth a few
+  // queries and maybe a fetch to xmoj, so firing them all at once would let one
+  // request launch a burst proportional to its input.
+  private MapBounded = async <T, R>(Items: Array<T>, Task: (Item: T) => Promise<R>): Promise<Array<R>> => {
+    const Results = new Array<R>(Items.length);
+    let Next = 0;
+    const Worker = async () => {
+      while (Next < Items.length) {
+        const Index = Next++;
+        Results[Index] = await Task(Items[Index]);
+      }
+    };
+    await Promise.all(Array.from({length: Math.min(MentionConcurrency, Items.length)}, Worker));
+    return Results;
+  }
+  // The distinct @-mentioned users in Content that exist.
+  private FindMentionedUsers = async (Content: string): Promise<Array<string>> => {
+    // @ts-ignore
+    const Candidates = Array.from(new Set(Array.from(String(Content).matchAll(/@([a-zA-Z0-9]+)/g), (Match) => Match[1]))) as Array<string>;
+    const Exists = await this.MapBounded(Candidates, async (Candidate) =>
+      ThrowErrorIfFailed(await this.IfUserExistChecker(Candidate))["Exist"]);
+    return Candidates.filter((_, Index) => Exists[Index]);
   }
   public IsAdmin = (): boolean => {
     return this.AdminUserList.indexOf(this.Username) !== -1;
@@ -762,7 +803,14 @@ export class Process {
         "CaptchaSecretKey": "string",
         "BoardID": "number"
       }));
-      ThrowErrorIfFailed(await this.VerifyCaptcha(Data["CaptchaSecretKey"]));
+      // The board lookup is a read, so it goes out alongside the captcha check.
+      // allSettled, so a failed lookup can't hide a failed captcha.
+      const [CaptchaOutcome, BoardOutcome] = await Promise.allSettled([
+        this.VerifyCaptcha(Data["CaptchaSecretKey"]),
+        Data["BoardID"] !== 0 ? this.XMOJDatabase.GetTableSize("bbs_board", {board_id: Data["BoardID"]}) : null
+      ]);
+      ThrowErrorIfFailed(Settled(CaptchaOutcome));
+      const BoardResult = Settled(BoardOutcome);
       if (Data["Title"].trim() === "") {
         return new Result(false, "标题不能为空");
       }
@@ -775,9 +823,7 @@ export class Process {
       if (this.IsSilenced()) {
         return new Result(false, "您已被禁言，无法发表讨论");
       }
-      if (Data["BoardID"] !== 0 && ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_board", {
-        board_id: Data["BoardID"]
-      }))["TableSize"] === 0) {
+      if (BoardResult !== null && ThrowErrorIfFailed(BoardResult)["TableSize"] === 0) {
         return new Result(false, "该板块不存在");
       }
       const PostID = ThrowErrorIfFailed(await this.XMOJDatabase.Insert("bbs_post", {
@@ -804,8 +850,17 @@ export class Process {
         "Content": "string",
         "CaptchaSecretKey": "string"
       }));
-      ThrowErrorIfFailed(await this.VerifyCaptcha(Data["CaptchaSecretKey"]));
-      const Post = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_post", ["title", "user_id", "board_id"], {post_id: Data["PostID"]}));
+      // These lookups are reads, so they can go out alongside the captcha check
+      // instead of after it. allSettled, so failures are still reported captcha
+      // first: a failed lookup can't hide a failed captcha.
+      const [CaptchaOutcome, PostOutcome, LockOutcome] = await Promise.allSettled([
+        this.VerifyCaptcha(Data["CaptchaSecretKey"]),
+        this.XMOJDatabase.Select("bbs_post", ["title", "user_id", "board_id"], {post_id: Data["PostID"]}),
+        this.XMOJDatabase.GetTableSize("bbs_lock", {post_id: Data["PostID"]})
+      ]);
+      ThrowErrorIfFailed(Settled(CaptchaOutcome));
+      const Post = ThrowErrorIfFailed(Settled(PostOutcome));
+      const LockResult = Settled(LockOutcome);
       if (Post.toString() == "") {
         return new Result(false, "该讨论不存在");
       }
@@ -814,9 +869,7 @@ export class Process {
         return new Result(false, "此讨论不允许回复");
       }
       //check if the post is locked
-      if (ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("bbs_lock", {
-        post_id: Data["PostID"]
-      }))["TableSize"] === 1 && !this.IsAdmin()) {
+      if (ThrowErrorIfFailed(LockResult)["TableSize"] === 1 && !this.IsAdmin()) {
         return new Result(false, "讨论已被锁定");
       }
       if (this.IsSilenced()) {
@@ -826,14 +879,7 @@ export class Process {
       if (Data["Content"] === "") {
         return new Result(false, "内容不能为空");
       }
-      let MentionPeople = new Array<string>();
-      // @ts-ignore
-      for (const Match of String(Data["Content"]).matchAll(/@([a-zA-Z0-9]+)/g)) {
-        if (ThrowErrorIfFailed(await this.IfUserExistChecker(Match[1]))["Exist"]) {
-          MentionPeople.push(Match[1]);
-        }
-      }
-      MentionPeople = Array.from(new Set(MentionPeople));
+      const MentionPeople = await this.FindMentionedUsers(Data["Content"]);
       if (MentionPeople.length > 3 && !this.IsAdmin()) {
         return new Result(false, "一次最多@3个人");
       }
@@ -844,13 +890,10 @@ export class Process {
         reply_time: new Date().getTime()
       }))["InsertID"];
 
-      for (const Person of MentionPeople) {
-        await this.AddBBSMention(Person, Data["PostID"], ReplyID);
-      }
-
-      if (Post[0]["user_id"] !== this.Username) {
-        await this.AddBBSMention(Post[0]["user_id"], Data["PostID"], ReplyID);
-      }
+      // The post's author is told too. A Set, because two concurrent calls for
+      // the same person would both see no row and insert one each.
+      await this.MapBounded(Array.from(new Set([...MentionPeople, Post[0]["user_id"]])),
+        (Person) => this.AddBBSMention(Person, Data["PostID"], ReplyID));
 
       return new Result(true, "创建回复成功", {
         ReplyID: ReplyID
@@ -873,13 +916,38 @@ export class Process {
         FilterBindData.push(Data["BoardID"]);
       }
 
-      // Count and page query must share this.RawDatabase's session (rather than
-      // this.XMOJDatabase's own session) so D1 read replication reads a
-      // consistent snapshot across both - otherwise the count can observe a
-      // newer version than the page query, corrupting pagination.
-      const PostCount = (await this.RawDatabase.prepare(
-        "SELECT COUNT(*) AS count FROM bbs_post p " + WhereClause + ";"
-      ).bind(...FilterBindData).all())["results"][0]["count"];
+      // Count and page go out as one batch: a single round trip to D1, and a
+      // batch runs as one transaction, so both read the same snapshot even under
+      // read replication - otherwise the count could observe a newer version
+      // than the page query, corrupting pagination. The page is fetched before
+      // we know it is in range; an out-of-range page just comes back empty.
+      //
+      // The last reply is looked up per post through the (post_id, reply_time)
+      // index, and only for the 15 posts on the page. A window over bbs_reply
+      // read every reply on every call.
+      // Clamped because the page is only range-checked after the batch returns, and
+      // a fractional OFFSET is an SQL error rather than an empty page.
+      const BindData: (string | number)[] = [...FilterBindData, 15, Math.max(0, Math.floor(Data["Page"] - 1)) * 15];
+      const [CountResult, PageResult] = await this.RawDatabase.batch([
+        this.RawDatabase.prepare(
+          "SELECT COUNT(*) AS count FROM bbs_post p " + WhereClause + ";"
+        ).bind(...FilterBindData),
+        this.RawDatabase.prepare(
+          "SELECT p.post_id AS post_id, p.user_id AS user_id, p.problem_id AS problem_id, " +
+          "p.title AS title, p.post_time AS post_time, p.board_id AS board_id, " +
+          "b.board_name AS board_name, " +
+          "(SELECT COUNT(*) FROM bbs_reply r WHERE r.post_id = p.post_id) AS reply_count, " +
+          "(SELECT r.user_id FROM bbs_reply r WHERE r.post_id = p.post_id ORDER BY r.reply_time DESC LIMIT 1) AS last_reply_user_id, " +
+          "(SELECT MAX(r.reply_time) FROM bbs_reply r WHERE r.post_id = p.post_id) AS last_reply_time, " +
+          "l.lock_person AS lock_person, l.lock_time AS lock_time " +
+          "FROM bbs_post p " +
+          "LEFT JOIN bbs_board b ON b.board_id = p.board_id " +
+          "LEFT JOIN bbs_lock l ON l.post_id = p.post_id " +
+          WhereClause +
+          "ORDER BY p.post_id DESC LIMIT ? OFFSET ?;"
+        ).bind(...BindData)
+      ]);
+      const PostCount = CountResult["results"][0]["count"];
 
       let ResponseData = {
         Posts: new Array<object>,
@@ -891,31 +959,7 @@ export class Process {
       if (Data["Page"] < 1 || Data["Page"] > ResponseData.PageCount) {
         return new Result(false, "参数页数不在范围1~" + ResponseData.PageCount + "内");
       }
-
-      const BindData: (string | number)[] = [...FilterBindData, 15, (Data["Page"] - 1) * 15];
-
-      // Single query with correlated subqueries/joins instead of 4 extra
-      // round trips per post (was causing an N+1 query bottleneck).
-      const Posts = (await this.RawDatabase.prepare(
-        "SELECT p.post_id AS post_id, p.user_id AS user_id, p.problem_id AS problem_id, " +
-        "p.title AS title, p.post_time AS post_time, p.board_id AS board_id, " +
-        "b.board_name AS board_name, " +
-        "(SELECT COUNT(*) FROM bbs_reply r WHERE r.post_id = p.post_id) AS reply_count, " +
-        "lr.user_id AS last_reply_user_id, lr.reply_time AS last_reply_time, " +
-        "l.lock_person AS lock_person, l.lock_time AS lock_time " +
-        "FROM bbs_post p " +
-        "LEFT JOIN bbs_board b ON b.board_id = p.board_id " +
-        "LEFT JOIN bbs_lock l ON l.post_id = p.post_id " +
-        "LEFT JOIN (" +
-        "  SELECT post_id, user_id, reply_time FROM (" +
-        "    SELECT post_id, user_id, reply_time, " +
-        "           ROW_NUMBER() OVER (PARTITION BY post_id ORDER BY reply_time DESC) AS rn " +
-        "    FROM bbs_reply" +
-        "  ) WHERE rn = 1" +
-        ") lr ON lr.post_id = p.post_id " +
-        WhereClause +
-        "ORDER BY p.post_id DESC LIMIT ? OFFSET ?;"
-      ).bind(...BindData).all())["results"];
+      const Posts = PageResult["results"];
 
       for (const Post of Posts) {
         if (Post["reply_count"] === 0) {
@@ -1116,13 +1160,7 @@ export class Process {
       if (this.IsSilenced()) {
         return new Result(false, "您已被禁言，无法编辑回复");
       }
-      const MentionPeople = new Array<string>();
-      // @ts-ignore
-      for (const Match of String(Data["Content"]).matchAll(/@([a-zA-Z0-9]+)/g)) {
-        if (ThrowErrorIfFailed(await this.IfUserExistChecker(Match[1]))["Exist"]) {
-          MentionPeople.push(Match[1]);
-        }
-      }
+      const MentionPeople = await this.FindMentionedUsers(Data["Content"]);
       await this.XMOJDatabase.Update("bbs_reply", {
         content: Data["Content"],
         edit_time: new Date().getTime(),
@@ -1130,9 +1168,7 @@ export class Process {
       }, {
         reply_id: Data["ReplyID"]
       });
-      for (const Person of MentionPeople) {
-        await this.AddBBSMention(Person, Reply[0]["post_id"], Data["ReplyID"]);
-      }
+      await this.MapBounded(MentionPeople, (Person) => this.AddBBSMention(Person, Reply[0]["post_id"], Data["ReplyID"]));
       return new Result(true, "编辑回复成功");
     },
     DeletePost: async (Data: object, CheckUserID: boolean = true): Promise<Result> => {
@@ -1153,14 +1189,7 @@ export class Process {
       if (!this.IsAdmin() && CheckUserID && Post[0]["user_id"] !== this.Username) {
         return new Result(false, "没有权限删除此讨论");
       }
-      const Replies = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_reply", ["reply_id"], {
-        post_id: Data["PostID"]
-      }));
-      for (const Reply of Replies) {
-        await this.XMOJDatabase.Delete("bbs_reply", {
-          reply_id: Reply["reply_id"]
-        });
-      }
+      await this.XMOJDatabase.Delete("bbs_reply", {post_id: Data["PostID"]});
       await this.XMOJDatabase.Delete("bbs_post", {post_id: Data["PostID"]});
       return new Result(true, "删除讨论成功");
     },
@@ -1193,23 +1222,23 @@ export class Process {
       const ResponseData = {
         MentionList: new Array<object>()
       };
-      const Mentions = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_mention", ["bbs_mention_id", "post_id", "bbs_mention_time", "reply_id"], {
-        to_user_id: this.Username
-      }));
+      // One query rather than two more round trips per mention. The inner join
+      // drops mentions whose post is gone, as the old per-row lookup did.
+      const Mentions = (await this.RawDatabase.prepare(
+        "SELECT m.bbs_mention_id AS bbs_mention_id, m.post_id AS post_id, " +
+        "m.bbs_mention_time AS bbs_mention_time, p.title AS title, " +
+        "(SELECT COUNT(*) + 1 FROM bbs_reply r WHERE r.post_id = m.post_id AND " +
+        "r.reply_time < (SELECT reply_time FROM bbs_reply WHERE reply_id = m.reply_id)) AS position " +
+        "FROM bbs_mention m JOIN bbs_post p ON p.post_id = m.post_id " +
+        "WHERE m.to_user_id = ? ORDER BY m.bbs_mention_id;"
+      ).bind(this.Username).all())["results"];
       for (const Mention of Mentions) {
-        const Post = ThrowErrorIfFailed(await this.XMOJDatabase.Select("bbs_post", ["user_id", "title"], {post_id: Mention["post_id"]}));
-        if (Post.toString() === "") {
-          continue;
-        }
-        //Calculate the page number
-        const totalRepliesBefore = (await this.RawDatabase.prepare("SELECT COUNT(*) + 1 AS position FROM bbs_reply WHERE post_id = $1 AND reply_time < (SELECT reply_time FROM bbs_reply WHERE reply_id = $2)").bind(Mention["post_id"], Mention["reply_id"]).run())['results'][0]['position'];
-        const pageNumber = Math.floor(Number(totalRepliesBefore) / 15) + 1;
         ResponseData.MentionList.push({
           MentionID: Mention["bbs_mention_id"],
           PostID: Mention["post_id"],
-          PostTitle: Post[0]["title"],
+          PostTitle: Mention["title"],
           MentionTime: Mention["bbs_mention_time"],
-          PageNumber: pageNumber
+          PageNumber: Math.floor(Number(Mention["position"]) / 15) + 1
         });
       }
       return new Result(true, "获得讨论提及列表成功", ResponseData);
@@ -1282,42 +1311,24 @@ export class Process {
       const ResponseData = {
         MailList: new Array<object>()
       };
-      let OtherUsernameList = new Array<string>();
-      let Mails = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message", ["message_from"], {message_to: this.Username}, {}, true));
-      for (const Mail of Mails) {
-        OtherUsernameList.push(Mail["message_from"]);
-      }
-      Mails = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message", ["message_to"], {message_from: this.Username}, {}, true));
-      for (const Mail of Mails) {
-        OtherUsernameList.push(Mail["message_to"]);
-      }
-      OtherUsernameList = Array.from(new Set(OtherUsernameList));
-      for (const OtherUsername of OtherUsernameList) {
-        const LastMessageFrom = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message", ["content", "send_time", "message_from", "message_to"], {
-          message_from: OtherUsername,
-          message_to: this.Username
-        }, {
-          Order: "send_time",
-          OrderIncreasing: false,
-          Limit: 1
-        }));
-        const LastMessageTo = ThrowErrorIfFailed(await this.XMOJDatabase.Select("short_message", ["content", "send_time", "message_from", "message_to"], {
-          message_from: this.Username,
-          message_to: OtherUsername
-        }, {
-          Order: "send_time",
-          OrderIncreasing: false,
-          Limit: 1
-        }));
-        let LastMessage: object;
-        if (LastMessageFrom.toString() === "") {
-          LastMessage = LastMessageTo;
-
-        } else if (LastMessageTo.toString() === "") {
-          LastMessage = LastMessageFrom;
-        } else {
-          LastMessage = LastMessageFrom[0]["send_time"] > LastMessageTo[0]["send_time"] ? LastMessageFrom : LastMessageTo;
-        }
+      // One query for every conversation: its latest message and how many the
+      // user hasn't read. It used to be two queries plus three more per person,
+      // all one after another.
+      const Conversations = (await this.RawDatabase.prepare(
+        "SELECT other_user, content, send_time, message_from, message_to, unread_count FROM (" +
+        "  SELECT other_user, content, send_time, message_from, message_to, " +
+        "         ROW_NUMBER() OVER (PARTITION BY other_user ORDER BY send_time DESC, message_from = ? DESC) AS rn, " +
+        "         SUM(message_to = ? AND is_read = 0) OVER (PARTITION BY other_user) AS unread_count " +
+        "  FROM (" +
+        "    SELECT CASE WHEN message_from = ? THEN message_to ELSE message_from END AS other_user, " +
+        "           content, send_time, message_from, message_to, is_read " +
+        "    FROM short_message WHERE message_from = ? OR message_to = ?" +
+        "  )" +
+        ") WHERE rn = 1;"
+      ).bind(this.Username, this.Username, this.Username, this.Username, this.Username).all())["results"];
+      for (const Conversation of Conversations) {
+        const OtherUsername = Conversation["other_user"];
+        const LastMessage = [Conversation];
         if (LastMessage[0]["content"].startsWith("Begin xssmseetee v2 encrypted message")) {
           try {
             const bytes = CryptoJS.AES.decrypt(LastMessage[0]["content"].substring(37), this.shortMessageEncryptKey_v1 + LastMessage[0]["message_from"] + LastMessage[0]["message_to"]);
@@ -1336,16 +1347,11 @@ export class Process {
           let preContent = LastMessage[0]["content"];
           LastMessage[0]["content"] = "无法解密消息, 原始数据: " + preContent;
         }
-        const UnreadCount = ThrowErrorIfFailed(await this.XMOJDatabase.GetTableSize("short_message", {
-          message_from: OtherUsername,
-          message_to: this.Username,
-          is_read: 0
-        }));
         ResponseData.MailList.push({
           OtherUser: OtherUsername,
           LastsMessage: LastMessage[0]["content"],
           SendTime: LastMessage[0]["send_time"],
-          UnreadCount: UnreadCount["TableSize"]
+          UnreadCount: Conversation["unread_count"]
         });
       }
       ResponseData.MailList.sort((a, b) => {
@@ -2144,8 +2150,9 @@ export class Process {
         "Version": "string",
         "DebugMode": "boolean"
       }));
-      // A legacy check can fail on a slow xmoj fetch, so it gets one retry. A
-      // token check is a database lookup and its answer will not change.
+      // A legacy check can fail on a slow xmoj fetch, so that gets one retry.
+      // Nothing else does: a token check is a database lookup, and a session
+      // xmoj has already rejected won't come back on a second look.
       let TokenFailedCount = 0;
       while (true) {
         const TokenResult = await this.CheckToken(RequestJSON["Authentication"]);
@@ -2153,7 +2160,7 @@ export class Process {
           break;
         }
         TokenFailedCount++;
-        if (TokenFailedCount >= 2 || RequestJSON["Authentication"]["Token"] !== undefined) {
+        if (TokenFailedCount >= 2 || RequestJSON["Authentication"]["Token"] !== undefined || !this.SessionCheckRetryable) {
           ThrowErrorIfFailed(TokenResult);
           break;
         }
